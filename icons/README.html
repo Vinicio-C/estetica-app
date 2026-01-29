@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerando Ícones PWA</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #F5E6D3 0%, #E8D5C4 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(212, 175, 55, 0.2);
+        }
+        h1 {
+            color: #D4AF37;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #B8941E;
+            font-size: 1.5rem;
+            margin-top: 30px;
+        }
+        p, li {
+            line-height: 1.8;
+            color: #333;
+        }
+        code {
+            background: #F5E6D3;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #B8941E;
+        }
+        .note {
+            background: #FFF9E6;
+            border-left: 4px solid #D4AF37;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        a {
+            color: #D4AF37;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Gerando Ícones PWA para Estética Premium</h1>
+        
+        <p>Para que o aplicativo funcione perfeitamente como PWA no iPhone, você precisa gerar os ícones nas seguintes dimensões:</p>
+        
+        <h2>📱 Tamanhos Necessários:</h2>
+        <ul>
+            <li>72x72 pixels (icon-72.png)</li>
+            <li>96x96 pixels (icon-96.png)</li>
+            <li>128x128 pixels (icon-128.png)</li>
+            <li>144x144 pixels (icon-144.png)</li>
+            <li>152x152 pixels (icon-152.png)</li>
+            <li>180x180 pixels (icon-180.png) - <strong>iOS específico</strong></li>
+            <li>192x192 pixels (icon-192.png)</li>
+            <li>384x384 pixels (icon-384.png)</li>
+            <li>512x512 pixels (icon-512.png)</li>
+        </ul>
+        
+        <h2>🛠️ Como Gerar os Ícones:</h2>
+        
+        <div class="note">
+            <strong>Opção 1: Usando o arquivo SVG fornecido</strong>
+            <p>Use o arquivo <code>icons/icon.svg</code> como base e exporte em diferentes tamanhos usando:</p>
+            <ul>
+                <li><a href="https://www.figma.com" target="_blank">Figma</a> (gratuito)</li>
+                <li><a href="https://www.adobe.com/products/illustrator.html" target="_blank">Adobe Illustrator</a></li>
+                <li><a href="https://inkscape.org" target="_blank">Inkscape</a> (gratuito)</li>
+            </ul>
+        </div>
+        
+        <div class="note">
+            <strong>Opção 2: Gerador Online Automático</strong>
+            <p>Use ferramentas online para gerar todos os tamanhos automaticamente:</p>
+            <ul>
+                <li><a href="https://realfavicongenerator.net" target="_blank">RealFaviconGenerator.net</a> - Recomendado!</li>
+                <li><a href="https://www.pwabuilder.com/imageGenerator" target="_blank">PWA Builder Image Generator</a></li>
+            </ul>
+        </div>
+        
+        <h2>🎨 Design do Ícone:</h2>
+        <p>O ícone deve seguir a identidade visual do app:</p>
+        <ul>
+            <li><strong>Cores:</strong> Gradiente dourado (#D4AF37 → #E8C4B0)</li>
+            <li><strong>Tema:</strong> Spa/Estética (flor de lótus, folhas, elementos de bem-estar)</li>
+            <li><strong>Estilo:</strong> Elegante, minimalista, sofisticado</li>
+            <li><strong>Fundo:</strong> Sem transparência (usar gradiente dourado)</li>
+        </ul>
+        
+        <h2>📂 Onde Salvar:</h2>
+        <p>Salve todos os ícones na pasta <code>/icons/</code> com os nomes corretos:</p>
+        <ul>
+            <li>icon-72.png</li>
+            <li>icon-96.png</li>
+            <li>icon-128.png</li>
+            <li>... e assim por diante</li>
+        </ul>
+        
+        <div class="note">
+            <strong>⚠️ Importante para iOS:</strong>
+            <p>O ícone de 180x180 pixels (<code>icon-180.png</code>) é especialmente importante para iPhones e iPads. Certifique-se de que este esteja presente e bem desenhado!</p>
+        </div>
+        
+        <h2>✅ Testando o PWA no iPhone:</h2>
+        <ol>
+            <li>Abra o app no Safari</li>
+            <li>Toque no botão de compartilhar (📤)</li>
+            <li>Selecione "Adicionar à Tela de Início"</li>
+            <li>O ícone aparecerá na tela inicial do iPhone como um app nativo!</li>
+        </ol>
+        
+        <div class="note">
+            <strong>🚀 Próximos Passos:</strong>
+            <p>Após gerar os ícones:</p>
+            <ol>
+                <li>Faça upload de todos os arquivos PNG na pasta <code>/icons/</code></li>
+                <li>Teste o aplicativo em modo PWA</li>
+                <li>Verifique se o ícone aparece corretamente na tela inicial</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

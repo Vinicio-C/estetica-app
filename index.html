@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Estética Premium">
+    <meta name="theme-color" content="#D4AF37">
+    
+    <title>Estética Premium - Gestão Profissional</title>
+    
+    <!-- PWA Icons -->
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <i class="fas fa-spa loading-icon"></i>
+            <h2>Estética Premium</h2>
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <!-- Sidebar Menu -->
+    <nav id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-spa"></i>
+            <h2>Estética Premium</h2>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li class="menu-item active" data-page="dashboard">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </li>
+            <li class="menu-item" data-page="clientes">
+                <i class="fas fa-users"></i>
+                <span>Clientes</span>
+            </li>
+            <li class="menu-item" data-page="agenda">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Agenda</span>
+            </li>
+            <li class="menu-item" data-page="servicos">
+                <i class="fas fa-concierge-bell"></i>
+                <span>Serviços</span>
+            </li>
+            <li class="menu-item" data-page="estoque">
+                <i class="fas fa-boxes"></i>
+                <span>Estoque</span>
+            </li>
+            <li class="menu-item" data-page="relatorios">
+                <i class="fas fa-chart-pie"></i>
+                <span>Relatórios</span>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <div class="sync-status">
+                <i class="fas fa-cloud"></i>
+                <span>Sincronizado</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="mainContent" class="main-content">
+        <!-- Header -->
+        <header class="app-header">
+            <button id="menuToggle" class="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 id="pageTitle">Dashboard</h1>
+            <div class="header-actions">
+                <div class="notifications-wrapper" style="position: relative;">
+                    <button class="icon-btn" id="notificationsBtn" onclick="toggleNotifications()">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notifCount" style="display: none;">0</span>
+                    </button>
+                    
+                    <div id="notificationsDropdown" class="notifications-dropdown">
+                        <div class="notif-header">
+                            <span>Alertas</span>
+                            <small onclick="marcarLidas()" style="cursor:pointer; color: var(--gold-dark);">Limpar</small>
+                        </div>
+                        <div id="notifList" class="notif-list">
+                            <div class="notif-empty">Tudo tranquilo por aqui! ✨</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Container -->
+        <div id="pageContainer" class="page-container">
+            <!-- Dashboard Page -->
+            <div id="dashboardPage" class="page active">
+                <div class="dashboard-grid">
+                    <!-- Stats Cards -->
+                    <div class="stats-row">
+                        <div class="stat-card gold-gradient">
+                            <div class="stat-icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="statAgendamentosHoje">0</h3>
+                                <p>Agendamentos Hoje</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card rose-gradient">
+                            <div class="stat-icon">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="statFaturamentoHoje">R$ 0,00</h3>
+                                <p>Faturamento Hoje</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card beige-gradient">
+                            <div class="stat-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="statTotalClientes">0</h3>
+                                <p>Total de Clientes</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card alert-gradient">
+                            <div class="stat-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="statDebitosTotal">R$ 0,00</h3>
+                                <p>Débitos Pendentes</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Próximos Agendamentos -->
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-clock"></i> Próximos Agendamentos</h2>
+                            <button class="btn-secondary btn-sm" onclick="navigateTo('agenda')">Ver Todos</button>
+                        </div>
+                        <div id="proximosAgendamentos" class="agendamentos-list">
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times"></i>
+                                <p>Nenhum agendamento próximo</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Alertas de Estoque -->
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-box-open"></i> Alertas de Estoque</h2>
+                            <button class="btn-secondary btn-sm" onclick="navigateTo('estoque')">Ver Estoque</button>
+                        </div>
+                        <div id="alertasEstoque" class="alertas-list">
+                            <div class="empty-state">
+                                <i class="fas fa-check-circle"></i>
+                                <p>Estoque em dia</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Clientes com Débitos -->
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-money-bill-wave"></i> Clientes com Débitos</h2>
+                            <button class="btn-secondary btn-sm" onclick="navigateTo('clientes')">Ver Clientes</button>
+                        </div>
+                        <div id="clientesDebitos" class="debitos-list">
+                            <div class="empty-state">
+                                <i class="fas fa-check-circle"></i>
+                                <p>Nenhum débito pendente</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clientes Page -->
+            <div id="clientesPage" class="page">
+                <div class="page-header">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchClientes" placeholder="Buscar clientes...">
+                    </div>
+                    <button class="btn-primary" onclick="abrirModalCliente()">
+                        <i class="fas fa-plus"></i> Novo Cliente
+                    </button>
+                </div>
+                
+                <div id="clientesGrid" class="clientes-grid">
+                    <!-- Clientes will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Agenda Page -->
+            <div id="agendaPage" class="page">
+                <div class="page-header">
+                    <div class="agenda-controls">
+                        <button class="btn-secondary" id="agendaViewMes" onclick="setAgendaView('mes')">Mês</button>
+                        <button class="btn-secondary" id="agendaViewSemana" onclick="setAgendaView('semana')">Semana</button>
+                        <button class="btn-secondary active" id="agendaViewDia" onclick="setAgendaView('dia')">Dia</button>
+                    </div>
+                    
+                    <div class="agenda-date-picker">
+                        <button class="btn-icon" onclick="mudarData(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <input type="date" id="agendaDate" class="date-input">
+                        <button class="btn-icon" onclick="mudarData(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="btn-secondary" onclick="hoje()">Hoje</button>
+                    </div>
+                    
+                    <button class="btn-primary" onclick="abrirModalAgendamento()">
+                        <i class="fas fa-plus"></i> Novo Agendamento
+                    </button>
+                </div>
+                
+                <div class="agenda-summary">
+                    <div class="summary-item">
+                        <span>Total do Dia:</span>
+                        <strong id="agendaTotalServicos">0 serviços</strong>
+                    </div>
+                    <div class="summary-item">
+                        <span>Faturamento:</span>
+                        <strong id="agendaTotalValor" class="gold-text">R$ 0,00</strong>
+                    </div>
+                    <div id="googleConnectionBox">
+                        <button id="btnConnectGoogle" class="btn-sync" onclick="conectarGoogle()">
+                            <i class="fab fa-google"></i> Conectar Agenda
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="agendaContainer" class="agenda-container">
+                    <!-- Agenda items will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Serviços Page -->
+            <div id="servicosPage" class="page">
+                <div class="page-header">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchServicos" placeholder="Buscar serviços...">
+                    </div>
+                    <button class="btn-primary" onclick="abrirModalServico()">
+                        <i class="fas fa-plus"></i> Novo Serviço
+                    </button>
+                </div>
+                
+                <div id="servicosGrid" class="servicos-grid">
+                    <!-- Serviços will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Estoque Page -->
+            <div id="estoquePage" class="page">
+                <div class="page-header">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchEstoque" placeholder="Buscar produtos...">
+                    </div>
+                    <button class="btn-primary" onclick="abrirModalEstoque()">
+                        <i class="fas fa-plus"></i> Novo Produto
+                    </button>
+                </div>
+                
+                <div id="estoqueGrid" class="estoque-grid">
+                    <!-- Produtos will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Relatórios Page -->
+            <div id="relatoriosPage" class="page">
+                <div class="page-header">
+                    <div class="relatorio-date-picker">
+                        <label>Período:</label>
+                        <select id="relatorioMes" onchange="carregarRelatorios()">
+                            <option value="0">Janeiro</option>
+                            <option value="1">Fevereiro</option>
+                            <option value="2">Março</option>
+                            <option value="3">Abril</option>
+                            <option value="4">Maio</option>
+                            <option value="5">Junho</option>
+                            <option value="6">Julho</option>
+                            <option value="7">Agosto</option>
+                            <option value="8">Setembro</option>
+                            <option value="9">Outubro</option>
+                            <option value="10">Novembro</option>
+                            <option value="11">Dezembro</option>
+                        </select>
+                        <input type="number" id="relatorioAno" min="2020" max="2030" value="2026" onchange="carregarRelatorios()">
+                    </div>
+                    
+                    <button class="btn-primary" onclick="exportarRelatorioPDF()">
+                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                    </button>
+                </div>
+                
+                <div class="relatorios-grid">
+                    <!-- Cards de Métricas -->
+                    <div class="metrics-row">
+                        <div class="metric-card">
+                            <div class="metric-icon gold">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div class="metric-info">
+                                <p>Faturamento Total</p>
+                                <h3 id="metricFaturamentoTotal">R$ 0,00</h3>
+                            </div>
+                        </div>
+                        
+                        <div class="metric-card">
+                            <div class="metric-icon rose">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div class="metric-info">
+                                <p>Total a Receber</p>
+                                <h3 id="metricTotalReceber">R$ 0,00</h3>
+                            </div>
+                        </div>
+                        
+                        <div class="metric-card">
+                            <div class="metric-icon beige">
+                                <i class="fas fa-cut"></i>
+                            </div>
+                            <div class="metric-info">
+                                <p>Serviços Realizados</p>
+                                <h3 id="metricServicosRealizados">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráficos -->
+                    <div class="charts-row">
+                        <div class="chart-card">
+                            <h3><i class="fas fa-chart-pie"></i> Faturamento por Tipo de Serviço</h3>
+                            <canvas id="chartFaturamentoTipo" style="height: 300px;"></canvas>
+                        </div>
+                        
+                        <div class="chart-card">
+                            <h3><i class="fas fa-chart-pie"></i> Quantidade por Tipo de Serviço</h3>
+                            <canvas id="chartQuantidadeTipo" style="height: 300px;"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabela Detalhada -->
+                    <div class="table-card">
+                        <h3><i class="fas fa-table"></i> Relatório Detalhado de Clientes</h3>
+                        <div class="table-responsive">
+                            <table id="relatorioTable" class="relatorio-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cliente</th>
+                                        <th>Serviços Realizados</th>
+                                        <th>Valor Pago</th>
+                                        <th>Valor Devendo</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="relatorioTableBody">
+                                    <!-- Table rows will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Modal Cliente -->
+    <div id="modalCliente" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalClienteTitle">Novo Cliente</h2>
+                <button class="modal-close" onclick="fecharModal('modalCliente')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="formCliente" class="modal-form">
+                <input type="hidden" id="clienteId">
+                
+                <div class="form-group">
+                    <label for="clienteNome">Nome Completo *</label>
+                    <input type="text" id="clienteNome" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="clienteTelefone">Telefone *</label>
+                        <input type="tel" id="clienteTelefone" required placeholder="(00) 00000-0000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="clienteEmail">E-mail *</label>
+                        <input type="email" id="clienteEmail" required>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="fecharModal('modalCliente')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes do Cliente -->
+    <div id="modalDetalhesCliente" class="modal modal-large">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="detalhesClienteNome"></h2>
+                <button class="modal-close" onclick="fecharModal('modalDetalhesCliente')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="detalhes-cliente-container">
+                <div class="detalhes-header">
+                    <div class="cliente-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="cliente-info-header">
+                        <p><i class="fas fa-phone"></i> <span id="detalhesClienteTelefone"></span></p>
+                        <p><i class="fas fa-envelope"></i> <span id="detalhesClienteEmail"></span></p>
+                    </div>
+                </div>
+                
+                <div class="detalhes-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Total de Serviços</span>
+                        <span class="stat-value" id="detalhesTotalServicos">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Valor Total Gasto</span>
+                        <span class="stat-value gold-text" id="detalhesValorTotal">R$ 0,00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Débitos Pendentes</span>
+                        <span class="stat-value alert-text" id="detalhesDebitos">R$ 0,00</span>
+                    </div>
+                </div>
+                
+                <div class="detalhes-tabs">
+                    <button class="tab-btn active" data-tab="historico" onclick="trocarTab('historico')">
+                        <i class="fas fa-history"></i> Histórico
+                    </button>
+                    <button class="tab-btn" data-tab="agendados" onclick="trocarTab('agendados')">
+                        <i class="fas fa-calendar"></i> Agendados Este Mês
+                    </button>
+                    <button class="tab-btn" data-tab="debitos" onclick="trocarTab('debitos')">
+                        <i class="fas fa-exclamation-circle"></i> Débitos
+                    </button>
+                </div>
+                
+                <div id="tabHistorico" class="tab-content active">
+                    <div id="detalhesHistorico" class="historico-list"></div>
+                </div>
+                
+                <div id="tabAgendados" class="tab-content">
+                    <div id="detalhesAgendados" class="agendados-list"></div>
+                </div>
+                
+                <div id="tabDebitos" class="tab-content">
+                    <div id="detalhesDebitosList" class="debitos-detail-list"></div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="editarCliente()">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button class="btn-danger" onclick="excluirCliente()">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Agendamento -->
+    <div id="modalAgendamento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Novo Agendamento</h2>
+                <button class="modal-close" onclick="fecharModal('modalAgendamento')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="formAgendamento" class="modal-form">
+                <input type="hidden" id="agendamentoId">
+                
+                <div class="form-group">
+                    <label>Tipo de Agendamento *</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="tipoAgendamento" value="servico" checked onchange="toggleTipoAgendamento()">
+                            <span>Serviço</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="tipoAgendamento" value="evento" onchange="toggleTipoAgendamento()">
+                            <span>Evento</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div id="camposServico">
+                    <div class="form-group">
+                        <label for="agendamentoCliente">Cliente *</label>
+                        <select id="agendamentoCliente" onchange="selectCliente()"></select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="agendamentoServico">Serviço *</label>
+                        <select id="agendamentoServico" onchange="selectServico()"></select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="agendamentoValor">Valor *</label>
+                        <input type="text" id="agendamentoValor" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="agendamentoStatusPagamento">Status Pagamento *</label>
+                        <select id="agendamentoStatusPagamento">
+                            <option value="pendente">Pendente</option>
+                            <option value="pago">Pago</option>
+                            <option value="devendo">Devendo</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="camposEvento" style="display: none;">
+                    <div class="form-group">
+                        <label for="eventoNome">Nome do Evento *</label>
+                        <input type="text" id="eventoNome" placeholder="Ex: Palestra de Técnicas Avançadas">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="agendamentoData">Data *</label>
+                        <input type="date" id="agendamentoData" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="agendamentoHora">Hora *</label>
+                        <input type="time" id="agendamentoHora" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="agendamentoObservacoes">Observações</label>
+                    <textarea id="agendamentoObservacoes" rows="3"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="fecharModal('modalAgendamento')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Agendar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Serviço -->
+    <div id="modalServico" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalServicoTitle">Novo Serviço</h2>
+                <button class="modal-close" onclick="fecharModal('modalServico')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="formServico" class="modal-form">
+                <input type="hidden" id="servicoId">
+                
+                <div class="form-group">
+                    <label for="servicoNome">Nome do Serviço *</label>
+                    <input type="text" id="servicoNome" required placeholder="Ex: Preenchimento Labial">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="servicoTipo">Tipo/Categoria *</label>
+                        <input type="text" id="servicoTipo" required placeholder="Ex: Harmonização Facial">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="servicoDuracao">Duração (minutos) *</label>
+                        <input type="number" id="servicoDuracao" required min="15" step="15" placeholder="60">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="servicoValor">Valor *</label>
+                    <input type="number" id="servicoValor" required min="0" step="0.01" placeholder="0.00">
+                </div>
+                
+                <div class="form-group">
+                    <label for="servicoDescricao">Descrição</label>
+                    <textarea id="servicoDescricao" rows="3" placeholder="Descrição detalhada do serviço..."></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="fecharModal('modalServico')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Estoque -->
+    <div id="modalEstoque" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalEstoqueTitle">Novo Produto</h2>
+                <button class="modal-close" onclick="fecharModal('modalEstoque')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="formEstoque" class="modal-form">
+                <input type="hidden" id="estoqueId">
+                
+                <div class="form-group">
+                    <label for="estoqueNome">Nome do Produto *</label>
+                    <input type="text" id="estoqueNome" required placeholder="Ex: Botox 100U">
+                </div>
+                
+                <div class="form-group">
+                    <label for="estoqueDescricao">Descrição</label>
+                    <textarea id="estoqueDescricao" rows="2" placeholder="Descrição do produto..."></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="estoqueValor">Valor Unitário *</label>
+                        <input type="number" id="estoqueValor" required min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="estoqueQuantidade">Quantidade *</label>
+                        <input type="number" id="estoqueQuantidade" required min="0" placeholder="0">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="estoqueQuantidadeMinima">Quantidade Mínima *</label>
+                    <input type="number" id="estoqueQuantidadeMinima" required min="1" placeholder="5">
+                    <small>Você será alertado quando o estoque estiver abaixo deste valor</small>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="fecharModal('modalEstoque')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <div id="toastContainer" class="toast-container"></div>
+    <script src="js/supabase-client.js"></script> 
+    <script src="js/app.js"></script>
+    <script src="js/app-agenda.js"></script>
+    <script src="js/app-relatorios.js"></script>
+    <script src="js/popular-dados.js"></script>
+</body>
+</body>
+</html>

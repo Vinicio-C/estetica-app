@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4AF37;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E8C4B0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="url(#goldGradient)"/>
+  
+  <!-- Spa icon -->
+  <g transform="translate(256, 256)">
+    <!-- Leaves -->
+    <path d="M -80,-40 Q -120,-80 -100,-120 Q -80,-100 -60,-80 Q -40,-100 -20,-120 Q 0,-80 -40,-40 Z" 
+          fill="#F5E6D3" opacity="0.9"/>
+    <path d="M 80,-40 Q 120,-80 100,-120 Q 80,-100 60,-80 Q 40,-100 20,-120 Q 0,-80 40,-40 Z" 
+          fill="#F5E6D3" opacity="0.9"/>
+    
+    <!-- Center flower -->
+    <circle cx="0" cy="-40" r="35" fill="#FFFFFF"/>
+    <circle cx="0" cy="-40" r="20" fill="#D4AF37"/>
+    
+    <!-- Sparkles -->
+    <circle cx="-50" cy="-100" r="6" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="50" cy="-100" r="6" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="-90" cy="-60" r="4" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="90" cy="-60" r="4" fill="#FFFFFF" opacity="0.7"/>
+    
+    <!-- Bottom decorative elements -->
+    <path d="M -60,20 Q -40,40 -20,20 Q 0,40 20,20 Q 40,40 60,20" 
+          stroke="#F5E6D3" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.8"/>
+    
+    <circle cx="-40" cy="60" r="8" fill="#F5E6D3" opacity="0.7"/>
+    <circle cx="0" cy="70" r="10" fill="#F5E6D3" opacity="0.8"/>
+    <circle cx="40" cy="60" r="8" fill="#F5E6D3" opacity="0.7"/>
+  </g>
+</svg>

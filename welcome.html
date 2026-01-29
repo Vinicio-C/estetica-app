@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎉 Bem-vindo ao Estética Premium!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #F5E6D3 0%, #E8D5C4 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 24px;
+            padding: 50px;
+            max-width: 700px;
+            box-shadow: 0 8px 32px rgba(212, 175, 55, 0.3);
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        h1 {
+            color: #D4AF37;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+            text-align: left;
+        }
+        
+        .feature {
+            background: linear-gradient(135deg, #F5E6D3 0%, #FAF4EE 100%);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #D4AF37;
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .feature h3 {
+            color: #B8941E;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .feature p {
+            color: #666;
+            font-size: 0.85rem;
+        }
+        
+        .cta-section {
+            margin: 40px 0 20px;
+            padding: 30px;
+            background: linear-gradient(135deg, #D4AF37 0%, #E8C4B0 100%);
+            border-radius: 16px;
+            color: white;
+        }
+        
+        .cta-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: white;
+            color: #D4AF37;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+        
+        .btn-secondary:hover {
+            background: white;
+            color: #D4AF37;
+        }
+        
+        .info {
+            margin-top: 30px;
+            padding: 20px;
+            background: #FFF9E6;
+            border-radius: 12px;
+            border: 2px dashed #D4AF37;
+        }
+        
+        .info strong {
+            color: #B8941E;
+        }
+        
+        .quick-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .quick-link {
+            padding: 8px 16px;
+            background: #F5E6D3;
+            color: #B8941E;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .quick-link:hover {
+            background: #D4AF37;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🌟</div>
+        <h1>Estética Premium</h1>
+        <p class="subtitle">Sistema Profissional de Gestão para Clínicas de Estética</p>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h3>Dashboard</h3>
+                <p>Visão completa do negócio</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">👥</div>
+                <h3>Clientes</h3>
+                <p>Gestão completa</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📅</div>
+                <h3>Agenda</h3>
+                <p>Organização total</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">💉</div>
+                <h3>Serviços</h3>
+                <p>Catálogo completo</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📦</div>
+                <h3>Estoque</h3>
+                <p>Com alertas</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📈</div>
+                <h3>Relatórios</h3>
+                <p>Análises detalhadas</p>
+            </div>
+        </div>
+        
+        <div class="cta-section">
+            <h2>🚀 Comece Agora!</h2>
+            <p style="margin-bottom: 20px;">O app já vem com dados de exemplo para você explorar</p>
+            <a href="index.html" class="btn">Abrir Aplicativo</a>
+            <a href="index.html?popular=true" class="btn btn-secondary">Carregar Mais Dados</a>
+        </div>
+        
+        <div class="info">
+            <strong>💡 Dica:</strong> O aplicativo já está pronto para uso com clientes, serviços, 
+            estoque e agendamentos de exemplo. Explore todas as funcionalidades!
+        </div>
+        
+        <div class="quick-links">
+            <a href="README.md" class="quick-link">📖 Documentação</a>
+            <a href="INICIO-RAPIDO.md" class="quick-link">⚡ Início Rápido</a>
+            <a href="icons/README.html" class="quick-link">🎨 Gerar Ícones</a>
+        </div>
+        
+        <p style="margin-top: 40px; color: #999; font-size: 0.9rem;">
+            Desenvolvido com 💛 para profissionais de estética
+        </p>
+    </div>
+</body>
+</html>

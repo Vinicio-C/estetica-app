@@ -1,0 +1,31 @@
+Para gerar os ícones PWA, você pode:
+
+1. **Usar o gerador online (RECOMENDADO):**
+   - Acesse: https://realfavicongenerator.net
+   - Faça upload do arquivo icons/icon.svg
+   - Configure as opções para iOS e PWA
+   - Baixe o pacote completo e coloque na pasta /icons/
+
+2. **Criar manualmente:**
+   - Abra icons/icon.svg em um editor de imagens
+   - Exporte nas seguintes dimensões:
+     * 72x72, 96x96, 128x128, 144x144, 152x152
+     * 180x180 (IMPORTANTE para iOS)
+     * 192x192, 384x384, 512x512
+
+3. **Arquivos necessários:**
+   - icon-72.png
+   - icon-96.png
+   - icon-128.png
+   - icon-144.png
+   - icon-152.png
+   - icon-180.png (Apple Touch Icon)
+   - icon-192.png
+   - icon-384.png
+   - icon-512.png
+
+**NOTA:** Por enquanto, o app funcionará sem os ícones, mas eles são essenciais
+para uma experiência PWA completa no iPhone. O SVG fornecido pode ser usado
+como base para criar todos os tamanhos necessários.
+
+Para instruções detalhadas, abra: icons/README.html
