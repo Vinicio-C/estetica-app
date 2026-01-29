@@ -578,22 +578,32 @@ async function salvarEstoque(e) {
     }
 }
 
-// ========================================
-// INTEGRAÇÃO GOOGLE CALENDAR
-// ========================================
-
 async function conectarGoogle() {
-    // Pega a URL atual do navegador garantindo que tenha http/https
-    const urlRetorno = window.location.origin; // Ex: "https://seu-site.netlify.app"
+    // No GitHub Pages, 'origin' pega só o dominio, mas precisamos da pasta do projeto
+    // href pega tudo: "https://user.github.io/repo/index.html"
+    // Vamos limpar o "index.html" e parâmetros extras para garantir
+    let urlAtual = window.location.href.split('?')[0]; // Remove ?param=...
     
-    console.log('🔗 Redirecionando para:', urlRetorno);
+    // Remove "index.html" se estiver lá
+    if (urlAtual.endsWith('index.html')) {
+        urlAtual = urlAtual.replace('index.html', '');
+    }
+    
+    // Remove barra final se tiver, para padronizar
+    if (urlAtual.endsWith('/')) {
+        urlAtual = urlAtual.slice(0, -1);
+    }
+
+    console.log('🔗 URL Base calculada:', urlAtual);
 
     try {
         const { data, error } = await _supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 scopes: 'https://www.googleapis.com/auth/calendar',
-                redirectTo: urlRetorno // Força a URL completa
+                // O Supabase vai usar a Site URL configurada no painel, 
+                // mas enviamos isso para garantir que ele volte para a pasta certa
+                redirectTo: urlAtual 
             }
         });
         if (error) throw error;
