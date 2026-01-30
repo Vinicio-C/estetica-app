@@ -617,7 +617,7 @@ function editarCliente() {
 }
 
 async function excluirCliente(id) {
-    // 1. Lógica do ID (Mantida igual, pois estava funcionando)
+    // 1. Lógica do ID
     let idParaExcluir = id;
     if (!idParaExcluir || idParaExcluir === 'undefined') {
         if (appState.currentCliente && appState.currentCliente.id) {
@@ -635,7 +635,7 @@ async function excluirCliente(id) {
     try {
         console.log(`🗑️ Excluindo Cliente ID: ${idParaExcluir}`);
 
-        // 2. Limpar Google Agenda (Mantido igual)
+        // 2. Limpar Google Agenda
         const { data: agendamentosDoCliente } = await _supabase
             .from('agendamentos')
             .select('google_event_id')
@@ -649,33 +649,34 @@ async function excluirCliente(id) {
             }
         }
 
-        // ========================================================
-        // 3. A MUDANÇA (Usando o cliente oficial em vez do fetchAPI)
-        // ========================================================
-        
-        // Removemos o fetchAPI que estava trocando o ID por undefined.
-        // Usamos o comando direto do Supabase, que é infalível.
+        // 3. Deletar do Banco (Usando _supabase direto)
         const { error } = await _supabase
             .from('clientes')
             .delete()
             .eq('id', idParaExcluir);
 
-        if (error) {
-            throw error; // Se der erro no Supabase, joga para o catch lá embaixo
-        }
-        
-        // ========================================================
+        if (error) throw error;
 
         showToast('Cliente excluído com sucesso!', 'success');
         
-        closeModal('modalDetalhesCliente');
+        // ========================================================
+        // CORREÇÃO AQUI 👇 (Nome da função em português)
+        // ========================================================
+        if (typeof fecharModal === 'function') {
+            fecharModal('modalDetalhesCliente');
+        } else {
+            // Caso de emergência: remove a classe na mão se a função não for achada
+            document.getElementById('modalDetalhesCliente')?.classList.remove('active');
+            document.getElementById('overlay')?.classList.remove('active');
+        }
+        
+        // Atualizar telas
         if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
         if (typeof carregarDashboard === 'function') await carregarDashboard();
         if (appState.currentPage === 'clientes') carregarClientes();
 
     } catch (error) {
         console.error('Erro ao excluir:', error);
-        // Mostra o erro detalhado se houver
         const msg = error.message || 'Erro desconhecido';
         showToast(`Erro ao excluir: ${msg}`, 'error');
     }
