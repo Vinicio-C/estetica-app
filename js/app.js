@@ -617,6 +617,7 @@ function editarCliente() {
 }
 
 async function excluirCliente(id) {
+    console.log("VERSÃO NOVA - CORRIGIDA 🚀");
     // 1. Tenta pegar o ID do parâmetro OU do cliente aberto na tela
     let idParaExcluir = id;
     
