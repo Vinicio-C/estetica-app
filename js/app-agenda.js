@@ -354,10 +354,8 @@ async function carregarServicos() {
 }
 
 function renderizarServicos(servicos) {
-    const container = document.getElementById('servicosGrid'); // Certifique-se que no HTML o ID é este ou 'listaServicos'
-    
-    // Se não achar o container pelo ID 'servicosGrid', tenta pelo ID genérico de lista se houver
-    if (!container) return console.error('Container de serviços não encontrado no HTML');
+    const container = document.getElementById('servicosGrid');
+    if (!container) return;
 
     if (servicos.length === 0) {
         container.innerHTML = `<div class="empty-state"><p>Nenhum serviço cadastrado</p></div>`;
@@ -371,14 +369,24 @@ function renderizarServicos(servicos) {
                 <strong style="color: var(--gold-dark);">${formatCurrency(s.valor)}</strong>
             </div>
             <div class="agendamento-info">
-                <span>${s.duracao} min</span>
+                <span><i class="fas fa-clock"></i> ${s.duracao} min</span>
             </div>
-            <button class="btn-delete-mini" onclick="excluirServico('${s.id}')" style="margin-top: 10px; background: #ffebee; color: #c62828; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: 100%;">
-                <i class="fas fa-trash"></i> Excluir Serviço
-            </button>
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                
+                <button onclick="abrirModalServico('${s.id}')" style="flex: 1; background: #fff; border: 1px solid #ddd; color: #333; padding: 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+
+                <button onclick="excluirServico('${s.id}')" style="flex: 1; background: #ffebee; border: none; color: #c62828; padding: 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </div>
         </div>
     `).join('');
 }
+
+
 
 async function excluirServico(id) {
     // 1. Trava de segurança: Verifica se o ID chegou
@@ -429,67 +437,94 @@ function filtrarServicos(termo) {
     renderizarServicos(servicosFiltrados);
 }
 
-function abrirModalServico(servicoId = null) {
-    const modal = document.getElementById('modalServico');
+function abrirModalServico(id = null) {
+    const modal = document.getElementById('modalServico'); // Verifique se o ID do modal no HTML é esse
     const form = document.getElementById('formServico');
     
+    // 1. Limpa o formulário antes de tudo
     form.reset();
     
-    if (servicoId) {
-        // Editar
-        const servico = appState.servicos.find(s => s.id === servicoId);
+    // Tenta achar o campo oculto de ID. Se não existir, avisa no console.
+    let hiddenInput = document.getElementById('servicoId');
+    if (!hiddenInput) {
+        console.warn('⚠️ Campo hidden "servicoId" não encontrado no HTML. A edição pode falhar.');
+    } else {
+        hiddenInput.value = ''; // Limpa o ID
+    }
+
+    // 2. Se veio um ID, é MODO EDIÇÃO
+    if (id) {
+        const servico = appState.servicos.find(s => s.id === id);
         if (servico) {
-            document.getElementById('modalServicoTitle').textContent = 'Editar Serviço';
-            document.getElementById('servicoId').value = servico.id;
+            // Muda o título do modal (se tiver elemento de título)
+            const titulo = document.getElementById('modalServicoTitle');
+            if (titulo) titulo.textContent = 'Editar Serviço';
+
+            // Preenche os campos (ajuste os IDs conforme seu HTML)
+            if (hiddenInput) hiddenInput.value = servico.id;
             document.getElementById('servicoNome').value = servico.nome;
-            document.getElementById('servicoTipo').value = servico.tipo;
-            document.getElementById('servicoDuracao').value = servico.duracao;
             document.getElementById('servicoValor').value = servico.valor;
-            document.getElementById('servicoDescricao').value = servico.descricao || '';
+            document.getElementById('servicoDuracao').value = servico.duracao;
         }
     } else {
-        // Novo
-        document.getElementById('modalServicoTitle').textContent = 'Novo Serviço';
-        document.getElementById('servicoId').value = '';
+        // MODO CRIAÇÃO
+        const titulo = document.getElementById('modalServicoTitle');
+        if (titulo) titulo.textContent = 'Novo Serviço';
     }
     
+    // 3. Mostra o modal
     modal.classList.add('active');
     document.getElementById('overlay').classList.add('active');
 }
 
 async function salvarServico(e) {
     e.preventDefault();
-    
-    const id = document.getElementById('servicoId').value;
-    const data = {
-        nome: document.getElementById('servicoNome').value,
-        tipo: document.getElementById('servicoTipo').value,
-        duracao: parseInt(document.getElementById('servicoDuracao').value),
-        valor: parseFloat(document.getElementById('servicoValor').value),
-        descricao: document.getElementById('servicoDescricao').value
-    };
-    
+
+    // Pega os dados do formulário
+    const id = document.getElementById('servicoId')?.value; // O '?' evita erro se o campo não existir
+    const nome = document.getElementById('servicoNome').value;
+    const valor = parseFloat(document.getElementById('servicoValor').value);
+    const duracao = parseInt(document.getElementById('servicoDuracao').value);
+
+    // Validação básica
+    if (!nome || isNaN(valor) || isNaN(duracao)) {
+        showToast('Preencha todos os campos corretamente.', 'error');
+        return;
+    }
+
+    const dados = { nome, valor, duracao };
+
     try {
+        let error;
+
         if (id) {
-            // Atualizar
-            await fetchAPI(`tables/servicos/${id}`, {
-                method: 'PUT',
-                body: JSON.stringify(data)
-            });
-            showToast('Serviço atualizado com sucesso!', 'success');
+            // --- MODO EDIÇÃO (UPDATE) ---
+            console.log('✏️ Editando serviço:', id);
+            const response = await _supabase
+                .from('servicos')
+                .update(dados)
+                .eq('id', id);
+            error = response.error;
         } else {
-            // Criar
-            await fetchAPI('tables/servicos', {
-                method: 'POST',
-                body: JSON.stringify(data)
-            });
-            showToast('Serviço cadastrado com sucesso!', 'success');
+            // --- MODO CRIAÇÃO (INSERT) ---
+            console.log('✨ Criando novo serviço');
+            const response = await _supabase
+                .from('servicos')
+                .insert([dados]); // Insert exige array
+            error = response.error;
         }
+
+        if (error) throw error;
+
+        showToast('Serviço salvo com sucesso!', 'success');
         
-        fecharModal('modalServico');
+        // Fecha modal e recarrega
+        if (typeof fecharModal === 'function') fecharModal('modalServico');
         await carregarServicos();
-    } catch (error) {
-        showToast('Erro ao salvar serviço', 'error');
+
+    } catch (err) {
+        console.error('Erro ao salvar serviço:', err);
+        showToast('Erro ao salvar serviço.', 'error');
     }
 }
 
