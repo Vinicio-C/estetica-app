@@ -617,9 +617,7 @@ function editarCliente() {
 }
 
 async function excluirCliente(id) {
-    console.log("🚀 TENTATIVA FINAL - DEBUG URL");
-    
-    // 1. Lógica do ID
+    // 1. Lógica do ID (Mantida igual, pois estava funcionando)
     let idParaExcluir = id;
     if (!idParaExcluir || idParaExcluir === 'undefined') {
         if (appState.currentCliente && appState.currentCliente.id) {
@@ -627,7 +625,6 @@ async function excluirCliente(id) {
         }
     }
 
-    // Trava
     if (!idParaExcluir || idParaExcluir === 'undefined') {
         alert('Erro: ID do cliente não encontrado.');
         return;
@@ -636,9 +633,9 @@ async function excluirCliente(id) {
     if (!confirm('Tem certeza? Isso apagará tudo deste cliente.')) return;
 
     try {
-        console.log(`🗑️ Variável ID está: ${idParaExcluir}`);
+        console.log(`🗑️ Excluindo Cliente ID: ${idParaExcluir}`);
 
-        // 2. Limpar Google Agenda
+        // 2. Limpar Google Agenda (Mantido igual)
         const { data: agendamentosDoCliente } = await _supabase
             .from('agendamentos')
             .select('google_event_id')
@@ -653,23 +650,20 @@ async function excluirCliente(id) {
         }
 
         // ========================================================
-        // 3. O PULO DO GATO (Mudança Aqui 👇)
+        // 3. A MUDANÇA (Usando o cliente oficial em vez do fetchAPI)
         // ========================================================
         
-        // Criamos a URL numa variável separada para garantir que o texto está certo
-        const urlFinal = `tables/clientes?id=eq.${idParaExcluir}`;
-        
-        console.log('🔗 URL que será enviada:', urlFinal); // <--- ESSE LOG VAI NOS SALVAR
+        // Removemos o fetchAPI que estava trocando o ID por undefined.
+        // Usamos o comando direto do Supabase, que é infalível.
+        const { error } = await _supabase
+            .from('clientes')
+            .delete()
+            .eq('id', idParaExcluir);
 
-        // Verificação extra antes de enviar
-        if (urlFinal.includes('undefined')) {
-            alert('ERRO CRÍTICO: A URL foi gerada com erro: ' + urlFinal);
-            return; // Cancela tudo para não dar erro 400
+        if (error) {
+            throw error; // Se der erro no Supabase, joga para o catch lá embaixo
         }
-
-        await fetchAPI(urlFinal, { 
-            method: 'DELETE'
-        });
+        
         // ========================================================
 
         showToast('Cliente excluído com sucesso!', 'success');
@@ -680,11 +674,12 @@ async function excluirCliente(id) {
         if (appState.currentPage === 'clientes') carregarClientes();
 
     } catch (error) {
-        console.error('Erro fatal:', error);
-        showToast('Erro ao processar exclusão.', 'error');
+        console.error('Erro ao excluir:', error);
+        // Mostra o erro detalhado se houver
+        const msg = error.message || 'Erro desconhecido';
+        showToast(`Erro ao excluir: ${msg}`, 'error');
     }
 }
-
 
 function trocarTab(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => {
