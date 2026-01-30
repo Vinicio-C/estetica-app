@@ -616,33 +616,36 @@ function editarCliente() {
     abrirModalCliente(appState.currentCliente.id);
 }
 
-// js/app.js - Função Corrigida
+// js/app.js (Substitua a função excluirCliente inteira)
 
 async function excluirCliente(id) {
-    // 1. Correção de Segurança:
-    // Se o ID não veio pelo clique (undefined), pega do cliente aberto no modal
+    // 1. SEGURANÇA: Se o ID não veio pelo clique, pega do cliente aberto no modal
+    // O erro "undefined" acontecia porque o botão do modal não enviava o ID.
     const idParaExcluir = id || appState.currentCliente?.id;
 
     if (!idParaExcluir) {
         console.error('❌ Erro: Tentativa de excluir sem ID definido');
-        showToast('Erro: Não foi possível identificar o cliente.', 'error');
+        showToast('Erro: ID do cliente não encontrado.', 'error');
         return;
     }
 
     if (!confirm('Tem certeza? Isso apagará também o histórico e agendamentos deste cliente.')) return;
 
     try {
-        // 2. Buscar agendamentos desse cliente para limpar do Google
+        console.log(`🗑️ Iniciando exclusão do cliente: ${idParaExcluir}`);
+
+        // 2. Buscar agendamentos desse cliente para limpar do Google Agenda
         const { data: agendamentosDoCliente } = await _supabase
             .from('agendamentos')
             .select('google_event_id')
-            .eq('cliente_id', idParaExcluir); // Usa a variável corrigida
+            .eq('cliente_id', idParaExcluir);
 
         // 3. Se tiver eventos no Google, apagar um por um
         if (agendamentosDoCliente && agendamentosDoCliente.length > 0) {
             console.log(`🧹 Limpando ${agendamentosDoCliente.length} eventos do Google...`);
             for (const agenda of agendamentosDoCliente) {
                 if (agenda.google_event_id) {
+                    // Verifica se a função de deletar existe antes de chamar
                     if (typeof deletarDoGoogleCalendar === 'function') {
                         await deletarDoGoogleCalendar(agenda.google_event_id);
                     }
@@ -650,31 +653,26 @@ async function excluirCliente(id) {
             }
         }
 
-        // 4. Agora sim, deletar o cliente do Banco
-        await fetchAPI(`tables/clientes?id=eq.${idParaExcluir}`, { // Usa a variável corrigida
+        // 4. Agora sim, deletar o cliente do Banco de Dados
+        // O "Cascade" que configuramos no SQL vai limpar os agendamentos do banco automaticamente
+        await fetchAPI(`tables/clientes?id=eq.${idParaExcluir}`, {
             method: 'DELETE'
         });
 
-        showToast('Cliente e dados excluídos com sucesso', 'success');
+        showToast('Cliente excluído com sucesso!', 'success');
         
-        // Atualizar telas e fechar modal
+        // 5. Atualizar a interface
+        closeModal('modalDetalhesCliente'); // Fecha o modal
+        
         if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
         if (typeof carregarDashboard === 'function') await carregarDashboard();
-        
-        // Fecha o modal de detalhes se estiver aberto
-        const modal = document.getElementById('modalDetalhesCliente');
-        if (modal && modal.classList.contains('active')) {
-             closeModal('modalDetalhesCliente');
-        }
-
-        // Se estiver na tela de clientes, recarrega a lista
-        if (appState.currentPage === 'clientes') {
-            carregarClientes();
-        }
+        if (appState.currentPage === 'clientes') carregarClientes();
 
     } catch (error) {
         console.error('Erro ao excluir:', error);
-        showToast('Erro ao excluir cliente', 'error');
+        // Mostra o erro real no alerta para facilitar
+        const msg = error.message || 'Erro desconhecido';
+        showToast(`Erro ao excluir: ${msg}`, 'error');
     }
 }
 

@@ -348,38 +348,52 @@ function sincronizarGoogleCalendar() {
     showToast('Para sincronizar com Google Calendar, acesse as configurações do app e conecte sua conta Google.', 'info');
 }
 
-// ========================================
-// SERVIÇOS
-// ========================================
 async function carregarServicos() {
-    await carregarDadosIniciais();
+    await carregarDadosIniciais(); // Garante dados frescos
     renderizarServicos(appState.servicos);
 }
 
 function renderizarServicos(servicos) {
-    const container = document.getElementById('servicosGrid');
+    const container = document.getElementById('servicosGrid'); // Certifique-se que no HTML o ID é este ou 'listaServicos'
     
+    // Se não achar o container pelo ID 'servicosGrid', tenta pelo ID genérico de lista se houver
+    if (!container) return console.error('Container de serviços não encontrado no HTML');
+
     if (servicos.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state" style="grid-column: 1/-1;">
-                <i class="fas fa-concierge-bell"></i>
-                <p>Nenhum serviço cadastrado</p>
-            </div>
-        `;
+        container.innerHTML = `<div class="empty-state"><p>Nenhum serviço cadastrado</p></div>`;
         return;
     }
-    
-    container.innerHTML = servicos.map(servico => `
-        <div class="servico-card" onclick="abrirModalServico('${servico.id}')">
-            <h3>${servico.nome}</h3>
-            <span class="servico-tipo">${servico.tipo}</span>
-            <div class="servico-valor">${formatCurrency(servico.valor)}</div>
-            <div class="servico-duracao">
-                <i class="fas fa-clock"></i> ${servico.duracao} minutos
+
+    container.innerHTML = servicos.map(s => `
+        <div class="agendamento-item">
+            <div class="agendamento-header">
+                <h4>${s.nome}</h4>
+                <strong style="color: var(--gold-dark);">${formatCurrency(s.valor)}</strong>
             </div>
-            ${servico.descricao ? `<p style="margin-top: 1rem; color: #666; font-size: 0.9rem;">${servico.descricao}</p>` : ''}
+            <div class="agendamento-info">
+                <span>${s.duracao} min</span>
+            </div>
+            <button class="btn-delete-mini" onclick="excluirServico('${s.id}')" style="margin-top: 10px; background: #ffebee; color: #c62828; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: 100%;">
+                <i class="fas fa-trash"></i> Excluir Serviço
+            </button>
         </div>
     `).join('');
+}
+
+async function excluirServico(id) {
+    if (!confirm('Tem certeza que deseja excluir este serviço?')) return;
+
+    try {
+        await fetchAPI(`tables/servicos?id=eq.${id}`, {
+            method: 'DELETE'
+        });
+
+        showToast('Serviço excluído com sucesso!', 'success');
+        await carregarServicos(); // Atualiza a lista
+    } catch (error) {
+        console.error('Erro ao excluir serviço:', error);
+        showToast('Erro ao excluir (pode estar em uso)', 'error');
+    }
 }
 
 function filtrarServicos(termo) {
@@ -455,8 +469,9 @@ async function salvarServico(e) {
 }
 
 // ========================================
-// ESTOQUE
+// ESTOQUE - Funções Atualizadas
 // ========================================
+
 async function carregarEstoque() {
     await carregarDadosIniciais();
     renderizarEstoque(appState.estoque);
@@ -464,46 +479,61 @@ async function carregarEstoque() {
 
 function renderizarEstoque(produtos) {
     const container = document.getElementById('estoqueGrid');
-    
+    if (!container) return;
+
     if (produtos.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state" style="grid-column: 1/-1;">
-                <i class="fas fa-boxes"></i>
-                <p>Nenhum produto cadastrado</p>
-            </div>
-        `;
+        container.innerHTML = `<div class="empty-state"><p>Estoque vazio</p></div>`;
         return;
     }
-    
-    container.innerHTML = produtos.map(produto => {
-        const isCritico = produto.quantidade === 0;
-        const isAlerta = produto.quantidade > 0 && produto.quantidade <= produto.quantidade_minima;
-        
+
+    container.innerHTML = produtos.map(p => {
+        // Define cor baseada na quantidade
+        let corStatus = '#4CAF50'; // Verde
+        if (p.quantidade <= p.quantidade_minima) corStatus = '#FF9800'; // Laranja
+        if (p.quantidade === 0) corStatus = '#F44336'; // Vermelho
+
         return `
-            <div class="estoque-card ${isCritico ? 'critico' : isAlerta ? 'alerta' : ''}" onclick="abrirModalEstoque('${produto.id}')">
-                ${(isCritico || isAlerta) ? `<div class="estoque-alert-badge"><i class="fas fa-exclamation-triangle"></i></div>` : ''}
-                <h3>${produto.nome}</h3>
-                ${produto.descricao ? `<p style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;">${produto.descricao}</p>` : ''}
-                <div class="estoque-info">
-                    <div>
-                        <div style="font-size: 0.8rem; color: #999;">Quantidade</div>
-                        <div class="estoque-quantidade ${isCritico ? 'critico' : isAlerta ? 'baixo' : ''}">
-                            ${produto.quantidade}
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 0.8rem; color: #999;">Valor Un.</div>
-                        <div style="font-size: 1.1rem; font-weight: 600; color: var(--gold-dark);">
-                            ${formatCurrency(produto.valor_unitario)}
-                        </div>
-                    </div>
+            <div class="agendamento-item" style="border-left: 4px solid ${corStatus}">
+                <div class="agendamento-header">
+                    <h4>${p.nome}</h4>
+                    <strong style="color: ${corStatus}">${p.quantidade} un.</strong>
                 </div>
-                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #999;">
-                    <i class="fas fa-info-circle"></i> Mínimo: ${produto.quantidade_minima}
+                <div class="agendamento-info">
+                    Mínimo ideal: ${p.quantidade_minima}
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button onclick="abrirModalEstoque('${p.id}')" style="flex: 1; padding: 5px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-edit"></i>
+                    </button>
+
+                    <button onclick="excluirProduto('${p.id}')" style="flex: 1; padding: 5px; border: none; background: #ffebee; color: #c62828; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
         `;
     }).join('');
+}
+
+async function excluirProduto(id) {
+    if (!confirm('Tem certeza que deseja excluir este produto do estoque?')) return;
+
+    try {
+        await fetchAPI(`tables/estoque?id=eq.${id}`, {
+            method: 'DELETE'
+        });
+
+        showToast('Produto excluído com sucesso!', 'success');
+        await carregarEstoque(); // Atualiza a tela
+        
+        // Atualiza também as notificações no sininho, pois o estoque mudou
+        if (typeof atualizarNotificacoes === 'function') atualizarNotificacoes();
+
+    } catch (error) {
+        console.error('Erro ao excluir produto:', error);
+        showToast('Erro ao excluir produto', 'error');
+    }
 }
 
 function filtrarEstoque(termo) {
