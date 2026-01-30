@@ -616,66 +616,63 @@ function editarCliente() {
     abrirModalCliente(appState.currentCliente.id);
 }
 
-// js/app.js (Substitua a função excluirCliente inteira)
-
 async function excluirCliente(id) {
-    // 1. SEGURANÇA: Se o ID não veio pelo clique, pega do cliente aberto no modal
-    // O erro "undefined" acontecia porque o botão do modal não enviava o ID.
-    const idParaExcluir = id || appState.currentCliente?.id;
+    // 1. Tenta pegar o ID do parâmetro OU do cliente aberto na tela
+    let idParaExcluir = id;
+    
+    // Se o ID for "undefined" (string) ou nulo, tenta pegar do estado global
+    if (!idParaExcluir || idParaExcluir === 'undefined') {
+        if (appState.currentCliente && appState.currentCliente.id) {
+            idParaExcluir = appState.currentCliente.id;
+        }
+    }
 
-    if (!idParaExcluir) {
-        console.error('❌ Erro: Tentativa de excluir sem ID definido');
-        showToast('Erro: ID do cliente não encontrado.', 'error');
-        return;
+    // 2. TRAVA DE SEGURANÇA FINAL
+    // Se mesmo assim não tiver ID, para tudo e avisa. Não chama o Supabase.
+    if (!idParaExcluir || idParaExcluir === 'undefined') {
+        console.error('⛔ ERRO CRÍTICO: Tentativa de excluir sem ID válido.');
+        alert('Erro: O sistema não conseguiu identificar qual cliente excluir.\nPor favor, feche e abra o detalhe do cliente novamente.');
+        return; // <--- O CÓDIGO PARA AQUI
     }
 
     if (!confirm('Tem certeza? Isso apagará também o histórico e agendamentos deste cliente.')) return;
 
     try {
-        console.log(`🗑️ Iniciando exclusão do cliente: ${idParaExcluir}`);
+        console.log(`🗑️ Excluindo Cliente ID: ${idParaExcluir}`);
 
-        // 2. Buscar agendamentos desse cliente para limpar do Google Agenda
+        // 3. Buscar agendamentos para limpar do Google Agenda
         const { data: agendamentosDoCliente } = await _supabase
             .from('agendamentos')
             .select('google_event_id')
             .eq('cliente_id', idParaExcluir);
 
-        // 3. Se tiver eventos no Google, apagar um por um
+        // Limpar do Google (se houver)
         if (agendamentosDoCliente && agendamentosDoCliente.length > 0) {
-            console.log(`🧹 Limpando ${agendamentosDoCliente.length} eventos do Google...`);
             for (const agenda of agendamentosDoCliente) {
-                if (agenda.google_event_id) {
-                    // Verifica se a função de deletar existe antes de chamar
-                    if (typeof deletarDoGoogleCalendar === 'function') {
-                        await deletarDoGoogleCalendar(agenda.google_event_id);
-                    }
+                if (agenda.google_event_id && typeof deletarDoGoogleCalendar === 'function') {
+                    await deletarDoGoogleCalendar(agenda.google_event_id);
                 }
             }
         }
 
-        // 4. Agora sim, deletar o cliente do Banco de Dados
-        // O "Cascade" que configuramos no SQL vai limpar os agendamentos do banco automaticamente
+        // 4. Deletar do Banco (Agora temos certeza que o ID é válido)
         await fetchAPI(`tables/clientes?id=eq.${idParaExcluir}`, {
             method: 'DELETE'
         });
 
         showToast('Cliente excluído com sucesso!', 'success');
         
-        // 5. Atualizar a interface
-        closeModal('modalDetalhesCliente'); // Fecha o modal
-        
+        // Atualizar interface
+        closeModal('modalDetalhesCliente');
         if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
         if (typeof carregarDashboard === 'function') await carregarDashboard();
         if (appState.currentPage === 'clientes') carregarClientes();
 
     } catch (error) {
         console.error('Erro ao excluir:', error);
-        // Mostra o erro real no alerta para facilitar
-        const msg = error.message || 'Erro desconhecido';
-        showToast(`Erro ao excluir: ${msg}`, 'error');
+        showToast('Erro ao processar exclusão.', 'error');
     }
 }
-
 function trocarTab(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
