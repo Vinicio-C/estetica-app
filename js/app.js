@@ -655,8 +655,8 @@ async function excluirCliente(id) {
             }
         }
 
-        // 4. Deletar do Banco (Agora temos certeza que o ID é válido)
-        await fetchAPI(`tables/clientes?id=eq.${idParaExcluir}`, {
+        // Use a variável nova 'idParaExcluir' que garantimos que tem valor
+        await fetchAPI(`tables/clientes?id=eq.${idParaExcluir}`, { 
             method: 'DELETE'
         });
 
