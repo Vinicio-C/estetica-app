@@ -617,34 +617,32 @@ function editarCliente() {
 }
 
 async function excluirCliente(id) {
-    console.log("VERSÃO NOVA - CORRIGIDA 🚀");
-    // 1. Tenta pegar o ID do parâmetro OU do cliente aberto na tela
-    let idParaExcluir = id;
+    console.log("🚀 TENTATIVA FINAL - DEBUG URL");
     
-    // Se o ID for "undefined" (string) ou nulo, tenta pegar do estado global
+    // 1. Lógica do ID
+    let idParaExcluir = id;
     if (!idParaExcluir || idParaExcluir === 'undefined') {
         if (appState.currentCliente && appState.currentCliente.id) {
             idParaExcluir = appState.currentCliente.id;
         }
     }
 
-    // TRAVA DE SEGURANÇA
+    // Trava
     if (!idParaExcluir || idParaExcluir === 'undefined') {
-        console.error('⛔ ERRO: Tentativa de excluir sem ID válido.');
-        alert('Erro: O sistema não conseguiu identificar qual cliente excluir.');
+        alert('Erro: ID do cliente não encontrado.');
         return;
     }
 
-    if (!confirm('Tem certeza? Isso apagará também o histórico e agendamentos deste cliente.')) return;
+    if (!confirm('Tem certeza? Isso apagará tudo deste cliente.')) return;
 
     try {
-        console.log(`🗑️ Excluindo Cliente ID: ${idParaExcluir}`);
+        console.log(`🗑️ Variável ID está: ${idParaExcluir}`);
 
-        // 2. Limpar Google Agenda (se houver)
+        // 2. Limpar Google Agenda
         const { data: agendamentosDoCliente } = await _supabase
             .from('agendamentos')
             .select('google_event_id')
-            .eq('cliente_id', idParaExcluir); // <--- AQUI ESTAVA CERTO
+            .eq('cliente_id', idParaExcluir);
 
         if (agendamentosDoCliente && agendamentosDoCliente.length > 0) {
             for (const agenda of agendamentosDoCliente) {
@@ -654,22 +652,35 @@ async function excluirCliente(id) {
             }
         }
 
-        // 3. Deletar do Banco (AQUI ERA O ERRO)
-        // Note que agora usamos idParaExcluir no final da linha abaixo 👇
-        await fetchAPI(`tables/clientes?id=eq.${idParaExcluir}`, { 
+        // ========================================================
+        // 3. O PULO DO GATO (Mudança Aqui 👇)
+        // ========================================================
+        
+        // Criamos a URL numa variável separada para garantir que o texto está certo
+        const urlFinal = `tables/clientes?id=eq.${idParaExcluir}`;
+        
+        console.log('🔗 URL que será enviada:', urlFinal); // <--- ESSE LOG VAI NOS SALVAR
+
+        // Verificação extra antes de enviar
+        if (urlFinal.includes('undefined')) {
+            alert('ERRO CRÍTICO: A URL foi gerada com erro: ' + urlFinal);
+            return; // Cancela tudo para não dar erro 400
+        }
+
+        await fetchAPI(urlFinal, { 
             method: 'DELETE'
         });
+        // ========================================================
 
         showToast('Cliente excluído com sucesso!', 'success');
         
-        // Atualizar interface
         closeModal('modalDetalhesCliente');
         if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
         if (typeof carregarDashboard === 'function') await carregarDashboard();
         if (appState.currentPage === 'clientes') carregarClientes();
 
     } catch (error) {
-        console.error('Erro ao excluir:', error);
+        console.error('Erro fatal:', error);
         showToast('Erro ao processar exclusão.', 'error');
     }
 }
