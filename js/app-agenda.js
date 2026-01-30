@@ -381,18 +381,43 @@ function renderizarServicos(servicos) {
 }
 
 async function excluirServico(id) {
+    // 1. Trava de segurança: Verifica se o ID chegou
+    if (!id || id === 'undefined') {
+        console.error('⛔ Tentativa de excluir serviço sem ID.');
+        showToast('Erro: Serviço não identificado.', 'error');
+        return;
+    }
+
     if (!confirm('Tem certeza que deseja excluir este serviço?')) return;
 
     try {
-        await fetchAPI(`tables/servicos?id=eq.${id}`, {
-            method: 'DELETE'
-        });
+        console.log(`🗑️ Excluindo Serviço ID: ${id}`);
+
+        // 2. A SOLUÇÃO DEFINITIVA (Usando _supabase direto)
+        // Isso evita aquele erro de URL "undefined"
+        const { error } = await _supabase
+            .from('servicos')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error; // Se der erro no banco, joga pro catch
 
         showToast('Serviço excluído com sucesso!', 'success');
-        await carregarServicos(); // Atualiza a lista
+        
+        // 3. Atualiza a lista na tela
+        if (typeof carregarServicos === 'function') {
+            await carregarServicos();
+        } else {
+            // Fallback caso a função de recarregar não esteja disponível
+            // (remove o elemento visualmente se necessário)
+            console.warn('Função carregarServicos não encontrada para atualizar a tela.');
+        }
+
     } catch (error) {
         console.error('Erro ao excluir serviço:', error);
-        showToast('Erro ao excluir (pode estar em uso)', 'error');
+        // Mostra o erro real
+        const msg = error.message || 'Erro desconhecido';
+        showToast(`Erro ao excluir: ${msg}`, 'error');
     }
 }
 
