@@ -616,26 +616,33 @@ function editarCliente() {
     abrirModalCliente(appState.currentCliente.id);
 }
 
-// js/app.js
+// js/app.js - Função Corrigida
 
 async function excluirCliente(id) {
+    // 1. Correção de Segurança:
+    // Se o ID não veio pelo clique (undefined), pega do cliente aberto no modal
+    const idParaExcluir = id || appState.currentCliente?.id;
+
+    if (!idParaExcluir) {
+        console.error('❌ Erro: Tentativa de excluir sem ID definido');
+        showToast('Erro: Não foi possível identificar o cliente.', 'error');
+        return;
+    }
+
     if (!confirm('Tem certeza? Isso apagará também o histórico e agendamentos deste cliente.')) return;
 
     try {
-        // 1. Buscar agendamentos desse cliente para limpar do Google
-        // (Fazemos isso ANTES de deletar o cliente)
+        // 2. Buscar agendamentos desse cliente para limpar do Google
         const { data: agendamentosDoCliente } = await _supabase
             .from('agendamentos')
             .select('google_event_id')
-            .eq('cliente_id', id);
+            .eq('cliente_id', idParaExcluir); // Usa a variável corrigida
 
-        // 2. Se tiver eventos no Google, apagar um por um
+        // 3. Se tiver eventos no Google, apagar um por um
         if (agendamentosDoCliente && agendamentosDoCliente.length > 0) {
             console.log(`🧹 Limpando ${agendamentosDoCliente.length} eventos do Google...`);
             for (const agenda of agendamentosDoCliente) {
                 if (agenda.google_event_id) {
-                    // Chama a função que criamos no passo anterior
-                    // (Certifique-se que app-agenda.js está carregado no HTML)
                     if (typeof deletarDoGoogleCalendar === 'function') {
                         await deletarDoGoogleCalendar(agenda.google_event_id);
                     }
@@ -643,19 +650,27 @@ async function excluirCliente(id) {
             }
         }
 
-        // 3. Agora sim, deletar o cliente do Banco
-        // (O Cascade do SQL vai limpar os agendamentos locais automaticamente)
-        await fetchAPI(`tables/clientes?id=eq.${id}`, {
+        // 4. Agora sim, deletar o cliente do Banco
+        await fetchAPI(`tables/clientes?id=eq.${idParaExcluir}`, { // Usa a variável corrigida
             method: 'DELETE'
         });
 
         showToast('Cliente e dados excluídos com sucesso', 'success');
         
-        // Atualizar telas
+        // Atualizar telas e fechar modal
         if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
         if (typeof carregarDashboard === 'function') await carregarDashboard();
         
-        closeModal('modalDetalhesCliente');
+        // Fecha o modal de detalhes se estiver aberto
+        const modal = document.getElementById('modalDetalhesCliente');
+        if (modal && modal.classList.contains('active')) {
+             closeModal('modalDetalhesCliente');
+        }
+
+        // Se estiver na tela de clientes, recarrega a lista
+        if (appState.currentPage === 'clientes') {
+            carregarClientes();
+        }
 
     } catch (error) {
         console.error('Erro ao excluir:', error);
