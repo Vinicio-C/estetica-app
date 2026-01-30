@@ -627,12 +627,11 @@ async function excluirCliente(id) {
         }
     }
 
-    // 2. TRAVA DE SEGURANÇA FINAL
-    // Se mesmo assim não tiver ID, para tudo e avisa. Não chama o Supabase.
+    // TRAVA DE SEGURANÇA
     if (!idParaExcluir || idParaExcluir === 'undefined') {
-        console.error('⛔ ERRO CRÍTICO: Tentativa de excluir sem ID válido.');
-        alert('Erro: O sistema não conseguiu identificar qual cliente excluir.\nPor favor, feche e abra o detalhe do cliente novamente.');
-        return; // <--- O CÓDIGO PARA AQUI
+        console.error('⛔ ERRO: Tentativa de excluir sem ID válido.');
+        alert('Erro: O sistema não conseguiu identificar qual cliente excluir.');
+        return;
     }
 
     if (!confirm('Tem certeza? Isso apagará também o histórico e agendamentos deste cliente.')) return;
@@ -640,13 +639,12 @@ async function excluirCliente(id) {
     try {
         console.log(`🗑️ Excluindo Cliente ID: ${idParaExcluir}`);
 
-        // 3. Buscar agendamentos para limpar do Google Agenda
+        // 2. Limpar Google Agenda (se houver)
         const { data: agendamentosDoCliente } = await _supabase
             .from('agendamentos')
             .select('google_event_id')
-            .eq('cliente_id', idParaExcluir);
+            .eq('cliente_id', idParaExcluir); // <--- AQUI ESTAVA CERTO
 
-        // Limpar do Google (se houver)
         if (agendamentosDoCliente && agendamentosDoCliente.length > 0) {
             for (const agenda of agendamentosDoCliente) {
                 if (agenda.google_event_id && typeof deletarDoGoogleCalendar === 'function') {
@@ -655,7 +653,8 @@ async function excluirCliente(id) {
             }
         }
 
-        // Use a variável nova 'idParaExcluir' que garantimos que tem valor
+        // 3. Deletar do Banco (AQUI ERA O ERRO)
+        // Note que agora usamos idParaExcluir no final da linha abaixo 👇
         await fetchAPI(`tables/clientes?id=eq.${idParaExcluir}`, { 
             method: 'DELETE'
         });
@@ -673,6 +672,8 @@ async function excluirCliente(id) {
         showToast('Erro ao processar exclusão.', 'error');
     }
 }
+
+
 function trocarTab(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
