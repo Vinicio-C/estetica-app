@@ -517,22 +517,38 @@ function renderizarEstoque(produtos) {
 }
 
 async function excluirProduto(id) {
-    if (!confirm('Tem certeza que deseja excluir este produto do estoque?')) return;
+    // Trava de segurança: Se o ID não chegou, avisa e para.
+    if (!id || id === 'undefined') {
+        console.error('⛔ Tentativa de excluir produto sem ID.');
+        showToast('Erro: Produto não identificado.', 'error');
+        return;
+    }
+
+    if (!confirm('Tem certeza que deseja remover este item do estoque?')) return;
 
     try {
-        await fetchAPI(`tables/estoque?id=eq.${id}`, {
-            method: 'DELETE'
-        });
+        console.log(`🗑️ Excluindo Produto ID: ${id}`);
+
+        // A SOLUÇÃO "BALA DE PRATA" (Igual fizemos no Cliente)
+        // Usamos _supabase direto para evitar erro de URL
+        const { error } = await _supabase
+            .from('estoque')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
 
         showToast('Produto excluído com sucesso!', 'success');
-        await carregarEstoque(); // Atualiza a tela
         
-        // Atualiza também as notificações no sininho, pois o estoque mudou
+        // Atualiza a lista de estoque
+        if (typeof carregarEstoque === 'function') await carregarEstoque();
+        
+        // Atualiza o sininho de notificações (se o estoque estava baixo e foi apagado)
         if (typeof atualizarNotificacoes === 'function') atualizarNotificacoes();
 
     } catch (error) {
         console.error('Erro ao excluir produto:', error);
-        showToast('Erro ao excluir produto', 'error');
+        showToast('Erro ao excluir produto.', 'error');
     }
 }
 
@@ -570,6 +586,46 @@ function abrirModalEstoque(produtoId = null) {
     
     modal.classList.add('active');
     document.getElementById('overlay').classList.add('active');
+}
+
+function renderizarEstoque(produtos) {
+    const container = document.getElementById('estoqueGrid');
+    // Proteção caso o container não exista na tela atual
+    if (!container) return;
+
+    if (produtos.length === 0) {
+        container.innerHTML = `<div class="empty-state"><p>Estoque vazio</p></div>`;
+        return;
+    }
+
+    container.innerHTML = produtos.map(p => {
+        // Define cor baseada na quantidade
+        let corStatus = '#4CAF50'; // Verde
+        if (p.quantidade <= p.quantidade_minima) corStatus = '#FF9800'; // Laranja
+        if (p.quantidade === 0) corStatus = '#F44336'; // Vermelho
+
+        return `
+            <div class="agendamento-item" style="border-left: 4px solid ${corStatus}">
+                <div class="agendamento-header">
+                    <h4>${p.nome}</h4>
+                    <strong style="color: ${corStatus}">${p.quantidade} un.</strong>
+                </div>
+                <div class="agendamento-info">
+                    Mínimo ideal: ${p.quantidade_minima}
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button onclick="abrirModalEstoque('${p.id}')" style="flex: 1; padding: 5px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-edit"></i>
+                    </button>
+
+                    <button onclick="excluirProduto('${p.id}')" style="flex: 1; padding: 5px; border: none; background: #ffebee; color: #c62828; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 async function salvarEstoque(e) {
