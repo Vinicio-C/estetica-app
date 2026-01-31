@@ -159,9 +159,13 @@
                     
                     <!-- Próximos Agendamentos -->
                     <div class="dashboard-section">
-                        <div class="section-header">
-                            <h2><i class="fas fa-clock"></i> Próximos Agendamentos</h2>
-                            <button class="btn-secondary btn-sm" onclick="navigateTo('agenda')">Ver Todos</button>
+                        <div class="dashboard-card">
+                            <h3><i class="fas fa-clock"></i> Próximos Agendamentos</h3>
+                            <div id="proximosAgendamentos">
+                                </div>
+                            <button class="btn-secondary btn-sm" onclick="navigateTo('agenda')" style="margin-top: 15px; width: 100%;">
+                                Ver Todos
+                            </button>
                         </div>
                         <div id="proximosAgendamentos" class="agendamentos-list">
                             <div class="empty-state">
@@ -173,9 +177,10 @@
                     
                     <!-- Alertas de Estoque -->
                     <div class="dashboard-section">
-                        <div class="section-header">
-                            <h2><i class="fas fa-box-open"></i> Alertas de Estoque</h2>
-                            <button class="btn-secondary btn-sm" onclick="navigateTo('estoque')">Ver Estoque</button>
+                        <div class="dashboard-card">
+                            <h3><i class="fas fa-box-open"></i> Alertas de Estoque</h3>
+                            <div id="alertasEstoque">
+                                </div>
                         </div>
                         <div id="alertasEstoque" class="alertas-list">
                             <div class="empty-state">
@@ -187,9 +192,10 @@
                     
                     <!-- Clientes com Débitos -->
                     <div class="dashboard-section">
-                        <div class="section-header">
-                            <h2><i class="fas fa-money-bill-wave"></i> Clientes com Débitos</h2>
-                            <button class="btn-secondary btn-sm" onclick="navigateTo('clientes')">Ver Clientes</button>
+                        <div class="dashboard-card">
+                            <h3><i class="fas fa-hand-holding-usd"></i> Clientes com Débitos</h3>
+                            <div id="clientesDebitos">
+                                </div>
                         </div>
                         <div id="clientesDebitos" class="debitos-list">
                             <div class="empty-state">

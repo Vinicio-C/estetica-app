@@ -514,3 +514,31 @@ input[type="date"] {
     align-items: center;
     gap: 8px;
 }
+
+.dashboard-card {
+    background-color: #1E1E1E; /* Fundo Cinza Chumbo (mais claro que o fundo preto) */
+    border: 1px solid #333;    /* Borda sutil */
+    border-radius: 12px;       /* Cantos arredondados */
+    padding: 20px;             /* Espaço interno */
+    margin-bottom: 30px;       /* Espaço para separar um bloco do outro */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); /* Sombra para dar profundidade */
+}
+
+/* Ajuste do Título dentro do Cartão */
+.dashboard-card h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #333; /* Linha separando título do conteúdo */
+    font-size: 1.2rem;
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Garante que a lista dentro não quebre o layout */
+.dashboard-card .empty-state {
+    padding: 10px 0;
+    background: transparent; /* Remove fundo extra se houver */
+}
