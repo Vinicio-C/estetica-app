@@ -998,18 +998,45 @@ document.addEventListener('click', (e) => {
 });
 
 async function atualizarNotificacoes() {
-    // Busca dados frescos (usa o cache local do appState se possível, ou chama a API)
+    // Busca dados frescos
     const estoque = appState.estoque || [];
     const agendamentos = appState.agendamentos || [];
+    const clientes = appState.clientes || [];
     
     const lista = document.getElementById('notifList');
     const badge = document.getElementById('notifCount');
+    if (!lista || !badge) return;
+
     lista.innerHTML = '';
     
     let count = 0;
     let html = '';
+    const hoje = new Date();
 
-    // 1. Alerta de Estoque Baixo
+    // --- 1. ANIVERSARIANTES DO DIA (NOVO) ---
+    clientes.forEach(c => {
+        if (c.data_nascimento) {
+            // O input date salva como YYYY-MM-DD. Vamos quebrar a string para não ter erro de fuso horário.
+            const partes = c.data_nascimento.split('-'); // [2000, 05, 20]
+            const diaNasc = parseInt(partes[2]);
+            const mesNasc = parseInt(partes[1]) - 1; // Mês no JS começa em 0 (Janeiro)
+
+            if (hoje.getDate() === diaNasc && hoje.getMonth() === mesNasc) {
+                count++;
+                html += `
+                    <div class="notif-item" style="border-left: 4px solid #E91E63;" onclick="abrirDetalhesCliente('${c.id}')">
+                        <div class="notif-icon" style="color: #E91E63;"><i class="fas fa-birthday-cake"></i></div>
+                        <div class="notif-content">
+                            <h4 style="color: #E91E63;">Aniversário Hoje! 🎉</h4>
+                            <p><strong>${c.nome}</strong> está completando mais um ano.</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    });
+
+    // --- 2. Alerta de Estoque Baixo ---
     estoque.forEach(item => {
         if (item.quantidade <= item.quantidade_minima) {
             count++;
@@ -1026,19 +1053,18 @@ async function atualizarNotificacoes() {
         }
     });
 
-    // 2. Alerta de Contas a Receber (Atrasadas)
-    const hoje = new Date();
+    // --- 3. Alerta de Contas a Receber (Atrasadas) ---
     agendamentos.forEach(a => {
         const dataServico = new Date(a.data);
-        // Se já passou, foi concluído e ainda deve
+        // Se já passou (ontem pra trás), foi concluído e ainda deve
         if (dataServico < hoje && a.status === 'concluido' && a.status_pagamento === 'devendo') {
             count++;
             html += `
-                <div class="notif-item critical" onclick="navigateTo('clientes')">
+                <div class="notif-item critical" onclick="abrirDetalhesCliente('${a.cliente_id}')">
                     <div class="notif-icon"><i class="fas fa-exclamation-circle"></i></div>
                     <div class="notif-content">
                         <h4>Débito: ${a.cliente_nome}</h4>
-                        <p>Venceu em ${new Date(a.data).toLocaleDateString()}</p>
+                        <p>Venceu em ${formatDate(a.data)}</p>
                     </div>
                 </div>
             `;
