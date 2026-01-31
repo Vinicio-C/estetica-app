@@ -1091,13 +1091,6 @@ async function limparAgendaGoogleDoDia(dataString) {
 // HELPER FUNCTIONS (Funções Auxiliares)
 // ========================================
 
-// Formata data para o valor do input type="date" (YYYY-MM-DD)
-function formatDateInput(date) {
-    if (!date) return '';
-    const d = new Date(date);
-    return d.toISOString().split('T')[0];
-}
-
 // Formata moeda (R$)
 function formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', {
@@ -1158,4 +1151,70 @@ function showToast(message, type = 'success') {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+
+// =======================================================
+// FUNÇÕES AUXILIARES ESSENCIAIS (RECUPERADAS)
+// =======================================================
+
+// 1. Fechar Modal (Essencial para o botão X e Cancelar)
+function fecharModal(modalId) {
+    const modal = document.getElementById(modalId);
+    const overlay = document.getElementById('overlay');
+    
+    if (modal) modal.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+}
+
+// 2. Formatar Hora para Input (Necessário para editar agendamentos)
+function formatTimeInput(date) {
+    if (!date) return '';
+    const d = new Date(date);
+    // Garante formato HH:mm
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+// 3. Formatar Data para Input (Necessário para abrir o modal Novo)
+function formatDateInput(date) {
+    if (!date) return '';
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// 4. Alternar Tipo (Serviço vs Evento) - Garantia para o Modal
+function toggleTipoAgendamento() {
+    // Tenta pegar o rádio marcado
+    const radio = document.querySelector('input[name="tipoAgendamento"]:checked');
+    if (!radio) return; // Proteção
+
+    const tipo = radio.value;
+    
+    const camposServico = document.getElementById('camposServico');
+    const camposEvento = document.getElementById('camposEvento');
+    
+    // Elementos obrigatórios
+    const cliente = document.getElementById('agendamentoCliente');
+    const servico = document.getElementById('agendamentoServico');
+    const evento = document.getElementById('eventoNome');
+
+    if (tipo === 'servico') {
+        if(camposServico) camposServico.style.display = 'block';
+        if(camposEvento) camposEvento.style.display = 'none';
+        
+        if(cliente) cliente.required = true;
+        if(servico) servico.required = true;
+        if(evento) evento.required = false;
+    } else {
+        if(camposServico) camposServico.style.display = 'none';
+        if(camposEvento) camposEvento.style.display = 'block';
+        
+        if(cliente) cliente.required = false;
+        if(servico) servico.required = false;
+        if(evento) evento.required = true;
+    }
 }
