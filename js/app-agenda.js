@@ -152,10 +152,11 @@ async function abrirModalAgendamento(agendamentoId = null) {
     
     const modal = document.getElementById('modalAgendamento');
     const form = document.getElementById('formAgendamento');
+    const btnExcluir = document.getElementById('btnExcluirAgendaModal'); // Pega o botão
     
     form.reset();
     
-    // Preencher selects
+    // Preencher selects (Mantido)
     const selectCliente = document.getElementById('agendamentoCliente');
     selectCliente.innerHTML = '<option value="">Selecione um cliente</option>' + 
         appState.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
@@ -165,9 +166,10 @@ async function abrirModalAgendamento(agendamentoId = null) {
         appState.servicos.map(s => `<option value="${s.id}">${s.nome} - ${formatCurrency(s.valor)}</option>`).join('');
     
     if (agendamentoId) {
-        // Editar
+        // --- MODO EDIÇÃO ---
         const agendamento = appState.agendamentos.find(a => a.id === agendamentoId);
         if (agendamento) {
+            // Preenche os dados (Lógica existente mantida)
             document.querySelector(`input[name="tipoAgendamento"][value="${agendamento.tipo}"]`).checked = true;
             toggleTipoAgendamento();
             
@@ -185,18 +187,21 @@ async function abrirModalAgendamento(agendamentoId = null) {
             document.getElementById('agendamentoHora').value = formatTimeInput(dataAgendamento);
             document.getElementById('agendamentoObservacoes').value = agendamento.observacoes || '';
             document.getElementById('agendamentoId').value = agendamento.id;
-            const btnExcluir = document.getElementById('btnExcluirAgendaModal');
-            if(btnExcluir) btnExcluir.style.display = 'block';  
+
+            // MOSTRA O BOTÃO DE EXCLUIR
+            if(btnExcluir) btnExcluir.style.display = 'flex';
         }
     } else {
-        // Novo
+        // --- MODO NOVO ---
         const dataAtual = new Date(appState.currentAgendaDate);
         document.getElementById('agendamentoData').value = formatDateInput(dataAtual);
         document.getElementById('agendamentoHora').value = '09:00';
         document.getElementById('agendamentoId').value = '';
-        const btnExcluir = document.getElementById('btnExcluirAgendaModal');
-        if(btnExcluir) btnExcluir.style.display = 'none';
+        
         toggleTipoAgendamento();
+
+        // ESCONDE O BOTÃO DE EXCLUIR
+        if(btnExcluir) btnExcluir.style.display = 'none';
     }
     
     modal.classList.add('active');
