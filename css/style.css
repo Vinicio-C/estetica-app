@@ -758,43 +758,50 @@ input[type="date"] {
    CORREÇÃO DAS ABAS (HISTÓRICO / AGENDADOS)
    ======================================================= */
 
-/* Container das abas */
+/* =======================================================
+   CORREÇÃO FINAL: BOTÕES DAS ABAS (HISTÓRICO / AGENDADOS)
+   ======================================================= */
+
+/* Container que segura os botões */
 .detalhes-tabs {
     display: flex;
-    gap: 10px;
-    margin-top: 20px;
-    margin-bottom: 15px;
+    gap: 15px; /* Espaço entre os botões */
+    margin-top: 25px;
+    margin-bottom: 20px;
     border-bottom: 1px solid #333; /* Linha sutil embaixo */
-    padding-bottom: 10px;
+    padding-bottom: 15px;
 }
 
-/* Estilo do Botão da Aba (Desativado) */
+/* O Botão da Aba (Estado Normal/Desativado) */
 .tab-btn {
-    background: transparent;
-    border: 1px solid transparent;
-    color: var(--text-secondary); /* Cinza */
-    font-size: 0.95rem;
+    background: transparent; /* Remove o fundo branco feio */
+    border: 1px solid #444;  /* Borda cinza discreta */
+    color: var(--text-secondary); /* Texto cinza */
+    font-size: 0.9rem;
     font-weight: 600;
-    padding: 8px 20px;
+    padding: 8px 24px; /* Mais gordinho */
     cursor: pointer;
-    border-radius: 20px; /* Bordas arredondadas (Pílula) */
+    border-radius: 50px; /* Deixa redondinho (Pílula) */
     transition: all 0.3s ease;
+    outline: none;
+    font-family: var(--font-body);
 }
 
-/* Efeito ao passar o mouse */
+/* Quando passa o mouse */
 .tab-btn:hover {
+    border-color: var(--gold);
     color: var(--gold);
-    background-color: rgba(212, 175, 55, 0.1); /* Dourado bem clarinho */
 }
 
-/* Estilo da Aba ATIVA (Selecionada) */
+/* O Botão da Aba (Estado ATIVO/Selecionado) */
 .tab-btn.active {
-    background-color: var(--gold); /* Fundo Dourado */
-    color: #000; /* Texto Preto */
-    box-shadow: 0 0 10px rgba(212, 175, 55, 0.4); /* Brilho */
+    background: linear-gradient(135deg, var(--gold) 0%, #B88A00 100%); /* Fundo Dourado */
+    color: #000; /* Texto Preto para leitura fácil */
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); /* Brilho dourado */
 }
 
-/* Ajuste para esconder o conteúdo da aba inativa */
+/* Ajuste para esconder o conteúdo da aba que não está selecionada */
 .tab-content {
     display: none;
     animation: fadeIn 0.3s ease;
