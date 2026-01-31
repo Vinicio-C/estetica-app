@@ -7,8 +7,9 @@ async function carregarAgenda() {
     const view = appState.currentAgendaView;
     const date = appState.currentAgendaDate;
     let agendamentosFiltrados = [];
-    
-   if (view === 'dia') {
+
+    // --- LÓGICA DE FILTRO (MANTIDA) ---
+    if (view === 'dia') {
         const inicio = new Date(date); inicio.setHours(0,0,0,0);
         const fim = new Date(date); fim.setHours(23,59,59,999);
         agendamentosFiltrados = appState.agendamentos.filter(a => {
@@ -16,43 +17,41 @@ async function carregarAgenda() {
         });
     } else if (view === 'semana') {
         const inicio = new Date(date);
-        const dia = inicio.getDay();
-        const diff = inicio.getDate() - dia;
-        inicio.setDate(diff);
-        inicio.setHours(0, 0, 0, 0);
+        const dia = inicio.getDay(); // 0 (Domingo) a 6 (Sábado)
+        const diff = inicio.getDate() - dia; // Ajusta para o Domingo anterior
+        inicio.setDate(diff); inicio.setHours(0,0,0,0);
         
         const fim = new Date(inicio);
-        fim.setDate(fim.getDate() + 6);
-        fim.setHours(23, 59, 59, 999);
+        fim.setDate(fim.getDate() + 6); fim.setHours(23,59,59,999);
         
         agendamentosFiltrados = appState.agendamentos.filter(a => {
-            const dataAgendamento = new Date(a.data);
-            return dataAgendamento >= inicio && dataAgendamento <= fim;
+            const d = new Date(a.data); return d >= inicio && d <= fim;
         });
     } else if (view === 'mes') {
         const inicio = new Date(date.getFullYear(), date.getMonth(), 1);
         const fim = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
-        
         agendamentosFiltrados = appState.agendamentos.filter(a => {
-            const dataAgendamento = new Date(a.data);
-            return dataAgendamento >= inicio && dataAgendamento <= fim;
+            const d = new Date(a.data); return d >= inicio && d <= fim;
         });
     }
-    
-    // Ordenar por data
+
     agendamentosFiltrados.sort((a, b) => new Date(a.data) - new Date(b.data));
-    
-    // Calcular totais do dia
+
+    // Totais
     const servicosDia = agendamentosFiltrados.filter(a => a.tipo === 'servico').length;
     const faturamentoDia = agendamentosFiltrados
         .filter(a => a.tipo === 'servico' && a.status !== 'cancelado')
-        .reduce((sum, a) => sum + (a.valor || 0), 0);
-    
-    document.getElementById('agendaTotalServicos').textContent = servicosDia;
-    document.getElementById('agendaTotalValor').textContent = formatCurrency(faturamentoDia);
-    
-    // Renderizar agendamentos
+        .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
+
+    // Atualiza barra de status se os elementos existirem
+    const elTotal = document.getElementById('agendaTotalServicos');
+    const elValor = document.getElementById('agendaTotalValor');
+    if (elTotal) elTotal.textContent = `${servicosDia} serviços`;
+    if (elValor) elValor.textContent = formatCurrency(faturamentoDia);
+
+    // Renderizar
     const container = document.getElementById('agendaContainer');
+    if (!container) return;
     
     if (agendamentosFiltrados.length === 0) {
         container.innerHTML = `
@@ -62,9 +61,8 @@ async function carregarAgenda() {
             </div>`;
         return;
     }
-    
+
     container.innerHTML = agendamentosFiltrados.map(a => {
-        // Define classe extra se estiver concluído ou cancelado
         let statusClass = '';
         if (a.status === 'concluido') statusClass = 'status-concluido';
         if (a.status === 'cancelado') statusClass = 'status-cancelado';
@@ -92,13 +90,17 @@ async function carregarAgenda() {
             <div class="action-column">
                 ${a.tipo === 'servico' ? `<span class="price-tag">${formatCurrency(a.valor)}</span>` : ''}
                 
-                ${a.status === 'agendado' ? `
-                    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:5px;">
-                        <button class="btn-icon" style="color:var(--success); width:30px; height:30px;" onclick="concluirAgendamento(event, '${a.id}')" title="Concluir">
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+                    <button class="icon-btn-small delete" onclick="excluirAgendamento(event, '${a.id}')" title="Excluir">
+                        <i class="fas fa-trash"></i>
+                    </button>
+
+                    ${a.status === 'agendado' ? `
+                        <button class="icon-btn-small success" onclick="concluirAgendamento(event, '${a.id}')" title="Concluir">
                             <i class="fas fa-check"></i>
                         </button>
-                    </div>
-                ` : ''}
+                    ` : ''}
+                </div>
             </div>
         </div>
         `;
@@ -183,6 +185,8 @@ async function abrirModalAgendamento(agendamentoId = null) {
             document.getElementById('agendamentoHora').value = formatTimeInput(dataAgendamento);
             document.getElementById('agendamentoObservacoes').value = agendamento.observacoes || '';
             document.getElementById('agendamentoId').value = agendamento.id;
+            const btnExcluir = document.getElementById('btnExcluirAgendaModal');
+            if(btnExcluir) btnExcluir.style.display = 'block';  
         }
     } else {
         // Novo
@@ -190,6 +194,8 @@ async function abrirModalAgendamento(agendamentoId = null) {
         document.getElementById('agendamentoData').value = formatDateInput(dataAtual);
         document.getElementById('agendamentoHora').value = '09:00';
         document.getElementById('agendamentoId').value = '';
+        const btnExcluir = document.getElementById('btnExcluirAgendaModal');
+        if(btnExcluir) btnExcluir.style.display = 'none';
         toggleTipoAgendamento();
     }
     
@@ -496,5 +502,46 @@ async function enviarParaGoogleCalendar(agendamento) {
         }
     } catch (error) {
         console.error('Erro de Rede Google:', error);
+    }
+}
+
+// Função para excluir agendamento
+async function excluirAgendamento(event, id) {
+    // Impede que o clique abra o modal de edição
+    if (event) event.stopPropagation();
+    
+    // Pergunta de segurança
+    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
+
+    try {
+        // 1. Deleta do Banco de Dados
+        const { error } = await _supabase
+            .from('agendamentos')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        // 2. Feedback e Atualização
+        showToast('Agendamento excluído com sucesso!', 'success');
+        
+        // Fecha modal se estiver aberto
+        fecharModal('modalAgendamento');
+        
+        // Recarrega a lista e o dashboard para atualizar números
+        await carregarAgenda();
+        if (typeof carregarDashboard === 'function') carregarDashboard();
+
+    } catch (error) {
+        console.error(error);
+        showToast('Erro ao excluir agendamento.', 'error');
+    }
+}
+
+// Função auxiliar para o botão de excluir de DENTRO do modal
+function excluirDoModal() {
+    const id = document.getElementById('agendamentoId').value;
+    if (id) {
+        excluirAgendamento(null, id);
     }
 }

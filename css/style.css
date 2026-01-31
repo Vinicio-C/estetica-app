@@ -1023,3 +1023,23 @@ input[type="date"] {
 /* Cores de Status para a borda lateral */
 .status-concluido { border-left-color: var(--success) !important; opacity: 0.7; }
 .status-cancelado { border-left-color: var(--error) !important; opacity: 0.5; text-decoration: line-through; }
+
+/* Botões de ação no card da agenda */
+.icon-btn-small {
+    background: transparent;
+    border: 1px solid #444;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.icon-btn-small.delete { color: #EF5350; }
+.icon-btn-small.delete:hover { background: rgba(239, 83, 80, 0.1); border-color: #EF5350; }
+
+.icon-btn-small.success { color: #66BB6A; }
+.icon-btn-small.success:hover { background: rgba(102, 187, 106, 0.1); border-color: #66BB6A; }
