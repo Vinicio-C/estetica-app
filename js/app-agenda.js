@@ -106,13 +106,28 @@ async function carregarAgenda() {
 }
 
 function setAgendaView(view) {
+    // 1. Atualiza o estado da aplicação
     appState.currentAgendaView = view;
     
-    document.querySelectorAll('.agenda-controls .btn-secondary').forEach(btn => {
+    // 2. Remove a classe 'active' de TODOS os botões da barra de visualização
+    document.querySelectorAll('.view-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    document.getElementById(`agendaView${view.charAt(0).toUpperCase() + view.slice(1)}`).classList.add('active');
+
+    // 3. Adiciona a classe 'active' APENAS no botão clicado
+    // Mapeia o nome da view para o ID do botão no HTML
+    const idMap = {
+        'dia': 'agendaViewDia',
+        'semana': 'agendaViewSemana',
+        'mes': 'agendaViewMes'
+    };
+
+    const activeButton = document.getElementById(idMap[view]);
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
     
+    // 4. Recarrega a agenda com o novo filtro
     carregarAgenda();
 }
 
