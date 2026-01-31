@@ -753,3 +753,53 @@ input[type="date"] {
     overflow-y: auto;
     padding-right: 5px;
 }
+
+/* =======================================================
+   CORREÇÃO DAS ABAS (HISTÓRICO / AGENDADOS)
+   ======================================================= */
+
+/* Container das abas */
+.detalhes-tabs {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #333; /* Linha sutil embaixo */
+    padding-bottom: 10px;
+}
+
+/* Estilo do Botão da Aba (Desativado) */
+.tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary); /* Cinza */
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 8px 20px;
+    cursor: pointer;
+    border-radius: 20px; /* Bordas arredondadas (Pílula) */
+    transition: all 0.3s ease;
+}
+
+/* Efeito ao passar o mouse */
+.tab-btn:hover {
+    color: var(--gold);
+    background-color: rgba(212, 175, 55, 0.1); /* Dourado bem clarinho */
+}
+
+/* Estilo da Aba ATIVA (Selecionada) */
+.tab-btn.active {
+    background-color: var(--gold); /* Fundo Dourado */
+    color: #000; /* Texto Preto */
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.4); /* Brilho */
+}
+
+/* Ajuste para esconder o conteúdo da aba inativa */
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
