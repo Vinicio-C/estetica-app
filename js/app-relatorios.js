@@ -1,5 +1,5 @@
 // ========================================
-// RELATÓRIOS - MÓDULO COMPLETO E FUNCIONAL
+// RELATÓRIOS - MÓDULO COMPLETO
 // ========================================
 
 // Variáveis globais para os gráficos
@@ -7,17 +7,23 @@ let chartFaturamento = null;
 let chartQuantidade = null;
 
 async function carregarRelatorios() {
-    // 1. Garante que temos dados atualizados
+    // 1. Garante dados atualizados
     if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
 
     const container = document.getElementById('relatoriosContent');
     if (!container) return;
 
-    // 2. Filtros de Data
-    const mes = parseInt(document.getElementById('relatorioMes').value);
-    const ano = parseInt(document.getElementById('relatorioAno').value);
+    // 2. Filtros de Data (Pega do HTML)
+    const elMes = document.getElementById('relatorioMes');
+    const elAno = document.getElementById('relatorioAno');
+    
+    // Se não tiver os filtros na tela (ex: mudou de página), para.
+    if (!elMes || !elAno) return;
 
-    // 3. Filtrar Dados (Apenas concluídos do mês selecionado)
+    const mes = parseInt(elMes.value);
+    const ano = parseInt(elAno.value);
+
+    // 3. Filtrar Dados (Apenas CONCLUÍDOS do mês selecionado)
     const dadosFiltrados = appState.agendamentos.filter(a => {
         const d = new Date(a.data);
         return d.getMonth() === mes && 
@@ -29,7 +35,7 @@ async function carregarRelatorios() {
     const faturamentoTotal = dadosFiltrados.reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
     const servicosRealizados = dadosFiltrados.length;
     
-    // Total a Receber (Geral, todas as datas)
+    // Total a Receber (Geral, todas as datas - dívida é dívida)
     const totalReceber = appState.agendamentos
         .filter(a => a.status_pagamento === 'devendo' && a.status === 'concluido')
         .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
@@ -53,15 +59,15 @@ async function carregarRelatorios() {
     container.innerHTML = `
         <div class="metrics-row">
             <div class="metric-card">
-                <div class="metric-icon gold"><i class="fas fa-dollar-sign"></i></div>
+                <div class="metric-icon" style="color: var(--gold);"><i class="fas fa-dollar-sign"></i></div>
                 <div class="metric-info">
                     <p>Faturamento Total</p>
                     <h3>${formatCurrency(faturamentoTotal)}</h3>
                 </div>
             </div>
 
-            <div class="metric-card">
-                <div class="metric-icon rose"><i class="fas fa-hand-holding-usd"></i></div>
+            <div class="metric-card" style="border-left: 4px solid var(--warning);">
+                <div class="metric-icon" style="color: var(--warning);"><i class="fas fa-hand-holding-usd"></i></div>
                 <div class="metric-info">
                     <p>Total a Receber</p>
                     <h3 style="color: var(--warning);">${formatCurrency(totalReceber)}</h3>
@@ -69,7 +75,7 @@ async function carregarRelatorios() {
             </div>
 
             <div class="metric-card">
-                <div class="metric-icon beige"><i class="fas fa-cut"></i></div>
+                <div class="metric-icon"><i class="fas fa-cut"></i></div>
                 <div class="metric-info">
                     <p>Serviços Realizados</p>
                     <h3>${servicosRealizados}</h3>
@@ -80,12 +86,16 @@ async function carregarRelatorios() {
         <div class="charts-row">
             <div class="chart-card">
                 <h3><i class="fas fa-chart-pie"></i> Faturamento por Serviço</h3>
-                <canvas id="chartFaturamentoTipo"></canvas>
+                <div style="height: 300px;">
+                    <canvas id="chartFaturamentoTipo"></canvas>
+                </div>
             </div>
             
             <div class="chart-card">
                 <h3><i class="fas fa-chart-bar"></i> Quantidade de Serviços</h3>
-                <canvas id="chartQuantidadeTipo"></canvas>
+                <div style="height: 300px;">
+                    <canvas id="chartQuantidadeTipo"></canvas>
+                </div>
             </div>
         </div>
 
@@ -97,6 +107,7 @@ async function carregarRelatorios() {
                         <tr>
                             <th>Data/Cliente</th>
                             <th>Serviço</th>
+                            <th>Status</th>
                             <th>Valor</th>
                         </tr>
                     </thead>
@@ -112,26 +123,25 @@ async function carregarRelatorios() {
         </div>
     `;
 
-    // 7. AGORA SIM: Desenhar os Gráficos e a Tabela
-    // Pequeno timeout para garantir que o HTML foi injetado antes de desenhar
+    // 7. Renderizar Gráficos e Tabela (Com delay para garantir que o HTML existe)
     setTimeout(() => {
         renderizarGraficos(labels, valuesFaturamento, valuesQuantidade);
         renderizarTabelaRelatorio(dadosFiltrados);
-    }, 50);
+    }, 100);
 }
 
-// --- FUNÇÃO DE DESENHAR GRÁFICOS (CHART.JS) ---
+// --- FUNÇÃO QUE DESENHA OS GRÁFICOS (FALTAVA NO SEU ARQUIVO) ---
 function renderizarGraficos(labels, dataFat, dataQtd) {
     const colors = ['#D4AF37', '#F4E4C1', '#B88A00', '#FFFFFF', '#666666'];
 
-    // Configuração Global
+    // Configuração Global Chart.js
     if (typeof Chart !== 'undefined') {
         Chart.defaults.color = '#A0A0A0';
         Chart.defaults.borderColor = '#333';
         Chart.defaults.font.family = "'Montserrat', sans-serif";
     }
 
-    // Destruir anteriores se existirem
+    // Destruir gráficos antigos
     if (chartFaturamento) chartFaturamento.destroy();
     if (chartQuantidade) chartQuantidade.destroy();
 
@@ -145,14 +155,15 @@ function renderizarGraficos(labels, dataFat, dataQtd) {
                 datasets: [{
                     data: dataFat,
                     backgroundColor: colors,
-                    borderWidth: 0
+                    borderWidth: 0,
+                    hoverOffset: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'right' }
+                    legend: { position: 'right', labels: { boxWidth: 12, color: '#ECECEC' } }
                 }
             }
         });
@@ -166,10 +177,11 @@ function renderizarGraficos(labels, dataFat, dataQtd) {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Quantidade',
+                    label: 'Qtd',
                     data: dataQtd,
                     backgroundColor: '#D4AF37',
-                    borderRadius: 4
+                    borderRadius: 4,
+                    barThickness: 40
                 }]
             },
             options: {
@@ -191,18 +203,28 @@ function renderizarTabelaRelatorio(dados) {
     if (!tbody) return;
 
     if (dados.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">Nenhum dado encontrado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color: #666;">Nenhum serviço concluído neste período.</td></tr>';
         return;
     }
 
+    // Ordenar por data
+    dados.sort((a, b) => new Date(a.data) - new Date(b.data));
+
     tbody.innerHTML = dados.map(a => `
-        <tr>
-            <td>
+        <tr style="border-bottom: 1px solid #333;">
+            <td style="padding: 12px;">
                 <div style="font-weight:bold; color: #ECECEC;">${a.cliente_nome || 'Evento'}</div>
                 <small style="color: #888;">${formatDate(a.data)}</small>
             </td>
-            <td>${a.servico_nome || a.evento_nome}</td>
-            <td style="font-weight:bold; color: var(--gold);">${formatCurrency(a.valor)}</td>
+            <td style="padding: 12px;">${a.servico_nome || a.evento_nome}</td>
+            <td style="padding: 12px;">
+                <span class="status-badge ${a.status_pagamento}" style="font-size:0.75rem; padding:2px 8px; border-radius:4px;">
+                    ${a.status_pagamento}
+                </span>
+            </td>
+            <td style="padding: 12px; font-weight:bold; color: var(--gold);">
+                ${formatCurrency(a.valor)}
+            </td>
         </tr>
     `).join('');
 }
