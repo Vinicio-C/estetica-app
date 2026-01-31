@@ -1296,3 +1296,65 @@ input[type="date"] {
     50% { transform: scale(1.1); opacity: 0.8; }
     100% { transform: scale(1); opacity: 1; }
 }
+
+/* =======================================================
+   CORREÇÃO VISUAL: BOTÕES DE MENU E NOTIFICAÇÃO
+   ======================================================= */
+
+/* 1. ESTILIZAR O BOTÃO DE MENU (HAMBÚRGUER) */
+#menuToggle {
+    background-color: transparent !important; /* Remove o fundo cinza feio */
+    border: 1px solid #333 !important;        /* Borda sutil para definir a área */
+    color: var(--gold) !important;            /* Ícone Dourado */
+    border-radius: 8px !important;            /* Cantos arredondados */
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1.2rem;
+}
+
+#menuToggle:hover {
+    border-color: var(--gold) !important;     /* Brilha a borda ao passar o mouse */
+    background-color: rgba(212, 175, 55, 0.1) !important; /* Fundo dourado bem leve */
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+}
+
+/* 2. ESTILIZAR O BOTÃO "LIMPAR" (NOTIFICAÇÕES) */
+.btn-link-gold {
+    background: transparent !important;       /* Remove fundo branco */
+    border: none !important;                  /* Remove borda padrão */
+    color: #888 !important;                   /* Cor inicial discreta (Cinza) */
+    font-size: 0.75rem !important;            /* Fonte pequena e elegante */
+    font-weight: 600 !important;
+    text-transform: uppercase;                /* Letras maiúsculas */
+    letter-spacing: 1px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: 0.2s;
+}
+
+.btn-link-gold:hover {
+    color: var(--gold) !important;            /* Fica dourado ao passar o mouse */
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    text-decoration: underline;
+}
+
+/* 3. ALINHAMENTO DO CABEÇALHO DAS NOTIFICAÇÕES */
+.notif-header {
+    display: flex !important;
+    justify-content: space-between !important; /* "Alertas" na esq, "Limpar" na dir */
+    align-items: center !important;
+    padding: 15px !important;
+    border-bottom: 1px solid #333;
+}
+
+.notif-header span {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fff;
+}
