@@ -530,39 +530,26 @@ input[type="date"] {
     gap: 8px;
 }
 
+/* Força o conteúdo a se afastar da borda colorida esquerda */
 .dashboard-card .agendamento-item {
-    /* Garante que o texto não cole na borda esquerda (o risco) */
-    padding: 15px 20px !important; 
-    
-    /* Afasta um item do outro */
-    margin-bottom: 15px !important; 
-    
-    /* Fundo levemente mais claro para destacar do fundo do card */
-    background-color: rgba(255, 255, 255, 0.03) !important; 
-    
-    /* Arredonda os cantos */
-    border-radius: 0 12px 12px 0 !important; 
-    
-    /* Deixa o risco colorido um pouco mais grosso e visível */
-    border-left-width: 6px !important; 
-    
-    /* Organização interna */
+    padding-left: 25px !important; /* Empurra tudo para a direita */
+    border-left-width: 6px !important; /* Engrossa a linha colorida */
+    margin-bottom: 15px !important;
+    background-color: #252525 !important; /* Garante o fundo cinza */
+    border-radius: 0 8px 8px 0 !important;
+}
+
+/* Garante que o título e a info não fiquem colados */
+.dashboard-card .agendamento-header,
+.dashboard-card .agendamento-info {
+    margin-left: 10px !important; /* Espaço extra de segurança */
+}
+
+/* Ajuste específico para a lista de Débitos que estava desalinhada */
+.debitos-list .agendamento-item {
     display: flex !important;
     flex-direction: column !important;
     justify-content: center !important;
-}
-
-.dashboard-card .agendamento-header {
-    margin-bottom: 5px !important;
-    /* AQUI ESTÁ O SEGREDO: Empurra o texto para a direita, longe do risco */
-    padding-left: 10px !important; 
-}
-
-.dashboard-card .agendamento-info {
-    font-size: 0.9rem !important;
-    color: #999 !important;
-    /* AQUI TAMBÉM: Empurra para alinhar com o título */
-    padding-left: 10px !important; 
 }
 
 .dashboard-card .agendamento-header span {
