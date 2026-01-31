@@ -132,11 +132,51 @@ body {
     padding-bottom: 80px;
 }
 
-/* Desktop: Menu Fixo */
-@media (min-width: 1025px) {
-    .sidebar { transform: translateX(0) !important; }
-    .main-content { margin-left: 280px !important; width: calc(100% - 280px); }
-    .menu-toggle { display: none !important; }
+/* =======================================================
+   CORREÇÃO FINAL: CABEÇALHO MOBILE (LOGO/TÍTULO)
+   ======================================================= */
+
+/* Aplica apenas em telas menores que 768px (Celulares e Tablets Verticais) */
+@media (max-width: 768px) {
+    
+    /* 1. Ajusta o container do cabeçalho */
+    .app-header {
+        padding: 0.8rem 1.2rem !important; /* Reduz um pouco o espaço nas bordas */
+        gap: 10px; /* Garante um espaço mínimo entre os itens */
+    }
+
+    /* 2. Ajusta o Título Principal (o "H1" que parece logo) */
+    .app-header h1 {
+        font-size: 1.3rem !important; /* Diminui o tamanho da fonte no celular */
+        
+        /* Centralização e Espaço */
+        flex: 1; /* Faz o título ocupar o espaço central disponível */
+        text-align: center; /* Centraliza o texto */
+        margin: 0 10px; /* Dá um respiro laterais dos botões */
+
+        /* Segurança para textos longos não quebrarem o layout */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* 3. Garante que os botões laterais não sejam esmagados */
+    .menu-toggle, 
+    .header-actions {
+        flex-shrink: 0; /* Impede que eles diminuam de tamanho */
+    }
+
+    /* 4. Ajuste visual do botão de menu (hambúrguer) */
+    .menu-toggle {
+        background: transparent;
+        border: none;
+        color: var(--gold);
+        font-size: 1.4rem;
+        cursor: pointer;
+        padding: 5px;
+        display: flex; /* Garante alinhamento vertical */
+        align-items: center;
+    }
 }
 
 /* ===================================
@@ -323,7 +363,6 @@ hr { border: 0; border-top: 1px solid #333; margin: 25px 0; }
 .grid-cep { display: grid; grid-template-columns: 1fr 2.5fr; gap: 20px; margin-bottom: 20px; }
 .grid-numero { display: grid; grid-template-columns: 0.8fr 2fr; gap: 20px; margin-bottom: 20px; }
 .grid-cidade { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; margin-bottom: 20px; }
-@media (max-width: 600px) { .form-grid, .grid-cep, .grid-numero, .grid-cidade { grid-template-columns: 1fr; } }
 
 /* Botões */
 .modal-buttons { display: flex; justify-content: flex-end; gap: 15px; margin-top: 30px; border-top: 1px solid #333; padding-top: 20px; }
