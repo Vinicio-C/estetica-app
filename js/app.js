@@ -42,8 +42,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Ocultar loading screen
     setTimeout(() => {
-        document.getElementById('loadingScreen').classList.add('hidden');
-    }, 1000);
+        const loader = document.getElementById('loadingScreen');
+        if (loader) {
+            loader.classList.add('hidden');
+        }
+    }, 1500); // Aumentei para 1.5s para dar tempo de ver a logo bonita
 });
 
 // ========================================
