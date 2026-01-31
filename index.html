@@ -111,102 +111,64 @@
 
         <!-- Page Container -->
         <div id="pageContainer" class="page-container">
-            <!-- Dashboard Page -->
+    
             <div id="dashboardPage" class="page active">
                 <div class="dashboard-grid">
-                    <!-- Stats Cards -->
                     <div class="stats-row">
-                        <div class="stat-card gold-gradient">
-                            <div class="stat-icon">
-                                <i class="fas fa-calendar-check"></i>
-                            </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="color: var(--gold);"><i class="fas fa-calendar-check"></i></div>
                             <div class="stat-info">
                                 <h3 id="statAgendamentosHoje">0</h3>
                                 <p>Agendamentos Hoje</p>
                             </div>
                         </div>
-                        
-                        <div class="stat-card rose-gradient">
-                            <div class="stat-icon">
-                                <i class="fas fa-dollar-sign"></i>
-                            </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="color: var(--success);"><i class="fas fa-dollar-sign"></i></div>
                             <div class="stat-info">
-                                <h3 id="statFaturamentoHoje">R$ 0,00</h3>
+                                <h3 id="statFaturamentoHoje" style="color: var(--success);">R$ 0,00</h3>
                                 <p>Faturamento Hoje</p>
                             </div>
                         </div>
-                        
-                        <div class="stat-card beige-gradient">
-                            <div class="stat-icon">
-                                <i class="fas fa-users"></i>
-                            </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="color: var(--info);"><i class="fas fa-users"></i></div>
                             <div class="stat-info">
                                 <h3 id="statTotalClientes">0</h3>
                                 <p>Total de Clientes</p>
                             </div>
                         </div>
-                        
-                        <div class="stat-card alert-gradient">
-                            <div class="stat-icon">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="color: var(--error);"><i class="fas fa-exclamation-triangle"></i></div>
                             <div class="stat-info">
-                                <h3 id="statDebitosTotal">R$ 0,00</h3>
+                                <h3 id="statDebitosTotal" style="color: var(--error);">R$ 0,00</h3>
                                 <p>Débitos Pendentes</p>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Próximos Agendamentos -->
-                    <div class="dashboard-section">
-                        <div class="dashboard-card">
-                            <h3><i class="fas fa-clock"></i> Próximos Agendamentos</h3>
-                            <div id="proximosAgendamentos" class="agendamentos-list">
-                                <div class="empty-state">
-                                    <i class="fas fa-calendar-times"></i>
-                                    <p>Nenhum agendamento próximo</p>
-                                </div>
-                            </div>
-                            <button class="btn-secondary btn-sm" onclick="navigateTo('agenda')" style="margin-top: 15px; width: 100%;">
-                                Ver Todos
-                            </button>
-                        </div>
-                        
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-clock"></i> Próximos Agendamentos</h3>
+                        <div id="proximosAgendamentos" class="agendamentos-list"></div>
+                        <button class="btn-secondary btn-sm" onclick="navigateTo('agenda')" style="margin-top: 15px; width: 100%;">
+                            Ver Agenda Completa
+                        </button>
                     </div>
                     
-                    <!-- Alertas de Estoque -->
-                    <div class="dashboard-section">
+                    <div class="dashboard-grid-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                         <div class="dashboard-card">
                             <h3><i class="fas fa-box-open"></i> Alertas de Estoque</h3>
-                            <div id="alertasEstoque" class="alertas-list">
-                            <div class="empty-state">
-                                <i class="fas fa-check-circle"></i>
-                                <p>Estoque em dia</p>
-                            </div>
-                        </div>
+                            <div id="alertasEstoque" class="alertas-list"></div>
                         </div>
                         
-                    </div>
-                    
-                    <!-- Clientes com Débitos -->
-                    <div class="dashboard-section">
                         <div class="dashboard-card">
-                            <h3><i class="fas fa-hand-holding-usd"></i> Clientes com Débitos</h3>
-                            <div id="clientesDebitos" class="debitos-list">
-                            <div class="empty-state">
-                                <i class="fas fa-check-circle"></i>
-                                <p>Nenhum débito pendente</p>
-                            </div>
+                            <h3><i class="fas fa-hand-holding-usd"></i> Contas a Receber</h3>
+                            <div id="clientesDebitos" class="debitos-list"></div>
                         </div>
-                        </div>
-                        
                     </div>
                 </div>
             </div>
 
-            <!-- Clientes Page -->
             <div id="clientesPage" class="page">
-                <div class="page-header">
+                <div class="header-controls">
                     <div class="search-bar">
                         <i class="fas fa-search"></i>
                         <input type="text" id="searchClientes" placeholder="Buscar clientes...">
@@ -215,60 +177,54 @@
                         <i class="fas fa-plus"></i> Novo Cliente
                     </button>
                 </div>
-                
-                <div id="clientesGrid" class="clientes-grid">
-                    <!-- Clientes will be loaded here -->
-                </div>
+                <div id="clientesGrid" class="clientes-grid"></div>
             </div>
 
-            <!-- Agenda Page -->
-            <div class="page-header-custom">
-                <h2><i class="far fa-calendar-alt" style="color: var(--gold);"></i> Agenda</h2>
-                
-                <button id="btnConnectGoogle" onclick="conectarGoogle()" class="btn-google-sync">
-                    <i class="fab fa-google"></i> Sincronizar Google
-                </button>
-            </div>
-
-            <div class="agenda-toolbar">
-                <div class="view-switcher">
-                    <button class="view-btn active" onclick="setAgendaView('dia')" id="agendaViewDia">Dia</button>
-                    <button class="view-btn" onclick="setAgendaView('semana')" id="agendaViewSemana">Semana</button>
-                    <button class="view-btn" onclick="setAgendaView('mes')" id="agendaViewMes">Mês</button>
+            <div id="agendaPage" class="page">
+                <div class="page-header-custom">
+                    <h2 style="color: var(--gold); margin: 0;"><i class="far fa-calendar-alt"></i> Agenda</h2>
+                    <button id="btnConnectGoogle" onclick="conectarGoogle()" class="btn-google-sync">
+                        <i class="fab fa-google"></i> Sincronizar Google
+                    </button>
                 </div>
 
-                <div class="date-navigator">
-                    <button class="nav-arrow" onclick="mudarData(-1)"><i class="fas fa-chevron-left"></i></button>
-                    
-                    <div class="date-display-wrapper">
-                        <input type="date" id="agendaDate" onchange="carregarAgenda()">
+                <div class="agenda-toolbar">
+                    <div class="view-switcher">
+                        <button class="view-btn active" onclick="setAgendaView('dia')" id="agendaViewDia">Dia</button>
+                        <button class="view-btn" onclick="setAgendaView('semana')" id="agendaViewSemana">Semana</button>
+                        <button class="view-btn" onclick="setAgendaView('mes')" id="agendaViewMes">Mês</button>
                     </div>
 
-                    <button class="nav-arrow" onclick="mudarData(1)"><i class="fas fa-chevron-right"></i></button>
-                    <button class="btn-today" onclick="hoje()">Hoje</button>
+                    <div class="date-navigator">
+                        <button class="nav-arrow" onclick="mudarData(-1)"><i class="fas fa-chevron-left"></i></button>
+                        <div class="date-display-wrapper">
+                            <input type="date" id="agendaDate" onchange="carregarAgenda()">
+                        </div>
+                        <button class="nav-arrow" onclick="mudarData(1)"><i class="fas fa-chevron-right"></i></button>
+                        <button class="btn-today" onclick="hoje()">Hoje</button>
+                    </div>
+
+                    <button class="btn-primary" onclick="abrirModalAgendamento()">
+                        <i class="fas fa-plus"></i> Novo
+                    </button>
                 </div>
 
-                <button class="btn-primary" onclick="abrirModalAgendamento()">
-                    <i class="fas fa-plus"></i> Novo
-                </button>
+                <div class="agenda-stats-bar">
+                    <div class="agenda-stat">
+                        <span class="stat-label">Agendamentos</span>
+                        <strong id="agendaTotalServicos" class="stat-value">0</strong>
+                    </div>
+                    <div class="agenda-stat">
+                        <span class="stat-label">Faturamento Previsto</span>
+                        <strong id="agendaTotalValor" class="stat-value gold">R$ 0,00</strong>
+                    </div>
+                </div>
+
+                <div id="agendaContainer" class="agenda-timeline"></div>
             </div>
 
-            <div class="agenda-stats-bar">
-                <div class="agenda-stat">
-                    <span class="stat-label">Agendamentos</span>
-                    <strong id="agendaTotalServicos" class="stat-value">0</strong>
-                </div>
-                <div class="agenda-stat">
-                    <span class="stat-label">Faturamento Previsto</span>
-                    <strong id="agendaTotalValor" class="stat-value gold">R$ 0,00</strong>
-                </div>
-            </div>
-
-            <div id="agendaContainer" class="agenda-timeline"></div>
-
-            <!-- Serviços Page -->
             <div id="servicosPage" class="page">
-                <div class="page-header">
+                <div class="header-controls">
                     <div class="search-bar">
                         <i class="fas fa-search"></i>
                         <input type="text" id="searchServicos" placeholder="Buscar serviços...">
@@ -277,15 +233,11 @@
                         <i class="fas fa-plus"></i> Novo Serviço
                     </button>
                 </div>
-                
-                <div id="servicosGrid" class="servicos-grid">
-                    <!-- Serviços will be loaded here -->
-                </div>
+                <div id="servicosGrid" class="servicos-grid"></div>
             </div>
 
-            <!-- Estoque Page -->
             <div id="estoquePage" class="page">
-                <div class="page-header">
+                <div class="header-controls">
                     <div class="search-bar">
                         <i class="fas fa-search"></i>
                         <input type="text" id="searchEstoque" placeholder="Buscar produtos...">
@@ -294,107 +246,113 @@
                         <i class="fas fa-plus"></i> Novo Produto
                     </button>
                 </div>
-                
-                <div id="estoqueGrid" class="estoque-grid">
-                    <!-- Produtos will be loaded here -->
-                </div>
+                <div id="estoqueGrid" class="estoque-grid"></div>
             </div>
 
-            <!-- Relatórios Page -->
             <div id="relatoriosPage" class="page">
                 <div class="page-header">
                     <div class="relatorio-date-picker">
                         <label>Período:</label>
                         <select id="relatorioMes" onchange="carregarRelatorios()">
                             <option value="0">Janeiro</option>
-                            <option value="1">Fevereiro</option>
-                            <option value="2">Março</option>
-                            <option value="3">Abril</option>
-                            <option value="4">Maio</option>
-                            <option value="5">Junho</option>
-                            <option value="6">Julho</option>
-                            <option value="7">Agosto</option>
-                            <option value="8">Setembro</option>
-                            <option value="9">Outubro</option>
-                            <option value="10">Novembro</option>
                             <option value="11">Dezembro</option>
                         </select>
-                        <input type="number" id="relatorioAno" min="2020" max="2030" value="2026" onchange="carregarRelatorios()">
+                        <input type="number" id="relatorioAno" value="2026" onchange="carregarRelatorios()">
                     </div>
-                    
-                    <button class="btn-primary" onclick="exportarRelatorioPDF()">
-                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                    <button class="btn-primary" onclick="window.print()">
+                        <i class="fas fa-file-pdf"></i> Imprimir
                     </button>
                 </div>
-                
-                <div class="relatorios-grid">
-                    <!-- Cards de Métricas -->
-                    <div class="metrics-row">
-                        <div class="metric-card">
-                            <div class="metric-icon gold">
-                                <i class="fas fa-dollar-sign"></i>
-                            </div>
-                            <div class="metric-info">
-                                <p>Faturamento Total</p>
-                                <h3 id="metricFaturamentoTotal">R$ 0,00</h3>
-                            </div>
-                        </div>
-                        
-                        <div class="metric-card">
-                            <div class="metric-icon rose">
-                                <i class="fas fa-money-bill-wave"></i>
-                            </div>
-                            <div class="metric-info">
-                                <p>Total a Receber</p>
-                                <h3 id="metricTotalReceber">R$ 0,00</h3>
-                            </div>
-                        </div>
-                        
-                        <div class="metric-card">
-                            <div class="metric-icon beige">
-                                <i class="fas fa-cut"></i>
-                            </div>
-                            <div class="metric-info">
-                                <p>Serviços Realizados</p>
-                                <h3 id="metricServicosRealizados">0</h3>
-                            </div>
-                        </div>
+                <div id="relatoriosContent" class="relatorios-grid">
                     </div>
-                    
-                    <!-- Gráficos -->
-                    <div class="charts-row">
-                        <div class="chart-card">
-                            <h3><i class="fas fa-chart-pie"></i> Faturamento por Tipo de Serviço</h3>
-                            <canvas id="chartFaturamentoTipo" style="height: 300px;"></canvas>
-                        </div>
-                        
-                        <div class="chart-card">
-                            <h3><i class="fas fa-chart-pie"></i> Quantidade por Tipo de Serviço</h3>
-                            <canvas id="chartQuantidadeTipo" style="height: 300px;"></canvas>
-                        </div>
-                    </div>
-                    
-                    <!-- Tabela Detalhada -->
-                    <div class="table-card">
-                        <h3><i class="fas fa-table"></i> Relatório Detalhado de Clientes</h3>
-                        <div class="table-responsive">
-                            <table id="relatorioTable" class="relatorio-table">
-                                <thead>
-                                    <tr>
-                                        <th>Cliente</th>
-                                        <th>Serviços Realizados</th>
-                                        <th>Valor Pago</th>
-                                        <th>Valor Devendo</th>
-                                        <th>Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="relatorioTableBody">
-                                    <!-- Table rows will be loaded here -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+            </div>
+
+        </div> ```
+
+        ### 2. O Modal de Agendamento Corrigido (HTML)
+
+        Substitua o seu `<div id="modalAgendamento">` antigo por este. Aqui os Radio Buttons (Serviço/Evento) estão dentro da estrutura que o CSS entende para desenhar botões grandes.
+
+        ```html
+        <div id="modalAgendamento" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Novo Agendamento</h2>
+                    <button class="modal-close" onclick="fecharModal('modalAgendamento')">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
+                <form id="formAgendamento" class="modal-form">
+                    <input type="hidden" id="agendamentoId">
+                    
+                    <label style="margin-bottom: 10px; display: block;">O QUE VOCÊ VAI AGENDAR?</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="tipoAgendamento" value="servico" checked onclick="toggleTipoAgendamento()">
+                            <span><i class="fas fa-cut"></i> Serviço</span>
+                        </label>
+
+                        <label class="radio-label">
+                            <input type="radio" name="tipoAgendamento" value="evento" onclick="toggleTipoAgendamento()">
+                            <span><i class="fas fa-calendar-star"></i> Evento Pessoal</span>
+                        </label>
+                    </div>
+                    
+                    <div id="camposServico">
+                        <div class="form-group">
+                            <label>Cliente *</label>
+                            <select id="agendamentoCliente" onchange="selectCliente()"></select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Serviço *</label>
+                            <select id="agendamentoServico" onchange="selectServico()"></select>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Valor (R$)</label>
+                                <input type="text" id="agendamentoValor" readonly style="background: #222; color: var(--gold); font-weight: bold;">
+                            </div>
+                            <div class="form-group">
+                                <label>Status Pagamento</label>
+                                <select id="agendamentoStatusPagamento">
+                                    <option value="pendente">Pendente</option>
+                                    <option value="pago">Pago</option>
+                                    <option value="devendo">Devendo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="camposEvento" style="display: none;">
+                        <div class="form-group">
+                            <label>Nome do Evento *</label>
+                            <input type="text" id="eventoNome" placeholder="Ex: Almoço, Reunião...">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data *</label>
+                            <input type="date" id="agendamentoData" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Hora *</label>
+                            <input type="time" id="agendamentoHora" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Observações</label>
+                        <textarea id="agendamentoObservacoes" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="modal-buttons">
+                        <button type="button" class="btn-secondary" onclick="fecharModal('modalAgendamento')">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar Agendamento</button>
+                    </div>
+                </form>
             </div>
         </div>
     </main>
