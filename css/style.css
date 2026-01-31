@@ -63,12 +63,15 @@ body {
    SISTEMA DE PÁGINAS (CORREÇÃO AQUI!)
    =================================== */
 .page {
-    display: none; /* ⚠️ OBRIGATÓRIO: Esconde as páginas inativas */
-    animation: fadeIn 0.4s ease-out;
+    display: none !important; 
+    opacity: 0;
 }
 
+/* Mostra APENAS a página que tiver a classe 'active' */
 .page.active {
-    display: block; /* ⚠️ OBRIGATÓRIO: Mostra só a página atual */
+    display: block !important;
+    opacity: 1;
+    animation: fadeIn 0.4s ease-out;
 }
 
 @keyframes fadeIn {
@@ -206,28 +209,25 @@ body {
 
 /* --- DROPDOWN DE NOTIFICAÇÕES CORRIGIDO --- */
 .notifications-dropdown {
-    position: absolute;
-    top: 50px;
-    right: 0;
-    width: 320px;
-    background-color: var(--bg-card);
-    border: 1px solid #444;
-    border-radius: var(--border-radius);
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-    z-index: 5000;
-    
-    /* Estado Oculto Padrão */
+    display: none !important; /* Força sumir */
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-10px);
-    transition: all 0.3s ease;
+    position: absolute;
+    top: 60px;
+    right: 0;
+    z-index: 5000;
+    background-color: var(--bg-card);
+    border: 1px solid #444;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    border-radius: 12px;
 }
 
 /* Estado Visível (Adicionado via JS) */
 .notifications-dropdown.active {
+    display: block !important;
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    animation: slideDown 0.2s ease;
 }
 
 .notif-header {
@@ -411,6 +411,11 @@ body {
     to { transform: translateY(0); opacity: 1; }
 }
 
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .modal-header h2 {
     color: var(--gold);
     font-family: var(--font-heading);
@@ -456,8 +461,24 @@ input:focus, select:focus, textarea:focus {
 .grid-numero { display: grid; grid-template-columns: 0.8fr 2fr; gap: 20px; margin-bottom: 20px; }
 .grid-cidade { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; margin-bottom: 20px; }
 
-@media (max-width: 600px) {
-    .form-grid, .grid-cep, .grid-numero, .grid-cidade { grid-template-columns: 1fr; }
+@media (min-width: 1025px) {
+    /* Menu fixo na esquerda */
+    .sidebar {
+        transform: translateX(0) !important;
+        width: 280px !important;
+        z-index: 2001;
+    }
+    
+    /* Empurra o site para a direita para não ficar embaixo do menu */
+    .main-content {
+        margin-left: 280px !important;
+        width: calc(100% - 280px) !important;
+    }
+
+    /* Esconde o botão de menu no PC */
+    .menu-toggle {
+        display: none !important;
+    }
 }
 
 /* BOTÕES DO MODAL */
