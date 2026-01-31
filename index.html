@@ -410,73 +410,75 @@
             <form id="formCliente">
                 <input type="hidden" id="clienteId">
                 
-                <div class="input-group">
+                <div style="margin-bottom: 15px;">
                     <label>Nome Completo</label>
                     <input type="text" id="clienteNome" required placeholder="Ex: Maria Silva">
                 </div>
 
-                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="input-group">
-                        <label>Telefone (WhatsApp)</label>
+                <div class="form-grid">
+                    <div>
+                        <label>Telefone</label>
                         <input type="tel" id="clienteTelefone" required placeholder="(11) 99999-9999">
                     </div>
-                    <div class="input-group">
+                    <div>
                         <label>Data de Nascimento</label>
                         <input type="date" id="clienteNascimento">
                     </div>
                 </div>
 
-                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="input-group">
+                <div class="form-grid">
+                    <div>
                         <label>CPF</label>
                         <input type="text" id="clienteCpf" placeholder="000.000.000-00">
                     </div>
-                    <div class="input-group">
+                    <div>
                         <label>Email</label>
                         <input type="email" id="clienteEmail" placeholder="email@exemplo.com">
                     </div>
                 </div>
-                <p><i class="fas fa-map-marker-alt"></i> <span id="detalhesClienteEndereco"></span></p>
 
-                <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-                <p style="margin-bottom: 10px; color: #666; font-size: 0.9rem; font-weight: 600;">Endereço</p>
+                <div style="margin: 20px 0; display: flex; align-items: center; gap: 10px;">
+                    <hr style="flex: 1;">
+                    <span style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--gold);">Endereço</span>
+                    <hr style="flex: 1;">
+                </div>
 
-                <div class="form-row" style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px;">
-                    <div class="input-group">
+                <div class="grid-cep">
+                    <div>
                         <label>CEP</label>
                         <input type="text" id="clienteCep" placeholder="00000-000" onblur="buscarCep()" maxlength="9">
                     </div>
-                    <div class="input-group">
+                    <div>
                         <label>Rua / Logradouro</label>
                         <input type="text" id="clienteEndereco">
                     </div>
                 </div>
 
-                <div class="form-row" style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px;">
-                    <div class="input-group">
+                <div class="grid-numero">
+                    <div>
                         <label>Número</label>
                         <input type="text" id="clienteNumero">
                     </div>
-                    <div class="input-group">
+                    <div>
                         <label>Bairro</label>
                         <input type="text" id="clienteBairro">
                     </div>
                 </div>
 
-                <div class="form-row" style="display: grid; grid-template-columns: 3fr 1fr; gap: 15px;">
-                    <div class="input-group">
+                <div class="grid-cidade">
+                    <div>
                         <label>Cidade</label>
                         <input type="text" id="clienteCidade">
                     </div>
-                    <div class="input-group">
+                    <div>
                         <label>UF</label>
-                        <input type="text" id="clienteEstado" maxlength="2">
+                        <input type="text" id="clienteEstado" maxlength="2" style="text-transform: uppercase;">
                     </div>
                 </div>
 
                 <div class="modal-buttons">
                     <button type="button" class="btn-secondary" onclick="fecharModal('modalCliente')">Cancelar</button>
-                    <button type="submit" class="btn-primary">Salvar Cliente</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
                 </div>
             </form>
         </div>
