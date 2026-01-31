@@ -132,52 +132,66 @@ body {
     padding-bottom: 80px;
 }
 
-/* =======================================================
-   CORREÇÃO FINAL: CABEÇALHO MOBILE (LOGO/TÍTULO)
-   ======================================================= */
-
 @media (max-width: 768px) {
-    /* 1. Reduz o tamanho do container para caber na tela pequena */
+    /* 1. Arrumar o container do cabeçalho */
     .app-header {
-        padding: 10px 15px !important;
+        /* Adiciona margem segura para o topo (Notch do iPhone) */
+        padding-top: max(10px, env(safe-area-inset-top)) !important;
+        padding-bottom: 10px !important;
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+        
+        height: auto !important;
+        min-height: 60px;
+        
+        /* Garante que os itens fiquem na linha certa */
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
-        height: 60px !important; /* Altura fixa para evitar pulos */
-    }
-
-    /* 2. Domar o Título (Logo) */
-    .app-header h1#pageTitle {
-        font-size: 1.2rem !important; /* Fonte menor */
-        margin: 0 10px !important;    /* Espaço nas laterais */
-        flex: 1 !important;           /* Ocupa o espaço central */
-        text-align: center !important; /* Centraliza */
+        gap: 10px !important;
         
-        /* Impede que o texto quebre linha e estrague o layout */
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
+        /* Garante que o fundo cubra tudo */
+        background-color: #121212 !important; 
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 9999 !important;
     }
 
-    /* 3. Travar os botões nos cantos (Menu e Sino) */
+    /* 2. Esconder qualquer logo/texto "Estética Premium" que esteja sobrando */
+    /* Se houver uma imagem ou div extra, isso vai sumir com ela no celular */
+    .app-header > img,
+    .app-header > .sidebar-header,
+    .app-header > div:not(.header-actions) {
+        display: none !important;
+    }
+
+    /* 3. Título da Página (Dashboard, Clientes...) - Centralizado e Ajustado */
+    .app-header h1#pageTitle {
+        display: block !important; /* Força aparecer */
+        font-size: 1.1rem !important;
+        text-align: center !important;
+        flex: 1 !important; /* Ocupa o meio */
+        margin: 0 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--gold) !important;
+        line-height: 1.2;
+    }
+
+    /* 4. Botões Laterais (Menu e Sino) - Tamanho Fixo */
     .menu-toggle, 
     .header-actions {
-        flex-shrink: 0 !important; /* Impede que sejam esmagados */
-        width: 40px !important;    /* Largura fixa para equilíbrio */
+        flex-shrink: 0 !important;
+        width: 40px !important;
+        height: 40px !important;
         display: flex !important;
-        justify-content: center !important;
         align-items: center !important;
-    }
-
-    /* Ajuste fino para o botão de menu não ficar colado na borda */
-    .menu-toggle {
-        justify-content: flex-start !important;
+        justify-content: center !important;
     }
     
-    /* Ajuste fino para o sino não ficar colado na borda */
-    .header-actions {
-        justify-content: flex-end !important;
-    }
+    .menu-toggle { justify-content: flex-start !important; }
+    .header-actions { justify-content: flex-end !important; }
 }
 
 /* ===================================
@@ -1205,4 +1219,80 @@ input[type="date"] {
 
 .relatorio-table tr:hover {
     background-color: rgba(255,255,255,0.02);
+}
+
+/* =======================================================
+   CORREÇÃO: TELA DE LOADING (LOADING SCREEN)
+   ======================================================= */
+
+/* 1. O Container Principal (Cobre toda a tela) */
+#loadingScreen {
+    position: fixed;       /* Fixa na tela, não rola */
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #121212; /* Fundo preto sólido */
+    z-index: 99999;        /* Fica acima de TUDO (até do modal e menu) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.6s ease, visibility 0.6s; /* Efeito Fade-out */
+    opacity: 1;
+    visibility: visible;
+}
+
+/* 2. O Estado "Escondido" (Aplicado pelo JS) */
+#loadingScreen.hidden {
+    opacity: 0;            /* Fica transparente */
+    visibility: hidden;    /* O navegador ignora ele */
+    pointer-events: none;  /* Permite clicar no que está atrás */
+}
+
+/* 3. Conteúdo Centralizado */
+.loading-content {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Ícone da Logo */
+.loading-icon {
+    font-size: 3rem;
+    color: var(--gold);
+    animation: pulse 2s infinite;
+}
+
+/* Texto "Estética Premium" */
+.loading-content h2 {
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 1.8rem;
+    font-weight: 400;
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+/* Spinner (Rodinha girando) */
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(212, 175, 55, 0.3); /* Dourado fraco */
+    border-top: 3px solid var(--gold);         /* Dourado forte */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-top: 10px;
+}
+
+/* Animações */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
 }
