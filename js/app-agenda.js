@@ -106,28 +106,30 @@ async function carregarAgenda() {
 }
 
 function setAgendaView(view) {
-    // 1. Atualiza o estado da aplicação
+    // 1. Atualiza o estado global
     appState.currentAgendaView = view;
     
-    // 2. Remove a classe 'active' de TODOS os botões da barra de visualização
-    document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
+    // 2. FORÇA BRUTA: Pega todos os botões e apaga a luz de todos
+    // Usamos getElementsByClassName que é mais rápido e direto
+    const allButtons = document.getElementsByClassName('view-btn');
+    for (let i = 0; i < allButtons.length; i++) {
+        allButtons[i].classList.remove('active');
+    }
 
-    // 3. Adiciona a classe 'active' APENAS no botão clicado
-    // Mapeia o nome da view para o ID do botão no HTML
+    // 3. Acende apenas o botão certo
     const idMap = {
         'dia': 'agendaViewDia',
         'semana': 'agendaViewSemana',
         'mes': 'agendaViewMes'
     };
 
-    const activeButton = document.getElementById(idMap[view]);
-    if (activeButton) {
-        activeButton.classList.add('active');
+    const activeBtn = document.getElementById(idMap[view]);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
     }
     
-    // 4. Recarrega a agenda com o novo filtro
+    // 4. Recarrega a lista
+    console.log('Trocando visualização para:', view);
     carregarAgenda();
 }
 
