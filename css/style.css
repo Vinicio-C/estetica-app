@@ -136,46 +136,47 @@ body {
    CORREÇÃO FINAL: CABEÇALHO MOBILE (LOGO/TÍTULO)
    ======================================================= */
 
-/* Aplica apenas em telas menores que 768px (Celulares e Tablets Verticais) */
 @media (max-width: 768px) {
-    
-    /* 1. Ajusta o container do cabeçalho */
+    /* 1. Reduz o tamanho do container para caber na tela pequena */
     .app-header {
-        padding: 0.8rem 1.2rem !important; /* Reduz um pouco o espaço nas bordas */
-        gap: 10px; /* Garante um espaço mínimo entre os itens */
+        padding: 10px 15px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        height: 60px !important; /* Altura fixa para evitar pulos */
     }
 
-    /* 2. Ajusta o Título Principal (o "H1" que parece logo) */
-    .app-header h1 {
-        font-size: 1.3rem !important; /* Diminui o tamanho da fonte no celular */
+    /* 2. Domar o Título (Logo) */
+    .app-header h1#pageTitle {
+        font-size: 1.2rem !important; /* Fonte menor */
+        margin: 0 10px !important;    /* Espaço nas laterais */
+        flex: 1 !important;           /* Ocupa o espaço central */
+        text-align: center !important; /* Centraliza */
         
-        /* Centralização e Espaço */
-        flex: 1; /* Faz o título ocupar o espaço central disponível */
-        text-align: center; /* Centraliza o texto */
-        margin: 0 10px; /* Dá um respiro laterais dos botões */
-
-        /* Segurança para textos longos não quebrarem o layout */
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        /* Impede que o texto quebre linha e estrague o layout */
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
 
-    /* 3. Garante que os botões laterais não sejam esmagados */
+    /* 3. Travar os botões nos cantos (Menu e Sino) */
     .menu-toggle, 
     .header-actions {
-        flex-shrink: 0; /* Impede que eles diminuam de tamanho */
+        flex-shrink: 0 !important; /* Impede que sejam esmagados */
+        width: 40px !important;    /* Largura fixa para equilíbrio */
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
     }
 
-    /* 4. Ajuste visual do botão de menu (hambúrguer) */
+    /* Ajuste fino para o botão de menu não ficar colado na borda */
     .menu-toggle {
-        background: transparent;
-        border: none;
-        color: var(--gold);
-        font-size: 1.4rem;
-        cursor: pointer;
-        padding: 5px;
-        display: flex; /* Garante alinhamento vertical */
-        align-items: center;
+        justify-content: flex-start !important;
+    }
+    
+    /* Ajuste fino para o sino não ficar colado na borda */
+    .header-actions {
+        justify-content: flex-end !important;
     }
 }
 
