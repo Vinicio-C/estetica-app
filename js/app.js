@@ -554,7 +554,7 @@ async function abrirDetalhesCliente(clienteId) {
     
     appState.currentCliente = cliente;
     
-    // Cálculos Financeiros (Mantidos do seu código original)
+    // --- Lógica de Cálculos (Mantida) ---
     const servicosCliente = appState.agendamentos.filter(a => a.cliente_id === cliente.id && a.status === 'concluido');
     const totalServicos = servicosCliente.length;
     const valorTotal = servicosCliente.reduce((sum, a) => sum + (a.valor || 0), 0);
@@ -562,20 +562,19 @@ async function abrirDetalhesCliente(clienteId) {
         .filter(a => a.cliente_id === cliente.id && a.status_pagamento === 'devendo' && a.status === 'concluido')
         .reduce((sum, a) => sum + (a.valor || 0), 0);
     
-    // Atualiza Texts
+    // --- Preencher HTML (Nova Estrutura) ---
     document.getElementById('detalhesClienteNome').textContent = cliente.nome;
     document.getElementById('detalhesClienteTelefone').textContent = cliente.telefone;
-    document.getElementById('detalhesClienteEmail').textContent = cliente.email;
+    document.getElementById('detalhesClienteEmail').textContent = cliente.email || 'Sem email';
     
-    // --- NOVO: Mostrar Endereço se existir ---
+    // Endereço (Mostra ou esconde)
     const elEndereco = document.getElementById('detalhesClienteEndereco');
     if (elEndereco) {
         if (cliente.endereco) {
-            elEndereco.textContent = `${cliente.endereco}, ${cliente.numero} - ${cliente.bairro}`;
-            elEndereco.parentElement.style.display = 'block'; // Mostra o ícone
+            elEndereco.textContent = `${cliente.endereco}, ${cliente.numero}`;
+            elEndereco.parentElement.style.display = 'block';
         } else {
-            elEndereco.textContent = '';
-            elEndereco.parentElement.style.display = 'none'; // Esconde se não tiver endereço
+            elEndereco.parentElement.style.display = 'none';
         }
     }
     
@@ -583,24 +582,35 @@ async function abrirDetalhesCliente(clienteId) {
     document.getElementById('detalhesValorTotal').textContent = formatCurrency(valorTotal);
     document.getElementById('detalhesDebitos').textContent = formatCurrency(debitos);
     
-    // Renderiza Listas (Histórico e Débitos - Mantidos para economizar espaço visual,
-    // mas o código original já cuida disso chamando as listas no HTML)
-    // ... A lógica de renderizar histórico continua igual ...
-    
-    // Dica: Se sumir o histórico, copie e cole o trecho do 'historicoHTML' do seu código antigo aqui dentro.
-    // Mas para facilitar, vou recolocar a renderização básica aqui:
-    
+    // --- Renderizar Histórico ---
     const historico = servicosCliente.sort((a, b) => new Date(b.data) - new Date(a.data));
     const historicoContainer = document.getElementById('detalhesHistorico');
     if (historicoContainer) {
         historicoContainer.innerHTML = historico.length === 0 
-            ? '<div class="empty-state"><p>Sem histórico</p></div>' 
+            ? '<div class="empty-state" style="padding: 10px;"><p>Nenhum serviço realizado</p></div>' 
             : historico.map(a => `
-                <div class="agendamento-item">
-                    <div class="agendamento-header"><h4>${a.servico_nome}</h4><strong>${formatCurrency(a.valor)}</strong></div>
-                    <div class="agendamento-time">${formatDate(a.data)} <span class="status-badge ${a.status_pagamento}">${a.status_pagamento}</span></div>
+                <div class="agendamento-item" style="padding: 10px; margin-bottom: 10px;">
+                    <div class="agendamento-header">
+                        <h4 style="font-size: 0.95rem;">${a.servico_nome}</h4>
+                        <strong style="color: var(--gold);">${formatCurrency(a.valor)}</strong>
+                    </div>
+                    <div class="agendamento-time" style="font-size: 0.8rem;">
+                        ${formatDate(a.data)} 
+                        <span class="status-badge ${a.status_pagamento}" style="font-size: 0.7rem; padding: 2px 6px;">${a.status_pagamento}</span>
+                    </div>
                 </div>`).join('');
     }
+
+    // --- INJETAR BOTÕES CORRIGIDOS (AQUI ESTÁ A CORREÇÃO VISUAL) ---
+    const containerBotoes = document.getElementById('detalhesAcoes');
+    containerBotoes.innerHTML = `
+        <button onclick="editarCliente()" class="btn-primary" style="flex: 1;">
+            <i class="fas fa-edit"></i> Editar
+        </button>
+        <button onclick="excluirCliente('${cliente.id}')" class="btn-danger" style="flex: 1;">
+            <i class="fas fa-trash"></i> Excluir
+        </button>
+    `;
 
     document.getElementById('modalDetalhesCliente').classList.add('active');
     document.getElementById('overlay').classList.add('active');

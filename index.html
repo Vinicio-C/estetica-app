@@ -487,74 +487,50 @@
         </div>
     </div>
 
-    <!-- Modal Detalhes do Cliente -->
-    <div id="modalDetalhesCliente" class="modal modal-large">
+    <div id="modalDetalhesCliente" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="detalhesClienteNome"></h2>
-                <button class="modal-close" onclick="fecharModal('modalDetalhesCliente')">
-                    <i class="fas fa-times"></i>
-                </button>
+                <h2 id="detalhesClienteNome">Nome do Cliente</h2>
+                <button class="modal-close" onclick="fecharModal('modalDetalhesCliente')">&times;</button>
             </div>
-            
-            <div class="detalhes-cliente-container">
-                <div class="detalhes-header">
-                    <div class="cliente-avatar">
-                        <i class="fas fa-user"></i>
+
+            <div class="modal-body">
+                <div class="client-personal-info">
+                    <div><i class="fab fa-whatsapp"></i> <span id="detalhesClienteTelefone">-</span></div>
+                    <div><i class="far fa-envelope"></i> <span id="detalhesClienteEmail">-</span></div>
+                    <div style="display: none;"><i class="fas fa-map-marker-alt"></i> <span id="detalhesClienteEndereco">-</span></div>
+                </div>
+
+                <div class="client-stats-row">
+                    <div class="stat-box">
+                        <small>Total Serviços</small>
+                        <strong id="detalhesTotalServicos">0</strong>
                     </div>
-                    <div class="cliente-info-header">
-                        <p><i class="fas fa-phone"></i> <span id="detalhesClienteTelefone"></span></p>
-                        <p><i class="fas fa-envelope"></i> <span id="detalhesClienteEmail"></span></p>
+                    <div class="stat-box">
+                        <small>Total Gasto</small>
+                        <strong id="detalhesValorTotal">R$ 0,00</strong>
+                    </div>
+                    <div class="stat-box debito">
+                        <small>Débitos</small>
+                        <strong id="detalhesDebitos">R$ 0,00</strong>
                     </div>
                 </div>
-                
-                <div class="detalhes-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Total de Serviços</span>
-                        <span class="stat-value" id="detalhesTotalServicos">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Valor Total Gasto</span>
-                        <span class="stat-value gold-text" id="detalhesValorTotal">R$ 0,00</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Débitos Pendentes</span>
-                        <span class="stat-value alert-text" id="detalhesDebitos">R$ 0,00</span>
-                    </div>
-                </div>
-                
+
                 <div class="detalhes-tabs">
-                    <button class="tab-btn active" data-tab="historico" onclick="trocarTab('historico')">
-                        <i class="fas fa-history"></i> Histórico
-                    </button>
-                    <button class="tab-btn" data-tab="agendados" onclick="trocarTab('agendados')">
-                        <i class="fas fa-calendar"></i> Agendados Este Mês
-                    </button>
-                    <button class="tab-btn" data-tab="debitos" onclick="trocarTab('debitos')">
-                        <i class="fas fa-exclamation-circle"></i> Débitos
-                    </button>
+                    <button class="tab-btn active" data-tab="historico" onclick="trocarTab('historico')">Histórico</button>
+                    <button class="tab-btn" data-tab="agendados" onclick="trocarTab('agendados')">Agendados</button>
                 </div>
-                
+
                 <div id="tabHistorico" class="tab-content active">
-                    <div id="detalhesHistorico" class="historico-list"></div>
+                    <div id="detalhesHistorico" style="max-height: 200px; overflow-y: auto;"></div>
                 </div>
                 
                 <div id="tabAgendados" class="tab-content">
-                    <div id="detalhesAgendados" class="agendados-list"></div>
+                    <div id="detalhesAgendados"></div>
                 </div>
-                
-                <div id="tabDebitos" class="tab-content">
-                    <div id="detalhesDebitosList" class="debitos-detail-list"></div>
-                </div>
-            </div>
-            
-            <div class="modal-actions">
-                <button class="btn-secondary" onclick="editarCliente()">
-                    <i class="fas fa-edit"></i> Editar
-                </button>
-                <button class="btn-danger" onclick="excluirCliente()">
-                    <i class="fas fa-trash"></i> Excluir Cliente
-                </button>
+
+                <div class="modal-buttons" id="detalhesAcoes">
+                    </div>
             </div>
         </div>
     </div>

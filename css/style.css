@@ -542,3 +542,91 @@ input[type="date"] {
     padding: 10px 0;
     background: transparent; /* Remove fundo extra se houver */
 }
+
+/* =======================================================
+   CORREÇÃO FINAL: CLIENTES & MODAL DETALHES
+   ======================================================= */
+
+/* 1. CARDS DE CLIENTES SIMÉTRICOS */
+.clientes-grid {
+    display: grid;
+    /* Define largura mínima de 300px, mas expande para preencher */
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px; /* Mais espaço entre os cards */
+}
+
+.cliente-card {
+    display: flex;
+    flex-direction: column; /* Organiza em coluna */
+    justify-content: space-between; /* Empurra o rodapé para baixo */
+    height: 100%; /* Ocupa 100% da altura da linha do grid */
+    background-color: #1E1E1E;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+}
+
+.cliente-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--gold);
+}
+
+/* Garante que o rodapé (stats) fique sempre no fundo do card */
+.cliente-stats {
+    margin-top: auto; 
+    padding-top: 15px;
+    border-top: 1px solid #333;
+}
+
+/* 2. MODAL DE DETALHES (ORGANIZADO) */
+/* Grid para os 3 números (Serviços, Gasto, Débito) */
+.client-stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.stat-box {
+    background-color: var(--bg-input);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 15px 10px;
+    text-align: center;
+}
+
+.stat-box small {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.stat-box strong {
+    display: block;
+    color: var(--gold);
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+/* Destaque para Débito se houver */
+.stat-box.debito strong { color: var(--error); }
+
+/* Área de informações pessoais no Modal */
+.client-personal-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.client-personal-info i {
+    width: 20px;
+    color: var(--gold);
+    text-align: center;
+    margin-right: 8px;
+}
