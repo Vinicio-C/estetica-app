@@ -630,3 +630,126 @@ input[type="date"] {
     text-align: center;
     margin-right: 8px;
 }
+
+/* =================================================
+   CORREÇÃO VISUAL: MODAL DETALHES (FINAL)
+   ================================================= */
+
+/* Avatar Grande no Topo */
+.cliente-avatar-large {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--gold), #907623);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #000;
+}
+
+/* Grid de Informações (Telefone e Email lado a lado) */
+.info-grid-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+/* A Caixinha de Informação (O segredo da organização) */
+.info-box {
+    background-color: var(--bg-input); /* Fundo cinza escuro */
+    padding: 12px 15px;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.info-box label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--gold); /* Rótulo Dourado */
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.info-box span {
+    display: block;
+    font-size: 1rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Grid de Estatísticas (3 caixas iguais) */
+.client-stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.stat-box {
+    background-color: #1A1A1A;
+    border: 1px solid #333;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-box small {
+    display: block;
+    color: #888;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.stat-box strong {
+    font-size: 1.2rem;
+    color: #fff;
+}
+
+/* Botões do Rodapé (Lado a Lado e Grandes) */
+.modal-footer-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #333;
+}
+
+.btn-action {
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: 0.2s;
+}
+
+.btn-action.edit {
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+}
+.btn-action.edit:hover { border-color: var(--gold); color: var(--gold); }
+
+.btn-action.delete {
+    background-color: rgba(239, 83, 80, 0.15);
+    color: var(--error);
+}
+.btn-action.delete:hover { background-color: var(--error); color: #fff; }
+
+/* Lista com Scroll */
+.scroll-list {
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 5px;
+}

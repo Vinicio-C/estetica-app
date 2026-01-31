@@ -489,52 +489,79 @@
 
     <div id="modalDetalhesCliente" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="detalhesClienteNome">Nome do Cliente</h2>
+            
+            <div class="modal-header" style="border:none; padding-bottom: 0;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="cliente-avatar-large" id="detalhesAvatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <h2 id="detalhesClienteNome" style="margin: 0; font-size: 1.8rem;">Nome do Cliente</h2>
+                        <span class="status-badge" style="background: var(--bg-input); color: var(--text-secondary); margin-top: 5px; display: inline-block;">Cliente Cadastrado</span>
+                    </div>
+                </div>
                 <button class="modal-close" onclick="fecharModal('modalDetalhesCliente')">&times;</button>
             </div>
 
-            <div class="modal-body">
-                <div class="client-personal-info">
-                    <div><i class="fab fa-whatsapp"></i> <span id="detalhesClienteTelefone">-</span></div>
-                    <div><i class="far fa-envelope"></i> <span id="detalhesClienteEmail">-</span></div>
-                    <div style="display: none;"><i class="fas fa-map-marker-alt"></i> <span id="detalhesClienteEndereco">-</span></div>
+            <div class="modal-body" style="padding-top: 20px;">
+                
+                <div class="info-grid-row">
+                    <div class="info-box">
+                        <label>Telefone (WhatsApp)</label>
+                        <span id="detalhesClienteTelefone">...</span>
+                    </div>
+                    <div class="info-box">
+                        <label>E-mail</label>
+                        <span id="detalhesClienteEmail">...</span>
+                    </div>
                 </div>
+                
+                <div class="info-box full-width" id="boxEndereco" style="margin-top: 15px;">
+                    <label>Endereço</label>
+                    <span id="detalhesClienteEndereco">...</span>
+                </div>
+
+                <hr>
 
                 <div class="client-stats-row">
                     <div class="stat-box">
-                        <small>Total Serviços</small>
+                        <small>Total de Serviços</small>
                         <strong id="detalhesTotalServicos">0</strong>
                     </div>
                     <div class="stat-box">
-                        <small>Total Gasto</small>
-                        <strong id="detalhesValorTotal">R$ 0,00</strong>
+                        <small>Valor Gasto</small>
+                        <strong id="detalhesValorTotal" style="color: var(--success);">R$ 0,00</strong>
                     </div>
-                    <div class="stat-box debito">
-                        <small>Débitos</small>
-                        <strong id="detalhesDebitos">R$ 0,00</strong>
+                    <div class="stat-box">
+                        <small>Débitos Pendentes</small>
+                        <strong id="detalhesDebitos" style="color: var(--error);">R$ 0,00</strong>
                     </div>
                 </div>
 
-                <div class="detalhes-tabs">
-                    <button class="tab-btn active" data-tab="historico" onclick="trocarTab('historico')">Histórico</button>
-                    <button class="tab-btn" data-tab="agendados" onclick="trocarTab('agendados')">Agendados</button>
+                <div class="detalhes-tabs" style="margin-top: 20px;">
+                    <button class="tab-btn active" onclick="trocarTab('historico')">Histórico</button>
+                    <button class="tab-btn" onclick="trocarTab('agendados')">Agendados</button>
                 </div>
 
                 <div id="tabHistorico" class="tab-content active">
-                    <div id="detalhesHistorico" style="max-height: 200px; overflow-y: auto;"></div>
+                    <div id="detalhesHistorico" class="scroll-list"></div>
                 </div>
-                
                 <div id="tabAgendados" class="tab-content">
-                    <div id="detalhesAgendados"></div>
+                    <div id="detalhesAgendados" class="scroll-list"></div>
                 </div>
 
-                <div class="modal-buttons" id="detalhesAcoes">
-                    </div>
+                <div class="modal-footer-actions">
+                    <button onclick="editarCliente()" class="btn-action edit">
+                        <i class="fas fa-edit"></i> Editar Dados
+                    </button>
+                    <button onclick="deletarClienteAtual()" class="btn-action delete">
+                        <i class="fas fa-trash"></i> Excluir Cliente
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>
-
     <!-- Modal Agendamento -->
     <div id="modalAgendamento" class="modal">
         <div class="modal-content">

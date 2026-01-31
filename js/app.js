@@ -548,72 +548,73 @@ async function salvarCliente(e) {
     }
 }
 
+// Substitua a função abrirDetalhesCliente por esta:
 async function abrirDetalhesCliente(clienteId) {
     const cliente = appState.clientes.find(c => c.id === clienteId);
     if (!cliente) return;
     
     appState.currentCliente = cliente;
     
-    // --- Lógica de Cálculos (Mantida) ---
+    // --- 1. Preencher Textos Básicos ---
+    document.getElementById('detalhesClienteNome').textContent = cliente.nome;
+    
+    // Preenche e trata valores vazios
+    document.getElementById('detalhesClienteTelefone').textContent = cliente.telefone || '-';
+    document.getElementById('detalhesClienteEmail').textContent = cliente.email || 'Não informado';
+    
+    // Endereço: Mostra ou esconde a caixa inteira se não tiver endereço
+    const boxEndereco = document.getElementById('boxEndereco');
+    const spanEndereco = document.getElementById('detalhesClienteEndereco');
+    
+    if (cliente.endereco) {
+        spanEndereco.textContent = `${cliente.endereco}, ${cliente.numero || ''} - ${cliente.bairro || ''}`;
+        boxEndereco.style.display = 'block';
+    } else {
+        boxEndereco.style.display = 'none';
+    }
+
+    // --- 2. Cálculos ---
     const servicosCliente = appState.agendamentos.filter(a => a.cliente_id === cliente.id && a.status === 'concluido');
     const totalServicos = servicosCliente.length;
-    const valorTotal = servicosCliente.reduce((sum, a) => sum + (a.valor || 0), 0);
+    const valorTotal = servicosCliente.reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
     const debitos = appState.agendamentos
         .filter(a => a.cliente_id === cliente.id && a.status_pagamento === 'devendo' && a.status === 'concluido')
-        .reduce((sum, a) => sum + (a.valor || 0), 0);
-    
-    // --- Preencher HTML (Nova Estrutura) ---
-    document.getElementById('detalhesClienteNome').textContent = cliente.nome;
-    document.getElementById('detalhesClienteTelefone').textContent = cliente.telefone;
-    document.getElementById('detalhesClienteEmail').textContent = cliente.email || 'Sem email';
-    
-    // Endereço (Mostra ou esconde)
-    const elEndereco = document.getElementById('detalhesClienteEndereco');
-    if (elEndereco) {
-        if (cliente.endereco) {
-            elEndereco.textContent = `${cliente.endereco}, ${cliente.numero}`;
-            elEndereco.parentElement.style.display = 'block';
-        } else {
-            elEndereco.parentElement.style.display = 'none';
-        }
-    }
+        .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
     
     document.getElementById('detalhesTotalServicos').textContent = totalServicos;
     document.getElementById('detalhesValorTotal').textContent = formatCurrency(valorTotal);
     document.getElementById('detalhesDebitos').textContent = formatCurrency(debitos);
     
-    // --- Renderizar Histórico ---
+    // --- 3. Listas (Histórico) ---
     const historico = servicosCliente.sort((a, b) => new Date(b.data) - new Date(a.data));
-    const historicoContainer = document.getElementById('detalhesHistorico');
-    if (historicoContainer) {
-        historicoContainer.innerHTML = historico.length === 0 
-            ? '<div class="empty-state" style="padding: 10px;"><p>Nenhum serviço realizado</p></div>' 
-            : historico.map(a => `
-                <div class="agendamento-item" style="padding: 10px; margin-bottom: 10px;">
-                    <div class="agendamento-header">
-                        <h4 style="font-size: 0.95rem;">${a.servico_nome}</h4>
-                        <strong style="color: var(--gold);">${formatCurrency(a.valor)}</strong>
-                    </div>
-                    <div class="agendamento-time" style="font-size: 0.8rem;">
-                        ${formatDate(a.data)} 
-                        <span class="status-badge ${a.status_pagamento}" style="font-size: 0.7rem; padding: 2px 6px;">${a.status_pagamento}</span>
-                    </div>
-                </div>`).join('');
+    const containerHist = document.getElementById('detalhesHistorico');
+    
+    if (historico.length === 0) {
+        containerHist.innerHTML = '<div class="empty-state" style="padding:10px"><p>Sem histórico</p></div>';
+    } else {
+        containerHist.innerHTML = historico.map(a => `
+            <div class="agendamento-item" style="margin-bottom: 10px; padding: 12px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <strong style="color:#fff">${a.servico_nome}</strong>
+                    <span style="color:var(--gold)">${formatCurrency(a.valor)}</span>
+                </div>
+                <div style="font-size:0.8rem; color:#888;">
+                    ${formatDate(a.data)} • <span class="${a.status_pagamento}">${a.status_pagamento}</span>
+                </div>
+            </div>
+        `).join('');
     }
 
-    // --- INJETAR BOTÕES CORRIGIDOS (AQUI ESTÁ A CORREÇÃO VISUAL) ---
-    const containerBotoes = document.getElementById('detalhesAcoes');
-    containerBotoes.innerHTML = `
-        <button onclick="editarCliente()" class="btn-primary" style="flex: 1;">
-            <i class="fas fa-edit"></i> Editar
-        </button>
-        <button onclick="excluirCliente('${cliente.id}')" class="btn-danger" style="flex: 1;">
-            <i class="fas fa-trash"></i> Excluir
-        </button>
-    `;
-
+    // Abre o modal
     document.getElementById('modalDetalhesCliente').classList.add('active');
     document.getElementById('overlay').classList.add('active');
+}
+
+// Função auxiliar para o botão de excluir dentro do modal
+function deletarClienteAtual() {
+    if (appState.currentCliente) {
+        excluirCliente(appState.currentCliente.id);
+    }
 }
 
 function editarCliente() {
