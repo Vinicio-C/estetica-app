@@ -69,6 +69,20 @@ body {
     flex-direction: column;
 }
 
+.action-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
 .sidebar.active { transform: translateX(0); }
 
 .sidebar-header {
@@ -216,8 +230,8 @@ body {
 
 .stat-card:hover { transform: translateY(-5px); border-color: var(--gold); }
 .stat-icon { width: 50px; height: 50px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--gold); }
-.stat-info h3 { font-size: 1.8rem; font-weight: 700; color: var(--text-primary); }
-.stat-info p { color: var(--text-secondary); font-size: 0.9rem; }
+.stat-info h3 { font-size: 2rem; color: var(--gold); } /* Números Dourados */
+.stat-info p { text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
 
 /* Grids */
 .clientes-grid, .servicos-grid, .estoque-grid {
@@ -226,13 +240,10 @@ body {
     gap: 20px;
 }
 
-.cliente-card, .agendamento-item {
-    background-color: var(--bg-card);
+.cliente-card, .estoque-card, .servico-card, .stat-card {
+    background-color: #1E1E1E; /* Cinza um pouco mais claro que o fundo */
     border: 1px solid #333;
-    border-radius: var(--border-radius);
-    padding: 1.5rem;
-    cursor: pointer;
-    transition: var(--transition);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4); /* Sombra mais forte */
 }
 
 .cliente-card:hover, .agendamento-item:hover { border-color: #555; background-color: var(--bg-hover); transform: translateY(-3px); }
@@ -305,6 +316,26 @@ hr { border: 0; border-top: 1px solid #333; margin: 25px 0; }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4); }
 .btn-secondary { background: transparent; border: 1px solid #555; color: var(--text-primary); padding: 12px 24px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
 .btn-secondary:hover { border-color: var(--text-primary); background: rgba(255,255,255,0.05); }
+.btn-edit {
+    background-color: #2C2C2C; /* Fundo escuro */
+    color: var(--text-primary);
+    border-color: #444;
+}
+.btn-edit:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    background-color: #333;
+}
+.btn-delete {
+    background-color: rgba(239, 83, 80, 0.1); /* Vermelho transparente */
+    color: #EF5350;
+    border-color: transparent;
+}
+.btn-delete:hover {
+    background-color: #EF5350;
+    color: white;
+}
+.btn-link-gold:hover { color: var(--text-primary); }
 
 /* Toasts */
 .toast-container { position: fixed; top: 20px; right: 20px; z-index: 4000; display: flex; flex-direction: column; gap: 10px; }
@@ -325,6 +356,10 @@ hr { border: 0; border-top: 1px solid #333; margin: 25px 0; }
 .page.active {
     display: block !important;
     animation: fadeIn 0.4s ease-out;
+}
+
+input[type="date"] {
+    color-scheme: dark; /* Força o ícone do calendário a ficar branco */
 }
 
 /* Animação de entrada suave */

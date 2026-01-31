@@ -678,6 +678,276 @@ async function excluirCliente(id) {
     }
 }
 
+// =======================================================
+// FUNÇÕES DE SERVIÇOS E ESTOQUE (MIGRADAS PARA O APP.JS)
+// =======================================================
+
+// =======================================================
+// MÓDULO DE SERVIÇOS (Migrado e com Visual Dark)
+// =======================================================
+
+async function carregarServicos() {
+    // Garante dados frescos
+    if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
+    renderizarServicos(appState.servicos);
+}
+
+function renderizarServicos(servicos) {
+    const container = document.getElementById('servicosGrid');
+    if (!container) return;
+
+    if (servicos.length === 0) {
+        container.innerHTML = `<div class="empty-state"><p>Nenhum serviço cadastrado</p></div>`;
+        return;
+    }
+
+    container.innerHTML = servicos.map(s => `
+        <div class="servico-card" style="padding: 1.5rem; border-radius: 12px; background: #1E1E1E;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 style="color: #fff; margin: 0; font-size: 1.2rem;">${s.nome}</h4>
+                <strong style="color: var(--gold); font-size: 1.2rem;">${formatCurrency(s.valor)}</strong>
+            </div>
+            
+            <div style="color: #888; font-size: 0.9rem; margin-bottom: 20px; display: flex; gap: 10px;">
+                <span><i class="fas fa-clock"></i> ${s.duracao} min</span>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button onclick="abrirModalServico('${s.id}')" class="action-btn btn-edit">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+
+                <button onclick="excluirServico('${s.id}')" class="action-btn btn-delete">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function filtrarServicos(termo) {
+    const servicosFiltrados = appState.servicos.filter(s => 
+        s.nome.toLowerCase().includes(termo.toLowerCase())
+    );
+    renderizarServicos(servicosFiltrados);
+}
+
+function abrirModalServico(id = null) {
+    const modal = document.getElementById('modalServico');
+    const form = document.getElementById('formServico');
+    form.reset();
+    
+    // Configura campo hidden de ID
+    let hiddenInput = document.getElementById('servicoId');
+    if (!hiddenInput) { console.warn('Input servicoId não encontrado'); return; }
+    hiddenInput.value = '';
+
+    if (id) {
+        // Edição
+        const servico = appState.servicos.find(s => s.id === id);
+        if (servico) {
+            document.getElementById('modalServicoTitle').textContent = 'Editar Serviço';
+            hiddenInput.value = servico.id;
+            document.getElementById('servicoNome').value = servico.nome;
+            document.getElementById('servicoValor').value = servico.valor;
+            document.getElementById('servicoDuracao').value = servico.duracao;
+        }
+    } else {
+        document.getElementById('modalServicoTitle').textContent = 'Novo Serviço';
+    }
+    
+    modal.classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+}
+
+async function salvarServico(e) {
+    e.preventDefault();
+    const id = document.getElementById('servicoId').value;
+    const dados = {
+        nome: document.getElementById('servicoNome').value,
+        valor: parseFloat(document.getElementById('servicoValor').value),
+        duracao: parseInt(document.getElementById('servicoDuracao').value)
+    };
+
+    try {
+        if (id) {
+            const { error } = await _supabase.from('servicos').update(dados).eq('id', id);
+            if (error) throw error;
+        } else {
+            const { error } = await _supabase.from('servicos').insert([dados]);
+            if (error) throw error;
+        }
+        showToast('Serviço salvo com sucesso!', 'success');
+        fecharModal('modalServico');
+        await carregarServicos();
+    } catch (err) {
+        console.error(err);
+        showToast('Erro ao salvar serviço.', 'error');
+    }
+}
+
+async function excluirServico(id) {
+    if (!id || id === 'undefined') return showToast('Erro: ID inválido', 'error');
+    if (!confirm('Tem certeza que deseja excluir este serviço?')) return;
+
+    try {
+        const { error } = await _supabase.from('servicos').delete().eq('id', id);
+        if (error) throw error;
+        showToast('Serviço excluído!', 'success');
+        await carregarServicos();
+    } catch (err) {
+        console.error(err);
+        showToast('Erro ao excluir.', 'error');
+    }
+}
+
+// =======================================================
+// MÓDULO DE ESTOQUE (Migrado e com Visual Dark)
+// =======================================================
+
+async function carregarEstoque() {
+    if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
+    renderizarEstoque(appState.estoque);
+}
+
+function renderizarEstoque(produtos) {
+    const container = document.getElementById('estoqueGrid');
+    if (!container) return;
+
+    if (produtos.length === 0) {
+        container.innerHTML = `<div class="empty-state"><p>Estoque vazio</p></div>`;
+        return;
+    }
+
+    container.innerHTML = produtos.map(p => {
+        let corStatus = '#66BB6A'; // Verde
+        if (p.quantidade <= p.quantidade_minima) corStatus = '#FFA726'; // Laranja
+        if (p.quantidade === 0) corStatus = '#EF5350'; // Vermelho
+
+        return `
+            <div class="estoque-card" style="border-left: 4px solid ${corStatus}; padding: 1.5rem; border-radius: 12px; background: #1E1E1E; margin-bottom: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <h4 style="color: #fff; margin: 0; font-size: 1.1rem;">${p.nome}</h4>
+                    <span style="background: ${corStatus}20; color: ${corStatus}; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.9rem;">
+                        ${p.quantidade} un.
+                    </span>
+                </div>
+                
+                <div style="color: #888; font-size: 0.9rem; margin-bottom: 15px;">
+                    Mínimo ideal: ${p.quantidade_minima}
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="abrirModalEstoque('${p.id}')" class="action-btn btn-edit">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+
+                    <button onclick="excluirProduto('${p.id}')" class="action-btn btn-delete">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function filtrarEstoque(termo) {
+    const produtosFiltrados = appState.estoque.filter(p => 
+        p.nome.toLowerCase().includes(termo.toLowerCase())
+    );
+    renderizarEstoque(produtosFiltrados);
+}
+
+function abrirModalEstoque(produtoId = null) {
+    const modal = document.getElementById('modalEstoque');
+    const form = document.getElementById('formEstoque');
+    form.reset();
+    
+    let hiddenInput = document.getElementById('estoqueId');
+    hiddenInput.value = '';
+
+    if (produtoId) {
+        const produto = appState.estoque.find(p => p.id === produtoId);
+        if (produto) {
+            document.getElementById('modalEstoqueTitle').textContent = 'Editar Produto';
+            hiddenInput.value = produto.id;
+            document.getElementById('estoqueNome').value = produto.nome;
+            document.getElementById('estoqueDescricao').value = produto.descricao || '';
+            document.getElementById('estoqueValor').value = produto.valor_unitario;
+            document.getElementById('estoqueQuantidade').value = produto.quantidade;
+            document.getElementById('estoqueQuantidadeMinima').value = produto.quantidade_minima;
+        }
+    } else {
+        document.getElementById('modalEstoqueTitle').textContent = 'Novo Produto';
+    }
+    
+    modal.classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+}
+
+async function salvarEstoque(e) {
+    e.preventDefault();
+    const id = document.getElementById('estoqueId').value;
+    const dados = {
+        nome: document.getElementById('estoqueNome').value,
+        descricao: document.getElementById('estoqueDescricao').value,
+        valor_unitario: parseFloat(document.getElementById('estoqueValor').value),
+        quantidade: parseInt(document.getElementById('estoqueQuantidade').value),
+        quantidade_minima: parseInt(document.getElementById('estoqueQuantidadeMinima').value)
+    };
+
+    try {
+        if (id) {
+            const { error } = await _supabase.from('estoque').update(dados).eq('id', id);
+            if (error) throw error;
+        } else {
+            const { error } = await _supabase.from('estoque').insert([dados]);
+            if (error) throw error;
+        }
+        showToast('Produto salvo com sucesso!', 'success');
+        fecharModal('modalEstoque');
+        await carregarEstoque();
+    } catch (err) {
+        console.error(err);
+        showToast('Erro ao salvar produto.', 'error');
+    }
+}
+
+async function excluirProduto(id) {
+    if (!id || id === 'undefined') return showToast('Erro: ID inválido', 'error');
+    if (!confirm('Tem certeza que deseja excluir?')) return;
+
+    try {
+        const { error } = await _supabase.from('estoque').delete().eq('id', id);
+        if (error) throw error;
+        showToast('Produto excluído!', 'success');
+        await carregarEstoque();
+        if (typeof atualizarNotificacoes === 'function') atualizarNotificacoes();
+    } catch (err) {
+        console.error(err);
+        showToast('Erro ao excluir.', 'error');
+    }
+}
+
+// --- LIMPAR NOTIFICAÇÕES (Aquela função que faltava) ---
+function limparNotificacoes(e) {
+    if (e) e.stopPropagation(); 
+    
+    const lista = document.getElementById('notifList');
+    const badge = document.getElementById('notifCount');
+    
+    if (lista) {
+        lista.innerHTML = '<div class="notif-empty"><i class="fas fa-check-circle"></i><br>Notificações limpas!</div>';
+    }
+    
+    if (badge) {
+        badge.style.display = 'none';
+        badge.textContent = '0';
+    }
+    
+    showToast('Notificações limpas.', 'info');
+}
+
 function trocarTab(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
