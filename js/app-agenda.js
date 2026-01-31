@@ -725,36 +725,46 @@ async function salvarEstoque(e) {
 }
 
 async function conectarGoogle() {
-    // No GitHub Pages, 'origin' pega só o dominio, mas precisamos da pasta do projeto
-    // href pega tudo: "https://user.github.io/repo/index.html"
-    // Vamos limpar o "index.html" e parâmetros extras para garantir
-    let urlAtual = window.location.href.split('?')[0]; // Remove ?param=...
+    // 1. Calcular a URL exata para onde o Google deve devolver o usuário
+    // Removemos parâmetros de busca (?) e hash (#) para limpar a URL
+    let urlAtual = window.location.href.split(/[?#]/)[0]; 
     
-    // Remove "index.html" se estiver lá
+    // Remove "index.html" se estiver lá (limpeza padrão)
     if (urlAtual.endsWith('index.html')) {
         urlAtual = urlAtual.replace('index.html', '');
     }
     
-    // Remove barra final se tiver, para padronizar
+    // Remove barra final se tiver, para padronizar (ex: .../app/ vira .../app)
     if (urlAtual.endsWith('/')) {
         urlAtual = urlAtual.slice(0, -1);
     }
 
-    console.log('🔗 URL Base calculada:', urlAtual);
+    console.log('🔗 URL de Retorno:', urlAtual);
 
     try {
+        showToast('Redirecionando para o Google...', 'info');
+
         const { data, error } = await _supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
+                redirectTo: urlAtual,
                 scopes: 'https://www.googleapis.com/auth/calendar',
-                // O Supabase vai usar a Site URL configurada no painel, 
-                // mas enviamos isso para garantir que ele volte para a pasta certa
-                redirectTo: urlAtual 
+                
+                // --- O SEGREDO PARA O CELULAR ESTÁ AQUI EMBAIXO 👇 ---
+                queryParams: {
+                    access_type: 'offline', // Pede permissão para funcionar mesmo fechado
+                    prompt: 'consent'       // Força o Google a gerar o Token de Atualização
+                }
             }
         });
+
         if (error) throw error;
+        
+        // Se der certo, ele vai sair da página aqui e ir pro Google
+        
     } catch (error) {
-        showToast('Erro ao conectar: ' + error.message, 'error');
+        console.error('Erro ao conectar:', error);
+        showToast('Erro ao iniciar conexão Google: ' + error.message, 'error');
     }
 }
 
