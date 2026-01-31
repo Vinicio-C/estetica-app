@@ -6,18 +6,13 @@ async function carregarAgenda() {
     
     const view = appState.currentAgendaView;
     const date = appState.currentAgendaDate;
-    
     let agendamentosFiltrados = [];
     
-    if (view === 'dia') {
-        const inicio = new Date(date);
-        inicio.setHours(0, 0, 0, 0);
-        const fim = new Date(date);
-        fim.setHours(23, 59, 59, 999);
-        
+   if (view === 'dia') {
+        const inicio = new Date(date); inicio.setHours(0,0,0,0);
+        const fim = new Date(date); fim.setHours(23,59,59,999);
         agendamentosFiltrados = appState.agendamentos.filter(a => {
-            const dataAgendamento = new Date(a.data);
-            return dataAgendamento >= inicio && dataAgendamento <= fim;
+            const d = new Date(a.data); return d >= inicio && d <= fim;
         });
     } else if (view === 'semana') {
         const inicio = new Date(date);
@@ -50,10 +45,10 @@ async function carregarAgenda() {
     // Calcular totais do dia
     const servicosDia = agendamentosFiltrados.filter(a => a.tipo === 'servico').length;
     const faturamentoDia = agendamentosFiltrados
-        .filter(a => a.tipo === 'servico')
+        .filter(a => a.tipo === 'servico' && a.status !== 'cancelado')
         .reduce((sum, a) => sum + (a.valor || 0), 0);
     
-    document.getElementById('agendaTotalServicos').textContent = `${servicosDia} serviço${servicosDia !== 1 ? 's' : ''}`;
+    document.getElementById('agendaTotalServicos').textContent = servicosDia;
     document.getElementById('agendaTotalValor').textContent = formatCurrency(faturamentoDia);
     
     // Renderizar agendamentos
@@ -62,48 +57,52 @@ async function carregarAgenda() {
     if (agendamentosFiltrados.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <i class="fas fa-calendar-times"></i>
-                <p>Nenhum agendamento para este período</p>
-            </div>
-        `;
+                <i class="far fa-calendar" style="font-size:3rem; color:#333; margin-bottom:15px;"></i>
+                <p>Agenda livre para este período</p>
+            </div>`;
         return;
     }
     
-    container.innerHTML = agendamentosFiltrados.map(a => `
-        <div class="agendamento-item ${a.tipo} ${a.status}" onclick="editarAgendamento('${a.id}')">
-            <div class="agendamento-header">
-                <h4>
-                    <i class="fas fa-${a.tipo === 'servico' ? 'cut' : 'calendar-day'}"></i>
+    container.innerHTML = agendamentosFiltrados.map(a => {
+        // Define classe extra se estiver concluído ou cancelado
+        let statusClass = '';
+        if (a.status === 'concluido') statusClass = 'status-concluido';
+        if (a.status === 'cancelado') statusClass = 'status-cancelado';
+
+        return `
+        <div class="agenda-card ${statusClass}" onclick="editarAgendamento('${a.id}')">
+            
+            <div class="time-column">
+                <span class="time-hour">${formatTime(a.data)}</span>
+                <i class="fas fa-clock time-icon"></i>
+            </div>
+
+            <div class="info-column">
+                <div class="service-title">
                     ${a.tipo === 'servico' ? a.servico_nome : a.evento_nome}
-                </h4>
-                <div class="agendamento-time">
-                    <i class="fas fa-clock"></i>
-                    ${formatTime(a.data)}
                 </div>
+                <div class="client-name">
+                    ${a.tipo === 'servico' ? `<i class="fas fa-user"></i> ${a.cliente_nome}` : `<i class="fas fa-info-circle"></i> ${a.observacoes || 'Evento Pessoal'}`}
+                </div>
+                ${a.tipo === 'servico' ? 
+                  `<span class="status-badge ${a.status_pagamento}" style="margin-top:5px; display:inline-block; font-size:0.7rem;">${a.status_pagamento}</span>` 
+                  : ''}
             </div>
-            <div class="agendamento-details">
-                <div class="agendamento-info">
-                    ${a.tipo === 'servico' ? `
-                        <div><i class="fas fa-user"></i> ${a.cliente_nome}</div>
-                        <div><i class="fas fa-dollar-sign"></i> ${formatCurrency(a.valor)}</div>
-                    ` : `
-                        <div><i class="fas fa-info-circle"></i> ${a.observacoes || 'Evento'}</div>
-                    `}
-                </div>
-                ${a.tipo === 'servico' ? `<span class="status-badge ${a.status_pagamento}">${a.status_pagamento}</span>` : ''}
+
+            <div class="action-column">
+                ${a.tipo === 'servico' ? `<span class="price-tag">${formatCurrency(a.valor)}</span>` : ''}
+                
+                ${a.status === 'agendado' ? `
+                    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:5px;">
+                        <button class="btn-icon" style="color:var(--success); width:30px; height:30px;" onclick="concluirAgendamento(event, '${a.id}')" title="Concluir">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                ` : ''}
             </div>
-            ${a.status === 'agendado' ? `
-                <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
-                    <button class="btn-primary btn-sm" onclick="concluirAgendamento(event, '${a.id}')">
-                        <i class="fas fa-check"></i> Concluir
-                    </button>
-                    <button class="btn-danger btn-sm" onclick="cancelarAgendamento(event, '${a.id}')">
-                        <i class="fas fa-times"></i> Cancelar
-                    </button>
-                </div>
-            ` : ''}
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function setAgendaView(view) {

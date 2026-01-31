@@ -222,50 +222,49 @@
             </div>
 
             <!-- Agenda Page -->
-            <div id="agendaPage" class="page">
-                <div class="page-header">
-                    <div class="agenda-controls">
-                        <button class="btn-secondary" id="agendaViewMes" onclick="setAgendaView('mes')">Mês</button>
-                        <button class="btn-secondary" id="agendaViewSemana" onclick="setAgendaView('semana')">Semana</button>
-                        <button class="btn-secondary active" id="agendaViewDia" onclick="setAgendaView('dia')">Dia</button>
-                    </div>
-                    
-                    <div class="agenda-date-picker">
-                        <button class="btn-icon" onclick="mudarData(-1)">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <input type="date" id="agendaDate" class="date-input">
-                        <button class="btn-icon" onclick="mudarData(1)">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                        <button class="btn-secondary" onclick="hoje()">Hoje</button>
-                    </div>
-                    
-                    <button class="btn-primary" onclick="abrirModalAgendamento()">
-                        <i class="fas fa-plus"></i> Novo Agendamento
-                    </button>
-                </div>
+            <div class="page-header-custom">
+                <h2><i class="far fa-calendar-alt" style="color: var(--gold);"></i> Agenda</h2>
                 
-                <div class="agenda-summary">
-                    <div class="summary-item">
-                        <span>Total do Dia:</span>
-                        <strong id="agendaTotalServicos">0 serviços</strong>
-                    </div>
-                    <div class="summary-item">
-                        <span>Faturamento:</span>
-                        <strong id="agendaTotalValor" class="gold-text">R$ 0,00</strong>
-                    </div>
-                    <div id="googleConnectionBox">
-                        <button id="btnConnectGoogle" class="btn-sync" onclick="conectarGoogle()">
-                            <i class="fab fa-google"></i> Conectar Agenda
-                        </button>
-                    </div>
+                <button id="btnConnectGoogle" onclick="conectarGoogle()" class="btn-google-sync">
+                    <i class="fab fa-google"></i> Sincronizar Google
+                </button>
+            </div>
+
+            <div class="agenda-toolbar">
+                <div class="view-switcher">
+                    <button class="view-btn active" onclick="setAgendaView('dia')" id="agendaViewDia">Dia</button>
+                    <button class="view-btn" onclick="setAgendaView('semana')" id="agendaViewSemana">Semana</button>
+                    <button class="view-btn" onclick="setAgendaView('mes')" id="agendaViewMes">Mês</button>
                 </div>
-                
-                <div id="agendaContainer" class="agenda-container">
-                    <!-- Agenda items will be loaded here -->
+
+                <div class="date-navigator">
+                    <button class="nav-arrow" onclick="mudarData(-1)"><i class="fas fa-chevron-left"></i></button>
+                    
+                    <div class="date-display-wrapper">
+                        <input type="date" id="agendaDate" onchange="carregarAgenda()">
+                    </div>
+
+                    <button class="nav-arrow" onclick="mudarData(1)"><i class="fas fa-chevron-right"></i></button>
+                    <button class="btn-today" onclick="hoje()">Hoje</button>
+                </div>
+
+                <button class="btn-primary" onclick="abrirModalAgendamento()">
+                    <i class="fas fa-plus"></i> Novo
+                </button>
+            </div>
+
+            <div class="agenda-stats-bar">
+                <div class="agenda-stat">
+                    <span class="stat-label">Agendamentos</span>
+                    <strong id="agendaTotalServicos" class="stat-value">0</strong>
+                </div>
+                <div class="agenda-stat">
+                    <span class="stat-label">Faturamento Previsto</span>
+                    <strong id="agendaTotalValor" class="stat-value gold">R$ 0,00</strong>
                 </div>
             </div>
+
+            <div id="agendaContainer" class="agenda-timeline"></div>
 
             <!-- Serviços Page -->
             <div id="servicosPage" class="page">
