@@ -1,181 +1,218 @@
 // ========================================
-// RELATÓRIOS
+// RELATÓRIOS - MÓDULO COMPLETO
 // ========================================
+
+// Variáveis globais para controlar os gráficos (permitir destruir e recriar)
 let chartFaturamento = null;
 let chartQuantidade = null;
 
 async function carregarRelatorios() {
-    await carregarDadosIniciais(); // Garante dados frescos
+    // 1. Garante dados atualizados
+    if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
 
-    // Pega o container
-    const container = document.getElementById('relatoriosContent'); // Verifique se esse ID existe no seu HTML de relatórios
-    if (!container) return;
-
-    // Filtros (Se quiser implementar filtro de data depois, use aqui)
-    const totalAgendamentos = appState.agendamentos.length;
+    // 2. Pegar Filtros do HTML
+    const elMes = document.getElementById('relatorioMes');
+    const elAno = document.getElementById('relatorioAno');
     
-    // Cálculos
-    const faturamentoTotal = appState.agendamentos
-        .filter(a => a.status_pagamento === 'pago')
-        .reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
+    // Proteção: Se não estiver na página de relatórios, para aqui
+    if (!elMes || !elAno) return;
 
-    const aReceber = appState.agendamentos
-        .filter(a => a.status_pagamento === 'devendo' && a.status !== 'cancelado')
-        .reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
+    const mes = parseInt(elMes.value);
+    const ano = parseInt(elAno.value);
 
-    const servicosRealizados = appState.agendamentos
-        .filter(a => a.status === 'concluido').length;
+    // 3. Filtrar Agendamentos (Apenas CONCLUÍDOS do mês selecionado)
+    const dadosFiltrados = appState.agendamentos.filter(a => {
+        const d = new Date(a.data);
+        // Compara Mês e Ano (ajustando fuso horário se necessário, aqui uso simples)
+        return d.getMonth() === mes && 
+               d.getFullYear() === ano && 
+               a.status === 'concluido';
+    });
 
-    // --- RENDERIZAÇÃO BONITA (CARDS) ---
-    container.innerHTML = `
-        <div class="metrics-row">
-            <div class="metric-card">
-                <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
-                <div class="metric-info">
-                    <p>Faturamento Total</p>
-                    <h3>${formatCurrency(faturamentoTotal)}</h3>
-                </div>
-            </div>
+    // 4. Cálculos Gerais (Cards do Topo)
+    const faturamentoTotal = dadosFiltrados.reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
+    const servicosRealizados = dadosFiltrados.length;
+    
+    // Total a Receber (Geral - Dívidas pendentes totais, não só do mês)
+    const totalReceber = appState.agendamentos
+        .filter(a => a.status_pagamento === 'devendo' && a.status === 'concluido')
+        .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
 
-            <div class="metric-card" style="border-left: 4px solid var(--warning);">
-                <div class="metric-icon" style="color: var(--warning);"><i class="fas fa-hand-holding-usd"></i></div>
-                <div class="metric-info">
-                    <p>A Receber</p>
-                    <h3 style="color: var(--warning);">${formatCurrency(aReceber)}</h3>
-                </div>
-            </div>
+    // 5. Atualizar HTML dos Cards
+    // Verifica se os elementos existem antes de tentar alterar
+    const elFat = document.getElementById('metricFaturamentoTotal');
+    const elRec = document.getElementById('metricTotalReceber');
+    const elServ = document.getElementById('metricServicosRealizados');
 
-            <div class="metric-card">
-                <div class="metric-icon"><i class="fas fa-cut"></i></div>
-                <div class="metric-info">
-                    <p>Serviços Realizados</p>
-                    <h3>${servicosRealizados}</h3>
-                </div>
-            </div>
-        </div>
+    if (elFat) elFat.textContent = formatCurrency(faturamentoTotal);
+    if (elRec) elRec.textContent = formatCurrency(totalReceber);
+    if (elServ) elServ.textContent = servicosRealizados;
 
-        <div style="margin-top: 30px; text-align: right;">
-            <button class="btn-primary" onclick="window.print()">
-                <i class="fas fa-file-pdf"></i> Imprimir Relatório
-            </button>
-        </div>
-    `;
+    // 6. Preparar Dados para os Gráficos (Agrupar por Serviço)
+    const dadosPorServico = {};
+    
+    dadosFiltrados.forEach(a => {
+        // Usa o nome do serviço ou evento
+        const nome = a.servico_nome || a.evento_nome || 'Outros';
+        
+        if (!dadosPorServico[nome]) {
+            dadosPorServico[nome] = { qtd: 0, total: 0 };
+        }
+        
+        dadosPorServico[nome].qtd += 1;
+        dadosPorServico[nome].total += (Number(a.valor) || 0);
+    });
+
+    // Separa em arrays para o Chart.js
+    const labels = Object.keys(dadosPorServico);
+    const valuesFaturamento = labels.map(k => dadosPorServico[k].total);
+    const valuesQuantidade = labels.map(k => dadosPorServico[k].qtd);
+
+    // 7. Renderizar Gráficos e Tabela
+    renderizarGraficos(labels, valuesFaturamento, valuesQuantidade);
+    renderizarTabelaRelatorio(dadosFiltrados);
 }
 
-function exportarRelatorioPDF() {
-    showToast('Funcionalidade de exportação em desenvolvimento. Use Imprimir (Ctrl+P) como alternativa.', 'info');
-    setTimeout(() => {
-        window.print();
-    }, 1000);
-}
+// --- FUNÇÃO PARA DESENHAR OS GRÁFICOS ---
+function renderizarGraficos(labels, dataFat, dataQtd) {
+    // Cores do Tema Dark Luxury
+    const colors = [
+        '#D4AF37', // Dourado Principal
+        '#F4E4C1', // Bege Claro
+        '#B88A00', // Dourado Escuro
+        '#FFFFFF', // Branco
+        '#666666'  // Cinza
+    ];
 
-// Inicializar relatório quando a página carregar
-document.addEventListener('DOMContentLoaded', () => {
-    const hoje = new Date();
-    document.getElementById('relatorioMes').value = hoje.getMonth();
-    document.getElementById('relatorioAno').value = hoje.getFullYear();
-});
+    // Destruir gráficos antigos se existirem (para não sobrepor)
+    if (chartFaturamento) chartFaturamento.destroy();
+    if (chartQuantidade) chartQuantidade.destroy();
 
-// ========================================
-// MODALS
-// ========================================
-function fecharModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
-    document.getElementById('overlay').classList.remove('active');
-}
+    // Configuração Global de Fonte do Chart.js
+    if (typeof Chart !== 'undefined') {
+        Chart.defaults.color = '#A0A0A0';
+        Chart.defaults.borderColor = '#333';
+        Chart.defaults.font.family = "'Montserrat', sans-serif";
+    }
 
-// Fechar modal ao clicar no overlay
-document.addEventListener('click', (e) => {
-    if (e.target.id === 'overlay') {
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.classList.remove('active');
+    // 1. Gráfico de Faturamento (Rosquinha)
+    const ctx1 = document.getElementById('chartFaturamentoTipo');
+    if (ctx1) {
+        chartFaturamento = new Chart(ctx1.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataFat,
+                    backgroundColor: colors,
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 12 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) label += ': ';
+                                label += formatCurrency(context.raw);
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
         });
-        document.getElementById('overlay').classList.remove('active');
+    }
+
+    // 2. Gráfico de Quantidade (Barras)
+    const ctx2 = document.getElementById('chartQuantidadeTipo');
+    if (ctx2) {
+        chartQuantidade = new Chart(ctx2.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Quantidade',
+                    data: dataQtd,
+                    backgroundColor: '#D4AF37',
+                    borderRadius: 4,
+                    barThickness: 30
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: '#333' },
+                        ticks: { stepSize: 1 }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+}
+
+// --- FUNÇÃO PARA PREENCHER A TABELA DETALHADA ---
+function renderizarTabelaRelatorio(dados) {
+    const tbody = document.getElementById('relatorioTableBody');
+    if (!tbody) return;
+
+    if (dados.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color: #666;">Nenhum dado encontrado neste período.</td></tr>';
+        return;
+    }
+
+    // Ordena por dia
+    dados.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+    tbody.innerHTML = dados.map(a => `
+        <tr style="border-bottom: 1px solid #333;">
+            <td style="padding: 12px;">
+                <div style="font-weight:bold; color: #ECECEC;">${a.cliente_nome || 'Evento'}</div>
+                <small style="color: #888;">${formatDate(a.data)}</small>
+            </td>
+            <td style="padding: 12px;">${a.servico_nome || a.evento_nome}</td>
+            
+            <td style="padding: 12px; color: var(--success);">
+                ${a.status_pagamento === 'pago' ? formatCurrency(a.valor) : '-'}
+            </td>
+            
+            <td style="padding: 12px; color: var(--error);">
+                ${a.status_pagamento === 'devendo' ? formatCurrency(a.valor) : '-'}
+            </td>
+            
+            <td style="padding: 12px; font-weight:bold; color: var(--gold);">
+                ${formatCurrency(a.valor)}
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Função de Exportar (Simples)
+function exportarRelatorioPDF() {
+    window.print();
+}
+
+// Inicializador ao carregar a página (se necessário)
+document.addEventListener('DOMContentLoaded', () => {
+    // Define mês e ano atual nos selects se eles estiverem vazios
+    const elMes = document.getElementById('relatorioMes');
+    const elAno = document.getElementById('relatorioAno');
+    
+    if (elMes && elAno) {
+        const hoje = new Date();
+        elMes.value = hoje.getMonth();
+        elAno.value = hoje.getFullYear();
     }
 });
-
-// ========================================
-// TOAST NOTIFICATIONS
-// ========================================
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    
-    const icons = {
-        success: 'fa-check-circle',
-        error: 'fa-times-circle',
-        warning: 'fa-exclamation-triangle',
-        info: 'fa-info-circle'
-    };
-    
-    toast.innerHTML = `
-        <i class="fas ${icons[type]}"></i>
-        <span>${message}</span>
-    `;
-    
-    container.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(400px)';
-        setTimeout(() => {
-            container.removeChild(toast);
-        }, 300);
-    }, 3000);
-}
-
-// ========================================
-// UTILITY FUNCTIONS
-// ========================================
-function formatCurrency(value) {
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    }).format(value || 0);
-}
-
-function formatDate(date) {
-    const d = new Date(date);
-    return d.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-}
-
-function formatDateTime(date) {
-    const d = new Date(date);
-    return d.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function formatTime(date) {
-    const d = new Date(date);
-    return d.toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function formatDateInput(date) {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-function formatTimeInput(date) {
-    const d = new Date(date);
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-}
-
-console.log('✨ Módulo de Relatórios carregado!');
