@@ -1,101 +1,141 @@
 // ========================================
-// RELATÓRIOS - MÓDULO COMPLETO
+// RELATÓRIOS - MÓDULO COMPLETO E FUNCIONAL
 // ========================================
 
-// Variáveis globais para controlar os gráficos (permitir destruir e recriar)
+// Variáveis globais para os gráficos
 let chartFaturamento = null;
 let chartQuantidade = null;
 
 async function carregarRelatorios() {
-    // 1. Garante dados atualizados
+    // 1. Garante que temos dados atualizados
     if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
 
-    // 2. Pegar Filtros do HTML
-    const elMes = document.getElementById('relatorioMes');
-    const elAno = document.getElementById('relatorioAno');
-    
-    // Proteção: Se não estiver na página de relatórios, para aqui
-    if (!elMes || !elAno) return;
+    const container = document.getElementById('relatoriosContent');
+    if (!container) return;
 
-    const mes = parseInt(elMes.value);
-    const ano = parseInt(elAno.value);
+    // 2. Filtros de Data
+    const mes = parseInt(document.getElementById('relatorioMes').value);
+    const ano = parseInt(document.getElementById('relatorioAno').value);
 
-    // 3. Filtrar Agendamentos (Apenas CONCLUÍDOS do mês selecionado)
+    // 3. Filtrar Dados (Apenas concluídos do mês selecionado)
     const dadosFiltrados = appState.agendamentos.filter(a => {
         const d = new Date(a.data);
-        // Compara Mês e Ano (ajustando fuso horário se necessário, aqui uso simples)
         return d.getMonth() === mes && 
                d.getFullYear() === ano && 
                a.status === 'concluido';
     });
 
-    // 4. Cálculos Gerais (Cards do Topo)
+    // 4. Cálculos dos Cards
     const faturamentoTotal = dadosFiltrados.reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
     const servicosRealizados = dadosFiltrados.length;
     
-    // Total a Receber (Geral - Dívidas pendentes totais, não só do mês)
+    // Total a Receber (Geral, todas as datas)
     const totalReceber = appState.agendamentos
         .filter(a => a.status_pagamento === 'devendo' && a.status === 'concluido')
         .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
 
-    // 5. Atualizar HTML dos Cards
-    // Verifica se os elementos existem antes de tentar alterar
-    const elFat = document.getElementById('metricFaturamentoTotal');
-    const elRec = document.getElementById('metricTotalReceber');
-    const elServ = document.getElementById('metricServicosRealizados');
-
-    if (elFat) elFat.textContent = formatCurrency(faturamentoTotal);
-    if (elRec) elRec.textContent = formatCurrency(totalReceber);
-    if (elServ) elServ.textContent = servicosRealizados;
-
-    // 6. Preparar Dados para os Gráficos (Agrupar por Serviço)
+    // 5. Preparar Dados para os Gráficos (Agrupar por Serviço)
     const dadosPorServico = {};
-    
     dadosFiltrados.forEach(a => {
-        // Usa o nome do serviço ou evento
         const nome = a.servico_nome || a.evento_nome || 'Outros';
-        
         if (!dadosPorServico[nome]) {
             dadosPorServico[nome] = { qtd: 0, total: 0 };
         }
-        
         dadosPorServico[nome].qtd += 1;
         dadosPorServico[nome].total += (Number(a.valor) || 0);
     });
 
-    // Separa em arrays para o Chart.js
     const labels = Object.keys(dadosPorServico);
     const valuesFaturamento = labels.map(k => dadosPorServico[k].total);
     const valuesQuantidade = labels.map(k => dadosPorServico[k].qtd);
 
-    // 7. Renderizar Gráficos e Tabela
-    renderizarGraficos(labels, valuesFaturamento, valuesQuantidade);
-    renderizarTabelaRelatorio(dadosFiltrados);
+    // 6. Montar o HTML da Página
+    container.innerHTML = `
+        <div class="metrics-row">
+            <div class="metric-card">
+                <div class="metric-icon gold"><i class="fas fa-dollar-sign"></i></div>
+                <div class="metric-info">
+                    <p>Faturamento Total</p>
+                    <h3>${formatCurrency(faturamentoTotal)}</h3>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon rose"><i class="fas fa-hand-holding-usd"></i></div>
+                <div class="metric-info">
+                    <p>Total a Receber</p>
+                    <h3 style="color: var(--warning);">${formatCurrency(totalReceber)}</h3>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon beige"><i class="fas fa-cut"></i></div>
+                <div class="metric-info">
+                    <p>Serviços Realizados</p>
+                    <h3>${servicosRealizados}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-row">
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-pie"></i> Faturamento por Serviço</h3>
+                <canvas id="chartFaturamentoTipo"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-bar"></i> Quantidade de Serviços</h3>
+                <canvas id="chartQuantidadeTipo"></canvas>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <h3><i class="fas fa-table"></i> Detalhes do Período</h3>
+            <div class="table-responsive">
+                <table class="relatorio-table">
+                    <thead>
+                        <tr>
+                            <th>Data/Cliente</th>
+                            <th>Serviço</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="relatorioTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; text-align: right;">
+            <button class="btn-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimir Relatório
+            </button>
+        </div>
+    `;
+
+    // 7. AGORA SIM: Desenhar os Gráficos e a Tabela
+    // Pequeno timeout para garantir que o HTML foi injetado antes de desenhar
+    setTimeout(() => {
+        renderizarGraficos(labels, valuesFaturamento, valuesQuantidade);
+        renderizarTabelaRelatorio(dadosFiltrados);
+    }, 50);
 }
 
-// --- FUNÇÃO PARA DESENHAR OS GRÁFICOS ---
+// --- FUNÇÃO DE DESENHAR GRÁFICOS (CHART.JS) ---
 function renderizarGraficos(labels, dataFat, dataQtd) {
-    // Cores do Tema Dark Luxury
-    const colors = [
-        '#D4AF37', // Dourado Principal
-        '#F4E4C1', // Bege Claro
-        '#B88A00', // Dourado Escuro
-        '#FFFFFF', // Branco
-        '#666666'  // Cinza
-    ];
+    const colors = ['#D4AF37', '#F4E4C1', '#B88A00', '#FFFFFF', '#666666'];
 
-    // Destruir gráficos antigos se existirem (para não sobrepor)
-    if (chartFaturamento) chartFaturamento.destroy();
-    if (chartQuantidade) chartQuantidade.destroy();
-
-    // Configuração Global de Fonte do Chart.js
+    // Configuração Global
     if (typeof Chart !== 'undefined') {
         Chart.defaults.color = '#A0A0A0';
         Chart.defaults.borderColor = '#333';
         Chart.defaults.font.family = "'Montserrat', sans-serif";
     }
 
-    // 1. Gráfico de Faturamento (Rosquinha)
+    // Destruir anteriores se existirem
+    if (chartFaturamento) chartFaturamento.destroy();
+    if (chartQuantidade) chartQuantidade.destroy();
+
+    // 1. Gráfico Pizza (Rosquinha)
     const ctx1 = document.getElementById('chartFaturamentoTipo');
     if (ctx1) {
         chartFaturamento = new Chart(ctx1.getContext('2d'), {
@@ -105,31 +145,20 @@ function renderizarGraficos(labels, dataFat, dataQtd) {
                 datasets: [{
                     data: dataFat,
                     backgroundColor: colors,
-                    borderWidth: 0,
-                    hoverOffset: 4
+                    borderWidth: 0
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'right', labels: { boxWidth: 12 } },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                if (label) label += ': ';
-                                label += formatCurrency(context.raw);
-                                return label;
-                            }
-                        }
-                    }
+                    legend: { position: 'right' }
                 }
             }
         });
     }
 
-    // 2. Gráfico de Quantidade (Barras)
+    // 2. Gráfico Barras
     const ctx2 = document.getElementById('chartQuantidadeTipo');
     if (ctx2) {
         chartQuantidade = new Chart(ctx2.getContext('2d'), {
@@ -140,22 +169,15 @@ function renderizarGraficos(labels, dataFat, dataQtd) {
                     label: 'Quantidade',
                     data: dataQtd,
                     backgroundColor: '#D4AF37',
-                    borderRadius: 4,
-                    barThickness: 30
+                    borderRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
-                    y: { 
-                        beginAtZero: true, 
-                        grid: { color: '#333' },
-                        ticks: { stepSize: 1 }
-                    },
+                    y: { beginAtZero: true, grid: { color: '#333' } },
                     x: { grid: { display: false } }
                 }
             }
@@ -163,50 +185,30 @@ function renderizarGraficos(labels, dataFat, dataQtd) {
     }
 }
 
-// --- FUNÇÃO PARA PREENCHER A TABELA DETALHADA ---
+// --- FUNÇÃO DA TABELA ---
 function renderizarTabelaRelatorio(dados) {
     const tbody = document.getElementById('relatorioTableBody');
     if (!tbody) return;
 
     if (dados.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color: #666;">Nenhum dado encontrado neste período.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">Nenhum dado encontrado.</td></tr>';
         return;
     }
 
-    // Ordena por dia
-    dados.sort((a, b) => new Date(a.data) - new Date(b.data));
-
     tbody.innerHTML = dados.map(a => `
-        <tr style="border-bottom: 1px solid #333;">
-            <td style="padding: 12px;">
+        <tr>
+            <td>
                 <div style="font-weight:bold; color: #ECECEC;">${a.cliente_nome || 'Evento'}</div>
                 <small style="color: #888;">${formatDate(a.data)}</small>
             </td>
-            <td style="padding: 12px;">${a.servico_nome || a.evento_nome}</td>
-            
-            <td style="padding: 12px; color: var(--success);">
-                ${a.status_pagamento === 'pago' ? formatCurrency(a.valor) : '-'}
-            </td>
-            
-            <td style="padding: 12px; color: var(--error);">
-                ${a.status_pagamento === 'devendo' ? formatCurrency(a.valor) : '-'}
-            </td>
-            
-            <td style="padding: 12px; font-weight:bold; color: var(--gold);">
-                ${formatCurrency(a.valor)}
-            </td>
+            <td>${a.servico_nome || a.evento_nome}</td>
+            <td style="font-weight:bold; color: var(--gold);">${formatCurrency(a.valor)}</td>
         </tr>
     `).join('');
 }
 
-// Função de Exportar (Simples)
-function exportarRelatorioPDF() {
-    window.print();
-}
-
-// Inicializador ao carregar a página (se necessário)
+// Inicializar ao carregar a página
 document.addEventListener('DOMContentLoaded', () => {
-    // Define mês e ano atual nos selects se eles estiverem vazios
     const elMes = document.getElementById('relatorioMes');
     const elAno = document.getElementById('relatorioAno');
     
