@@ -569,17 +569,18 @@
                 <input type="hidden" id="agendamentoId">
                 
                 <div class="form-group">
-                    <label>Tipo de Agendamento *</label>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="tipoAgendamento" value="servico" checked onchange="toggleTipoAgendamento()">
-                            <span>Serviço</span>
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="tipoAgendamento" value="evento" onchange="toggleTipoAgendamento()">
-                            <span>Evento</span>
-                        </label>
-                    </div>
+                    <label>TIPO DE AGENDAMENTO *</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="tipoAgendamento" value="servico" checked onclick="toggleTipoAgendamento()">
+                                <span>Serviço</span>
+                            </label>
+
+                            <label class="radio-label">
+                                <input type="radio" name="tipoAgendamento" value="evento" onclick="toggleTipoAgendamento()">
+                                <span>Evento Pessoal</span>
+                            </label>
+                        </div>
                 </div>
                 
                 <div id="camposServico">
