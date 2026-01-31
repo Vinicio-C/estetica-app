@@ -161,48 +161,45 @@
                     <div class="dashboard-section">
                         <div class="dashboard-card">
                             <h3><i class="fas fa-clock"></i> Próximos Agendamentos</h3>
-                            <div id="proximosAgendamentos">
+                            <div id="proximosAgendamentos" class="agendamentos-list">
+                                <div class="empty-state">
+                                    <i class="fas fa-calendar-times"></i>
+                                    <p>Nenhum agendamento próximo</p>
                                 </div>
+                            </div>
                             <button class="btn-secondary btn-sm" onclick="navigateTo('agenda')" style="margin-top: 15px; width: 100%;">
                                 Ver Todos
                             </button>
                         </div>
-                        <div id="proximosAgendamentos" class="agendamentos-list">
-                            <div class="empty-state">
-                                <i class="fas fa-calendar-times"></i>
-                                <p>Nenhum agendamento próximo</p>
-                            </div>
-                        </div>
+                        
                     </div>
                     
                     <!-- Alertas de Estoque -->
                     <div class="dashboard-section">
                         <div class="dashboard-card">
                             <h3><i class="fas fa-box-open"></i> Alertas de Estoque</h3>
-                            <div id="alertasEstoque">
-                                </div>
-                        </div>
-                        <div id="alertasEstoque" class="alertas-list">
+                            <div id="alertasEstoque" class="alertas-list">
                             <div class="empty-state">
                                 <i class="fas fa-check-circle"></i>
                                 <p>Estoque em dia</p>
                             </div>
                         </div>
+                        </div>
+                        
                     </div>
                     
                     <!-- Clientes com Débitos -->
                     <div class="dashboard-section">
                         <div class="dashboard-card">
                             <h3><i class="fas fa-hand-holding-usd"></i> Clientes com Débitos</h3>
-                            <div id="clientesDebitos">
-                                </div>
-                        </div>
-                        <div id="clientesDebitos" class="debitos-list">
+                            <div id="clientesDebitos" class="debitos-list">
                             <div class="empty-state">
                                 <i class="fas fa-check-circle"></i>
                                 <p>Nenhum débito pendente</p>
                             </div>
                         </div>
+                        </div>
+                        
                     </div>
                 </div>
             </div>
