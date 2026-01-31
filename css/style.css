@@ -1,46 +1,43 @@
 /* ===================================
-   ESTÉTICA PREMIUM - DARK LUXURY THEME
+   ESTÉTICA PREMIUM - DARK LUXURY THEME (CORRIGIDO)
    =================================== */
 
 :root {
-    /* --- PALETA DARK MODE (NOVA) --- */
+    /* --- PALETA DARK MODE --- */
     --bg-body: #121212;        /* Preto Profundo */
     --bg-sidebar: #1A1A1A;     /* Cinza Chumbo */
-    --bg-card: #252525;        /* Cinza Médio (Elevação 1) */
+    --bg-card: #252525;        /* Cinza Médio */
     --bg-input: #2C2C2C;       /* Cinza para Inputs */
     --bg-hover: #333333;       /* Hover states */
     
     /* --- TEXTOS --- */
-    --text-primary: #ECECEC;   /* Branco Gelo (não cansa a vista) */
+    --text-primary: #ECECEC;   /* Branco Gelo */
     --text-secondary: #A0A0A0; /* Cinza Prata */
     --text-muted: #666666;     /* Cinza Escuro */
 
-    /* --- ACENTOS (DOURADO MANTIDO) --- */
+    /* --- ACENTOS --- */
     --gold: #D4AF37;
-    --gold-light: #F4E4C1;     /* Usado em detalhes sutis */
+    --gold-light: #F4E4C1;
     --gold-dark: #B8941E;
-    --gold-glow: rgba(212, 175, 55, 0.25); /* Brilho do foco */
+    --gold-glow: rgba(212, 175, 55, 0.25);
     
-    /* --- CORES DE STATUS --- */
-    --success: #66BB6A;        /* Verde mais suave */
+    /* --- STATUS --- */
+    --success: #66BB6A;
     --warning: #FFA726;
-    --error: #EF5350;          /* Vermelho mais suave */
+    --error: #EF5350;
     --info: #29B6F6;
 
-    /* --- TIPOGRAFIA --- */
+    /* --- FONTES --- */
     --font-heading: 'Cormorant Garamond', serif;
     --font-body: 'Montserrat', sans-serif;
     
-    /* --- AUXILIARES --- */
+    /* --- GERAL --- */
     --border-radius: 12px;
-    --border-light: 1px solid #333;
-    --shadow-sm: 0 4px 6px rgba(0,0,0,0.3);
-    --shadow-lg: 0 10px 30px rgba(0,0,0,0.5);
     --transition: all 0.3s ease;
 }
 
 /* ===================================
-   RESET E BASE
+   RESET & BASE
    =================================== */
 * {
     margin: 0;
@@ -57,14 +54,30 @@ body {
     overflow-x: hidden;
 }
 
-/* Scrollbar Dark */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-body); }
 ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--gold); }
 
 /* ===================================
-   LAYOUT & SIDEBAR
+   SISTEMA DE PÁGINAS (CORREÇÃO AQUI!)
+   =================================== */
+.page {
+    display: none; /* ⚠️ OBRIGATÓRIO: Esconde as páginas inativas */
+    animation: fadeIn 0.4s ease-out;
+}
+
+.page.active {
+    display: block; /* ⚠️ OBRIGATÓRIO: Mostra só a página atual */
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===================================
+   SIDEBAR (MENU LATERAL)
    =================================== */
 .sidebar {
     position: fixed;
@@ -98,7 +111,6 @@ body {
     font-family: var(--font-heading);
     color: var(--text-primary);
     font-size: 1.6rem;
-    letter-spacing: 1px;
 }
 
 .menu-item {
@@ -126,10 +138,10 @@ body {
 .main-content {
     min-height: 100vh;
     transition: var(--transition);
-    padding-bottom: 80px; /* Espaço para footer mobile se houver */
+    padding-bottom: 80px;
 }
 
-/* Ajuste Desktop */
+/* Desktop Fix */
 @media (min-width: 1025px) {
     .sidebar { transform: translateX(0) !important; }
     .main-content { margin-left: 280px !important; width: calc(100% - 280px); }
@@ -137,7 +149,7 @@ body {
 }
 
 /* ===================================
-   HEADER & TOPO
+   HEADER & NOTIFICAÇÕES (CORREÇÃO AQUI!)
    =================================== */
 .app-header {
     background-color: rgba(26, 26, 26, 0.95);
@@ -156,6 +168,13 @@ body {
     font-family: var(--font-heading);
     color: var(--gold);
     font-size: 1.8rem;
+}
+
+/* Container dos botões do header precisa ser relativo para o dropdown funcionar */
+.header-actions {
+    display: flex;
+    gap: 15px;
+    position: relative; 
 }
 
 .icon-btn {
@@ -184,6 +203,55 @@ body {
     padding: 2px 6px;
     border-radius: 10px;
 }
+
+/* --- DROPDOWN DE NOTIFICAÇÕES CORRIGIDO --- */
+.notifications-dropdown {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    width: 320px;
+    background-color: var(--bg-card);
+    border: 1px solid #444;
+    border-radius: var(--border-radius);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    z-index: 5000;
+    
+    /* Estado Oculto Padrão */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+/* Estado Visível (Adicionado via JS) */
+.notifications-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.notif-header {
+    padding: 15px;
+    border-bottom: 1px solid #444;
+    display: flex;
+    justify-content: space-between;
+    color: var(--gold);
+    font-weight: 600;
+}
+
+.notif-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    gap: 10px;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+.notif-item:hover { background-color: var(--bg-hover); }
+
+.notif-content h4 { font-size: 0.9rem; margin: 0; color: var(--text-primary); }
+.notif-content p { font-size: 0.8rem; color: var(--text-secondary); margin: 0; }
 
 /* ===================================
    CARDS & DASHBOARD
@@ -223,32 +291,23 @@ body {
     color: var(--gold);
 }
 
-.stat-info h3 {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0;
-}
-
-.stat-info p {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin: 0;
-}
+.stat-info h3 { font-size: 1.8rem; font-weight: 700; color: var(--text-primary); margin: 0; }
+.stat-info p { color: var(--text-secondary); font-size: 0.9rem; margin: 0; }
 
 /* ===================================
-   LISTAS (CLIENTES, SERVIÇOS, ETC)
+   LISTAS E GRIDS
    =================================== */
 .search-bar {
     background: var(--bg-card);
     border: 1px solid #333;
     padding: 0.8rem 1.2rem;
-    border-radius: 100px; /* Redondo */
+    border-radius: 100px;
     display: flex;
     align-items: center;
     gap: 10px;
     max-width: 400px;
     width: 100%;
+    margin-bottom: 20px;
 }
 
 .search-bar input {
@@ -279,6 +338,7 @@ body {
 .cliente-card:hover, .agendamento-item:hover {
     border-color: #555;
     background-color: var(--bg-hover);
+    transform: translateY(-3px);
 }
 
 .cliente-header { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; }
@@ -306,30 +366,39 @@ body {
 .cliente-stat span { display: block; font-size: 0.8rem; color: var(--text-muted); }
 .cliente-stat strong { color: var(--gold); font-size: 1.1rem; }
 
+/* Agendamento Item */
+.agendamento-item {
+    border-left: 4px solid var(--gold);
+    display: block;
+    margin-bottom: 15px;
+}
+.agendamento-header h4 { color: var(--gold); margin-bottom: 5px; }
+.agendamento-time { color: var(--text-secondary); font-size: 0.9rem; }
+
 /* ===================================
-   MODAL & FORMULÁRIOS (A MÁGICA)
+   MODAL & FORMULÁRIOS
    =================================== */
 .modal {
     display: none;
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.85); /* Fundo bem escuro */
+    background: rgba(0,0,0,0.85);
     z-index: 3000;
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    backdrop-filter: blur(4px); /* Efeito Blur no fundo */
+    backdrop-filter: blur(4px);
 }
 
 .modal.active { display: flex; }
 
 .modal-content {
-    background-color: #1E1E1E; /* Card Modal Dark */
+    background-color: #1E1E1E;
     border: 1px solid #444;
     border-radius: 16px;
     width: 100%;
     max-width: 650px;
-    padding: 2.5rem; /* Mais espaço interno */
+    padding: 2.5rem;
     box-shadow: 0 20px 50px rgba(0,0,0,0.7);
     max-height: 90vh;
     overflow-y: auto;
@@ -342,178 +411,120 @@ body {
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* Botão Fechar Modal */
-.modal-close {
-    position: absolute;
-    top: 20px; right: 20px;
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 1.5rem;
-    cursor: pointer;
-    transition: 0.2s;
-}
-.modal-close:hover { color: var(--error); transform: rotate(90deg); }
-
-/* Títulos do Modal */
 .modal-header h2 {
     color: var(--gold);
     font-family: var(--font-heading);
     font-size: 2.2rem;
-    margin-bottom: 2rem;
-    text-align: left;
+    margin-bottom: 1rem;
     border-bottom: 1px solid #333;
     padding-bottom: 1rem;
-    font-weight: 500;
 }
 
-/* --- INPUTS MODERNOS --- */
+/* INPUTS */
 label {
     display: block;
     margin-bottom: 8px;
     font-size: 0.85rem;
     color: var(--text-secondary);
     font-weight: 600;
-    letter-spacing: 0.5px;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 input, select, textarea {
     width: 100%;
     background-color: var(--bg-input);
-    border: 1px solid transparent; /* Sem borda padrão */
+    border: 1px solid transparent;
     color: var(--text-primary);
-    padding: 14px 16px; /* Mais "gordinho" */
+    padding: 14px 16px;
     border-radius: 8px;
     font-size: 1rem;
     font-family: var(--font-body);
     transition: all 0.2s ease;
 }
 
-/* Estado de Foco (O Brilho Dourado) */
 input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: var(--gold);
-    background-color: #222; 
+    background-color: #222;
     box-shadow: 0 0 0 3px var(--gold-glow);
 }
 
-/* Placeholders */
-::placeholder { color: #555; }
+/* GRID DO FORMULÁRIO */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.grid-cep { display: grid; grid-template-columns: 1fr 2.5fr; gap: 20px; margin-bottom: 20px; }
+.grid-numero { display: grid; grid-template-columns: 0.8fr 2fr; gap: 20px; margin-bottom: 20px; }
+.grid-cidade { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; margin-bottom: 20px; }
 
-/* Linhas divisórias */
-hr { border: 0; border-top: 1px solid #333; margin: 25px 0; }
-
-/* --- GRID SYSTEM PARA O FORMULÁRIO --- */
-.form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.grid-cep {
-    display: grid;
-    grid-template-columns: 1fr 2.5fr; /* CEP menor */
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.grid-numero {
-    display: grid;
-    grid-template-columns: 0.8fr 2fr; /* Número menor */
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.grid-cidade {
-    display: grid;
-    grid-template-columns: 3fr 1fr; /* UF menor */
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-/* Responsivo para celular */
 @media (max-width: 600px) {
-    .form-grid, .grid-cep, .grid-numero, .grid-cidade {
-        grid-template-columns: 1fr;
-    }
-    .modal-content { padding: 1.5rem; }
+    .form-grid, .grid-cep, .grid-numero, .grid-cidade { grid-template-columns: 1fr; }
 }
 
-/* --- BOTÕES NOVOS --- */
+/* BOTÕES DO MODAL */
 .modal-buttons {
     display: flex;
     justify-content: flex-end;
     gap: 15px;
-    margin-top: 40px;
-    padding-top: 20px;
+    margin-top: 30px;
     border-top: 1px solid #333;
+    padding-top: 20px;
 }
 
 .btn-primary {
     background: linear-gradient(135deg, var(--gold) 0%, #B88A00 100%);
-    color: #121212; /* Texto preto para contraste no dourado */
+    color: #121212;
     font-weight: 700;
     border: none;
-    padding: 14px 30px;
+    padding: 12px 30px;
     border-radius: 8px;
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
     transition: var(--transition);
-    font-size: 1rem;
-    letter-spacing: 0.5px;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
-    filter: brightness(1.1);
 }
 
 .btn-secondary {
     background: transparent;
     border: 1px solid #555;
     color: var(--text-primary);
-    padding: 14px 30px;
+    padding: 12px 24px;
     border-radius: 8px;
     cursor: pointer;
     transition: var(--transition);
-    font-weight: 500;
 }
 
 .btn-secondary:hover {
-    border-color: var(--text-primary);
     background: rgba(255,255,255,0.05);
+    border-color: var(--text-primary);
 }
 
-.btn-danger {
-    background: rgba(239, 83, 80, 0.1);
-    color: var(--error);
-    border: 1px solid var(--error);
-}
-.btn-danger:hover { background: var(--error); color: white; }
-
-/* ===================================
-   EXTRAS (Loading, Empty States)
-   =================================== */
-.loading-screen {
-    background-color: var(--bg-body);
-    color: var(--gold);
+/* TOASTS */
+.toast-container {
+    position: fixed; top: 20px; right: 20px;
+    z-index: 4000;
+    display: flex; flex-direction: column; gap: 10px;
 }
 
-.empty-state {
-    text-align: center;
-    padding: 3rem;
-    color: var(--text-muted);
-}
-.empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
-
-/* Notificações */
-.notifications-dropdown {
-    background-color: var(--bg-card);
-    border: 1px solid #444;
+.toast {
+    background: var(--bg-card);
     color: var(--text-primary);
+    padding: 1rem 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border-left: 4px solid var(--gold);
+    display: flex; align-items: center; gap: 10px;
+    animation: slideInRight 0.3s;
 }
-.notif-item:hover { background-color: var(--bg-hover); }
-.notif-header { border-bottom-color: #444; color: var(--gold); }
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.toast.error { border-left-color: var(--error); }
+.toast.success { border-left-color: var(--success); }
+.toast.info { border-left-color: var(--info); }
