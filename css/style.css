@@ -764,12 +764,36 @@ input[type="date"] {
 
 /* Container que segura os botões */
 .detalhes-tabs {
-    display: flex;
-    gap: 15px; /* Espaço entre os botões */
-    margin-top: 25px;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #333; /* Linha sutil embaixo */
-    padding-bottom: 15px;
+    display: flex !important;
+    gap: 15px !important;
+    margin: 20px 0 !important;
+    border-bottom: 1px solid #333 !important;
+    padding-bottom: 15px !important;
+}
+
+.detalhes-tabs button {
+    background-color: transparent !important; /* Remove o branco */
+    border: 1px solid #555 !important;        /* Borda cinza discreta */
+    color: #aaa !important;                   /* Texto cinza */
+    border-radius: 50px !important;           /* Arredondado (Pílula) */
+    padding: 8px 24px !important;             /* Tamanho */
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    outline: none !important;
+}
+
+.detalhes-tabs button.active {
+    background: linear-gradient(135deg, #D4AF37 0%, #B88A00 100%) !important; /* Dourado */
+    color: #000 !important;  /* Texto Preto */
+    border-color: #D4AF37 !important;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3) !important;
+}
+
+.detalhes-tabs button:hover {
+    border-color: #D4AF37 !important;
+    color: #fff !important;
 }
 
 /* O Botão da Aba (Estado Normal/Desativado) */
