@@ -653,7 +653,11 @@
                     
                     <div class="signature-area">
                         <label>Assinatura da Cliente:</label>
-                        <canvas id="signatureCanvas" width="500" height="150"></canvas>
+                        
+                        <div class="canvas-wrapper">
+                            <canvas id="signatureCanvas"></canvas>
+                        </div>
+                        
                         <div class="signature-actions no-print">
                             <button type="button" class="btn-link-gold" onclick="limparAssinatura()">Limpar Assinatura</button>
                         </div>

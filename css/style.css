@@ -1740,24 +1740,8 @@ input[type="date"] {
     overflow: hidden;
 }
 
-.mapa-background {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 1; /* Fica atrás */
-    display: flex; justify-content: center; align-items: center;
-    pointer-events: none; /* Deixa o clique passar pro canvas */
-}
-
 .mapa-background svg {
     width: 80%; height: 80%; opacity: 0.3; /* Rosto cinza claro */
-}
-
-#mapaFacialCanvas {
-    position: relative;
-    z-index: 10; /* Fica na frente pra desenhar */
-    width: 100%; height: 100%;
-    cursor: crosshair;
-    touch-action: none; /* IMPORTANTE: Impede o tablet de rolar a tela enquanto desenha */
 }
 
 /* Toolbar de Cores */
@@ -1781,3 +1765,107 @@ input[type="date"] {
     transition: transform 0.2s;
 }
 .color-dot.active { border-color: #000; transform: scale(1.2); }
+
+.mapa-container, .signature-area {
+    touch-action: none !important; /* Garante que a área em volta também não role */
+}
+
+/* =======================================================
+   ÁREA DE ASSINATURA E MAPA FACIAL (CORREÇÃO VISUAL)
+   ======================================================= */
+
+/* Define o tamanho e a aparência das áreas de desenho */
+#signatureCanvas, #mapaFacialCanvas {
+    width: 100%;           /* Ocupa toda a largura disponível */
+    height: 200px;         /* Altura fixa para a área de desenho */
+    background-color: #fff; /* Fundo branco para desenhar */
+    border: 2px dashed var(--gold); /* Borda tracejada dourada */
+    border-radius: 8px;    /* Cantos arredondados */
+    cursor: crosshair;     /* Cursor de mira */
+    touch-action: none;    /* Importante para tablet: impede scroll */
+    display: block;        /* Garante que seja um bloco visível */
+    margin-bottom: 10px;   /* Espaço abaixo do canvas */
+}
+
+/* Ajuste específico para a área de assinatura */
+.signature-area {
+    margin-top: 20px;
+    text-align: center; /* Centraliza o título e o botão */
+}
+
+.signature-area label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: var(--gold);
+}
+
+/* Ajuste para o container do mapa facial para garantir que o canvas fique por cima */
+.mapa-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px; /* Largura máxima do mapa */
+    height: 400px;    /* Altura do mapa */
+    margin: 0 auto 20px auto; /* Centraliza e dá margem inferior */
+    border: 2px dashed var(--gold); /* Borda do container */
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden; /* Garante que nada saia do container */
+}
+
+/* =======================================================
+   CORREÇÃO FINAL: VISUAL DA ASSINATURA E MAPA
+   ======================================================= */
+
+/* 1. O ENVOLTÓRIO (A CAIXA EXTERNA) */
+/* Ele define o tamanho, a borda dourada e o fundo branco */
+.canvas-wrapper, .mapa-container {
+    position: relative;
+    width: 100%;
+    max-width: 600px; /* Largura máxima confortável */
+    height: 300px;    /* Aumentei um pouco para ficar melhor de desenhar */
+    margin: 15px auto;
+    background-color: #fff;
+    border: 2px dashed var(--gold); /* A única borda deve ser essa! */
+    border-radius: 8px;
+    overflow: hidden; /* Corta qualquer coisa que vaze */
+    padding: 0;       /* IMPORTANTE: Sem padding para o canvas encostar na borda */
+    box-sizing: border-box; /* Garante que a borda conte no tamanho total */
+    touch-action: none; /* Trava o scroll do tablet */
+}
+
+/* 2. O CANVAS (A FOLHA DE DESENHO) */
+/* Ele deve ser transparente, sem borda e preencher tudo */
+canvas {
+    display: block; /* Remove espaços estranhos de elementos inline */
+    width: 100% !important;  /* Força ocupar 100% da largura do pai */
+    height: 100% !important; /* Força ocupar 100% da altura do pai */
+    border: none !important; /* REMOVE A BORDA DUPLA */
+    background: transparent; /* Fundo transparente (o branco vem do wrapper) */
+    cursor: crosshair;
+    touch-action: none;
+    outline: none; /* Remove contorno azul ao clicar */
+}
+
+/* Ajuste do fundo do rosto para ficar centralizado */
+.mapa-background {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1;
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    pointer-events: none;
+}
+
+.mapa-background svg {
+    max-width: 80%; 
+    max-height: 90%; 
+    opacity: 0.3;
+}
+
+/* Garante que o canvas do mapa fique por cima do rosto */
+#mapaFacialCanvas {
+    position: relative; 
+    z-index: 10;
+}
