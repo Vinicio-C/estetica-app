@@ -1,110 +1,166 @@
 // ========================================
 // AGENDA
 // ========================================
+
+let displayDate = new Date();
+
 async function carregarAgenda() {
     await carregarDadosIniciais();
     
-    const view = appState.currentAgendaView;
-    const date = appState.currentAgendaDate;
-    let agendamentosFiltrados = [];
+    // 1. Renderizar o Calendário Visual
+    renderModernCalendar();
 
-    // --- LÓGICA DE FILTRO (MANTIDA) ---
-    if (view === 'dia') {
-        const inicio = new Date(date); inicio.setHours(0,0,0,0);
-        const fim = new Date(date); fim.setHours(23,59,59,999);
-        agendamentosFiltrados = appState.agendamentos.filter(a => {
-            const d = new Date(a.data); return d >= inicio && d <= fim;
-        });
-    } else if (view === 'semana') {
-        const inicio = new Date(date);
-        const dia = inicio.getDay(); // 0 (Domingo) a 6 (Sábado)
-        const diff = inicio.getDate() - dia; // Ajusta para o Domingo anterior
-        inicio.setDate(diff); inicio.setHours(0,0,0,0);
-        
-        const fim = new Date(inicio);
-        fim.setDate(fim.getDate() + 6); fim.setHours(23,59,59,999);
-        
-        agendamentosFiltrados = appState.agendamentos.filter(a => {
-            const d = new Date(a.data); return d >= inicio && d <= fim;
-        });
-    } else if (view === 'mes') {
-        const inicio = new Date(date.getFullYear(), date.getMonth(), 1);
-        const fim = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
-        agendamentosFiltrados = appState.agendamentos.filter(a => {
-            const d = new Date(a.data); return d >= inicio && d <= fim;
-        });
-    }
+    // 2. Renderizar a Lista de Agendamentos do Dia Selecionado
+    const selectedDate = appState.currentAgendaDate;
+    
+    // Filtra apenas para o dia selecionado
+    const inicio = new Date(selectedDate); inicio.setHours(0,0,0,0);
+    const fim = new Date(selectedDate); fim.setHours(23,59,59,999);
+    
+    const agendamentosDoDia = appState.agendamentos.filter(a => {
+        const d = new Date(a.data);
+        return d >= inicio && d <= fim;
+    });
 
-    agendamentosFiltrados.sort((a, b) => new Date(a.data) - new Date(b.data));
+    agendamentosDoDia.sort((a, b) => new Date(a.data) - new Date(b.data));
 
-    // Totais
-    const servicosDia = agendamentosFiltrados.filter(a => a.tipo === 'servico').length;
-    const faturamentoDia = agendamentosFiltrados
-        .filter(a => a.tipo === 'servico' && a.status !== 'cancelado')
-        .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
+    // Atualiza texto "Selecionado: 02/02/2026"
+    document.getElementById('dataSelecionadaTexto').textContent = formatDate(selectedDate);
 
-    // Atualiza barra de status se os elementos existirem
-    const elTotal = document.getElementById('agendaTotalServicos');
-    const elValor = document.getElementById('agendaTotalValor');
-    if (elTotal) elTotal.textContent = `${servicosDia} serviços`;
-    if (elValor) elValor.textContent = formatCurrency(faturamentoDia);
-
-    // Renderizar
+    // Renderiza a Lista (Cards)
     const container = document.getElementById('agendaContainer');
     if (!container) return;
     
-    if (agendamentosFiltrados.length === 0) {
+    if (agendamentosDoDia.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <i class="far fa-calendar" style="font-size:3rem; color:#333; margin-bottom:15px;"></i>
-                <p>Agenda livre para este período</p>
+                <p>Nenhum agendamento para este dia</p>
+                <button class="btn-link-gold" onclick="abrirModalAgendamento()">+ Adicionar</button>
             </div>`;
         return;
     }
 
-    container.innerHTML = agendamentosFiltrados.map(a => {
+    container.innerHTML = agendamentosDoDia.map(a => {
         let statusClass = '';
         if (a.status === 'concluido') statusClass = 'status-concluido';
         if (a.status === 'cancelado') statusClass = 'status-cancelado';
 
         return `
         <div class="agenda-card ${statusClass}" onclick="editarAgendamento('${a.id}')">
-            
             <div class="time-column">
                 <span class="time-hour">${formatTime(a.data)}</span>
                 <i class="fas fa-clock time-icon"></i>
             </div>
-
             <div class="info-column">
                 <div class="service-title">
                     ${a.tipo === 'servico' ? a.servico_nome : a.evento_nome}
                 </div>
                 <div class="client-name">
-                    ${a.tipo === 'servico' ? `<i class="fas fa-user"></i> ${a.cliente_nome}` : `<i class="fas fa-info-circle"></i> ${a.observacoes || 'Evento Pessoal'}`}
+                    ${a.tipo === 'servico' ? `<i class="fas fa-user"></i> ${a.cliente_nome}` : `<i class="fas fa-info-circle"></i> ${a.observacoes || 'Evento'}`}
                 </div>
                 ${a.tipo === 'servico' ? 
                   `<span class="status-badge ${a.status_pagamento}" style="margin-top:5px; display:inline-block; font-size:0.7rem;">${a.status_pagamento}</span>` 
                   : ''}
             </div>
-
             <div class="action-column">
                 ${a.tipo === 'servico' ? `<span class="price-tag">${formatCurrency(a.valor)}</span>` : ''}
-                
                 <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
-                    <button class="icon-btn-small delete" onclick="excluirAgendamento(event, '${a.id}')" title="Excluir">
-                        <i class="fas fa-trash"></i>
-                    </button>
-
-                    ${a.status === 'agendado' ? `
-                        <button class="icon-btn-small success" onclick="concluirAgendamento(event, '${a.id}')" title="Concluir">
-                            <i class="fas fa-check"></i>
-                        </button>
-                    ` : ''}
+                    <button class="icon-btn-small delete" onclick="excluirAgendamento(event, '${a.id}')"><i class="fas fa-trash"></i></button>
+                    ${a.status === 'agendado' ? `<button class="icon-btn-small success" onclick="concluirAgendamento(event, '${a.id}')"><i class="fas fa-check"></i></button>` : ''}
                 </div>
             </div>
         </div>
         `;
     }).join('');
+}
+
+// --- LÓGICA DO CALENDÁRIO VISUAL (COM CORES INTELIGENTES) ---
+function renderModernCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const labelMonth = document.getElementById('calendarMonthYear');
+    if (!grid) return;
+
+    grid.innerHTML = ''; // Limpa
+
+    // Atualiza Título
+    const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    labelMonth.textContent = `${monthNames[displayDate.getMonth()]} ${displayDate.getFullYear()}`;
+
+    // Lógica de Datas
+    const year = displayDate.getFullYear();
+    const month = displayDate.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Dias Vazios
+    for (let i = 0; i < firstDayOfMonth; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.classList.add('cal-day', 'empty');
+        grid.appendChild(emptyCell);
+    }
+
+    // Dias Reais
+    const hoje = new Date();
+    const selecionado = appState.currentAgendaDate;
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayCell = document.createElement('div');
+        dayCell.classList.add('cal-day');
+        dayCell.textContent = day;
+
+        // Verifica HOJE
+        if (day === hoje.getDate() && month === hoje.getMonth() && year === hoje.getFullYear()) {
+            dayCell.classList.add('today');
+        }
+
+        // Verifica SELECIONADO
+        if (day === selecionado.getDate() && month === selecionado.getMonth() && year === selecionado.getFullYear()) {
+            dayCell.classList.add('selected');
+        }
+
+        // --- LÓGICA DAS CORES (O PULO DO GATO) ---
+        // 1. Pega todos os agendamentos deste dia específico
+        const agendamentosDoDia = appState.agendamentos.filter(a => {
+            const d = new Date(a.data);
+            return d.getDate() === day && 
+                   d.getMonth() === month && 
+                   d.getFullYear() === year && 
+                   a.status !== 'cancelado';
+        });
+
+        if (agendamentosDoDia.length > 0) {
+            const dotDiv = document.createElement('div');
+            dotDiv.className = 'day-dots';
+            
+            // Define a classe da cor baseada na prioridade
+            let dotClass = 'has-service'; // Padrão (Pendente)
+
+            // Regra 1: Se ALGUÉM estiver devendo, fica VERMELHO (Alerta)
+            const temDebito = agendamentosDoDia.some(a => a.status_pagamento === 'devendo');
+            
+            // Regra 2: Se TODOS estiverem pagos, fica VERDE (Sucesso)
+            const tudoPago = agendamentosDoDia.every(a => a.status_pagamento === 'pago');
+
+            if (temDebito) {
+                dotClass = 'has-debt';
+            } else if (tudoPago) {
+                dotClass = 'is-paid';
+            }
+
+            dotDiv.innerHTML = `<div class="dot ${dotClass}"></div>`;
+            dayCell.appendChild(dotDiv);
+        }
+
+        // Click
+        dayCell.onclick = () => {
+            appState.currentAgendaDate = new Date(year, month, day);
+            localStorage.setItem('lastAgendaDate', appState.currentAgendaDate.toISOString());
+            carregarAgenda(); 
+        };
+
+        grid.appendChild(dayCell);
+    }
 }
 
 function setAgendaView(view) {
@@ -141,9 +197,14 @@ function mudarData(dias) {
     carregarAgenda();
 }
 
+function mudarMes(delta) {
+    displayDate.setMonth(displayDate.getMonth() + delta);
+    renderModernCalendar(); // Só redesenha o grid, não muda a seleção
+}
+
 function hoje() {
     appState.currentAgendaDate = new Date();
-    document.getElementById('agendaDate').value = formatDateInput(appState.currentAgendaDate);
+    displayDate = new Date(); // Sincroniza a visão também
     carregarAgenda();
 }
 

@@ -20,8 +20,19 @@ const appState = {
 // ========================================
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🌟 Inicializando Estética Premium...');
+
+    // --- 🚨 TRAVA DE SEGURANÇA (WATCHDOG) ---
+    // Se o banco travar ou a internet cair, isso garante que o app abre em 3 segundos
+    setTimeout(() => {
+        const loader = document.getElementById('loadingScreen');
+        if (loader && !loader.classList.contains('hidden')) {
+            console.warn('⚠️ Watchdog: O banco demorou, forçando abertura do app.');
+            loader.classList.add('hidden');
+        }
+    }, 3000); // 3000ms = 3 segundos
     
     // Registrar Service Worker para PWA
+    /* <-- COMENTE AQUI (Abra o comentário)
     if ('serviceWorker' in navigator) {
         try {
             await navigator.serviceWorker.register('/service-worker.js');
@@ -30,28 +41,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('⚠️ Service Worker não registrado:', err);
         }
     }
+    */
     
-    // Configurar event listeners
-    setupEventListeners();
-    
-    // Carregar dados iniciais
-    await carregarDadosIniciais();
-    
-    // Inicializar página
-    carregarDashboard();
-    
-    // Ocultar loading screen
-    setTimeout(() => {
-        const loader = document.getElementById('loadingScreen');
-        if (loader) {
-            loader.classList.add('hidden');
+    try {
+
+        const lastDate = localStorage.getItem('lastAgendaDate');
+        if (lastDate) {
+            appState.currentAgendaDate = new Date(lastDate);
+            // Atualiza também a displayDate do calendário para o mês certo
+            if (typeof displayDate !== 'undefined') {
+                displayDate = new Date(lastDate);
+            }
         }
-    }, 1500); // Aumentei para 1.5s para dar tempo de ver a logo bonita
+        // Configurar event listeners (com proteção)
+        setupEventListeners();
+        
+        // Carregar dados iniciais
+        await carregarDadosIniciais();
+        
+        // Inicializar página
+        if (typeof carregarDashboard === 'function') {
+            carregarDashboard();
+        }
+
+    } catch (error) {
+        console.error("Erro fatal na inicialização:", error);
+    } finally {
+        // --- O SEGREDO: Ocultar loading screen SEMPRE, mesmo com erro ---
+        setTimeout(() => {
+            const loader = document.getElementById('loadingScreen');
+            if (loader) loader.classList.add('hidden');
+        }, 1000);
+    }
 });
 
-// ========================================
-// Event Listeners
-// ========================================
 function setupEventListeners() {
     // Menu sidebar
     document.querySelectorAll('.menu-item').forEach(item => {
@@ -62,73 +85,62 @@ function setupEventListeners() {
     });
     
     // Menu toggle (mobile)
-    document.getElementById('menuToggle').addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('active');
-        document.getElementById('overlay').classList.toggle('active');
-    });
+    const menuToggle = document.getElementById('menuToggle');
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
+        });
+    }
     
     // Overlay (fechar sidebar mobile)
-    document.getElementById('overlay').addEventListener('click', () => {
-        document.getElementById('sidebar').classList.remove('active');
-        document.getElementById('overlay').classList.remove('active');
-    });
+    const overlay = document.getElementById('overlay');
+    if (overlay) {
+        overlay.addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+            overlay.classList.remove('active');
+        });
+    }
     
-    // Forms
-    document.getElementById('formCliente').addEventListener('submit', salvarCliente);
-    document.getElementById('formAgendamento').addEventListener('submit', salvarAgendamento);
-    document.getElementById('formServico').addEventListener('submit', salvarServico);
-    document.getElementById('formEstoque').addEventListener('submit', salvarEstoque);
+    // Forms - Só adiciona se o form existir
+    const fCliente = document.getElementById('formCliente');
+    if (fCliente) fCliente.addEventListener('submit', salvarCliente);
+
+    const fAgenda = document.getElementById('formAgendamento');
+    if (fAgenda) fAgenda.addEventListener('submit', salvarAgendamento);
+
+    const fServico = document.getElementById('formServico');
+    if (fServico) fServico.addEventListener('submit', salvarServico);
+
+    const fEstoque = document.getElementById('formEstoque');
+    if (fEstoque) fEstoque.addEventListener('submit', salvarEstoque);
     
     // Search bars
-    document.getElementById('searchClientes').addEventListener('input', (e) => {
-        filtrarClientes(e.target.value);
-    });
-    
-    document.getElementById('searchServicos').addEventListener('input', (e) => {
-        filtrarServicos(e.target.value);
-    });
-    
-    document.getElementById('searchEstoque').addEventListener('input', (e) => {
-        filtrarEstoque(e.target.value);
-    });
+    const sCliente = document.getElementById('searchClientes');
+    if (sCliente) sCliente.addEventListener('input', (e) => filtrarClientes(e.target.value));
 
-    // Botão de Notificações (Sininho)
-    document.getElementById('notificationsBtn').addEventListener('click', async () => {
-    // 1. Tentar pedir permissão
-    const permission = await Notification.requestPermission();
-    
-    if (permission === 'granted') {
-        // 2. Se aceitou, envia notificação de teste
-        showToast('Notificações ativadas com sucesso!', 'success');
-        
-        if ('serviceWorker' in navigator) {
-            const reg = await navigator.serviceWorker.ready;
-            reg.showNotification('Estética Premium', {
-                body: 'Você receberá avisos sobre agendamentos e estoque!',
-                icon: 'icons/icon-192.png',
-                vibrate: [200, 100, 200]
-            });
-        }
-    } else {
-        // 3. Se negou
-        showToast('Para receber alertas, ative as notificações nas Configurações do iPhone.', 'warning');
+    const sServico = document.getElementById('searchServicos');
+    if (sServico) sServico.addEventListener('input', (e) => filtrarServicos(e.target.value));
+
+    const sEstoque = document.getElementById('searchEstoque');
+    if (sEstoque) sEstoque.addEventListener('input', (e) => filtrarEstoque(e.target.value));
+
+    // Botão de Notificações
+    const btnNotif = document.getElementById('notificationsBtn');
+    if (btnNotif) {
+        btnNotif.addEventListener('click', async () => {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                showToast('Notificações ativadas!', 'success');
+            } else {
+                showToast('Habilite notificações no seu celular.', 'warning');
+            }
+        });
     }
-});
     
-    // Agenda date picker
-    const agendaDateInput = document.getElementById('agendaDate');
-    agendaDateInput.value = formatDateInput(appState.currentAgendaDate);
-    agendaDateInput.addEventListener('change', (e) => {
-        appState.currentAgendaDate = new Date(e.target.value + 'T00:00:00');
-        carregarAgenda();
-    });
 }
 
-// ========================================
-// Navegação
-// ========================================
 function navigateTo(page) {
-    // Atualizar estado
     appState.currentPage = page;
     
     // Atualizar menu
@@ -143,7 +155,9 @@ function navigateTo(page) {
     document.querySelectorAll('.page').forEach(p => {
         p.classList.remove('active');
     });
-    document.getElementById(page + 'Page').classList.add('active');
+    
+    const targetPage = document.getElementById(page + 'Page');
+    if (targetPage) targetPage.classList.add('active');
     
     // Atualizar título
     const titles = {
@@ -154,41 +168,27 @@ function navigateTo(page) {
         estoque: 'Estoque',
         relatorios: 'Relatórios'
     };
-    document.getElementById('pageTitle').textContent = titles[page];
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) pageTitle.textContent = titles[page];
     
     // Carregar dados da página
     switch(page) {
-        case 'dashboard':
-            carregarDashboard();
-            break;
-        case 'clientes':
-            carregarClientes();
-            break;
-        case 'agenda':
-            carregarAgenda();
-            break;
-        case 'servicos':
-            carregarServicos();
-            break;
-        case 'estoque':
-            carregarEstoque();
-            break;
-        case 'relatorios':
-            carregarRelatorios();
-            break;
+        case 'dashboard': if(typeof carregarDashboard === 'function') carregarDashboard(); break;
+        case 'clientes': if(typeof carregarClientes === 'function') carregarClientes(); break;
+        case 'agenda': if(typeof carregarAgenda === 'function') carregarAgenda(); break;
+        case 'servicos': if(typeof carregarServicos === 'function') carregarServicos(); break;
+        case 'estoque': if(typeof carregarEstoque === 'function') carregarEstoque(); break;
+        case 'relatorios': if(typeof carregarRelatorios === 'function') carregarRelatorios(); break;
     }
     
     // Fechar sidebar mobile
-    document.getElementById('sidebar').classList.remove('active');
-    document.getElementById('overlay').classList.remove('active');
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
 }
 
-// ======================================== 
-// Carregar Dados Iniciais
-// ========================================
 async function carregarDadosIniciais() {
     try {
-        // Carregar todas as tabelas
         const [clientes, servicos, estoque, agendamentos, pagamentos] = await Promise.all([
             fetchAPI('tables/clientes?limit=1000'),
             fetchAPI('tables/servicos?limit=1000'),
@@ -203,23 +203,12 @@ async function carregarDadosIniciais() {
         appState.agendamentos = agendamentos.data || [];
         appState.pagamentos = pagamentos.data || [];
         
-        console.log('✅ Dados carregados:', {
-            clientes: appState.clientes.length,
-            servicos: appState.servicos.length,
-            estoque: appState.estoque.length,
-            agendamentos: appState.agendamentos.length,
-            pagamentos: appState.pagamentos.length
-        });
     } catch (error) {
-        console.error('Erro ao carregar dados iniciais:', error);
+        console.error('Erro ao carregar dados:', error);
     }
 }
 
-// ========================================
-// DASHBOARD (Versão Final: Notificações + Listas Completas)
-// ========================================
 async function carregarDashboard() {
-    // 1. Recarregar dados frescos
     await carregarDadosIniciais();
     
     const hoje = new Date();
@@ -227,132 +216,143 @@ async function carregarDashboard() {
     const amanha = new Date(hoje);
     amanha.setDate(amanha.getDate() + 1);
     
-    // --- CÁLCULOS DOS CARDS SUPERIORES ---
+    // --- CÁLCULOS DOS CARDS ---
+    
+    // 1. Agendamentos HOJE (Só conta dia 02/02 se for hoje)
     const agendamentosHoje = appState.agendamentos.filter(a => {
-        const dataAgendamento = new Date(a.data);
-        return dataAgendamento >= hoje && dataAgendamento < amanha && a.status !== 'cancelado';
+        const d = new Date(a.data);
+        return d >= hoje && d < amanha && a.status !== 'cancelado';
     });
     
+    // 2. Faturamento (Só o que já está PAGO hoje)
     const faturamentoHoje = agendamentosHoje
         .filter(a => a.status_pagamento === 'pago')
         .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
     
+    // 3. Total Clientes (Contagem simples)
+    const totalClientes = appState.clientes.length;
+
+    // 4. Débitos / A Receber (MUDEI AQUI: Pega tudo que é 'devendo', futuro ou passado)
     const debitosTotal = appState.agendamentos
-        .filter(a => a.status_pagamento === 'devendo') // Conta tudo que deve, concluído ou não (opcional: adicionar && a.status === 'concluido')
+        .filter(a => a.status_pagamento === 'devendo' && a.status !== 'cancelado')
         .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
     
-    // Atualizar HTML dos Cards
-    document.getElementById('statAgendamentosHoje').textContent = agendamentosHoje.length;
-    document.getElementById('statFaturamentoHoje').textContent = formatCurrency(faturamentoHoje);
-    document.getElementById('statTotalClientes').textContent = appState.clientes.length;
-    document.getElementById('statDebitosTotal').textContent = formatCurrency(debitosTotal);
-
-    // --- LÓGICA DO BOTÃO DE NOTIFICAÇÃO (MANTIDA) ---
-    // (A lógica do botão já está no HTML/CSS que fizemos antes, ou na função setupEventListeners)
-    // Se precisar reinjetar o botão aqui, avise. Por enquanto, focamos nas listas abaixo.
-
-    // --- 1. LISTA: PRÓXIMOS AGENDAMENTOS ---
-    const proximosAgendamentos = appState.agendamentos
-        .filter(a => new Date(a.data) >= hoje && a.status === 'agendado')
-        .sort((a, b) => new Date(a.data) - new Date(b.data))
-        .slice(0, 5);
+    // --- ATUALIZAR HTML ---
     
-    const proximosContainer = document.getElementById('proximosAgendamentos');
-    if (proximosContainer) {
-        if (proximosAgendamentos.length === 0) {
-            proximosContainer.innerHTML = `<div class="empty-state"><i class="fas fa-calendar-check"></i><p>Agenda livre por enquanto</p></div>`;
-        } else {
-            proximosContainer.innerHTML = proximosAgendamentos.map(a => `
-                <div class="agendamento-item">
-                    <div class="agendamento-header">
-                        <h4>${a.servico_nome || a.evento_nome}</h4>
-                        <div class="agendamento-time"><i class="fas fa-clock"></i> ${formatDateTime(a.data)}</div>
-                    </div>
-                    <div class="agendamento-info">
-                        ${a.cliente_nome ? `<i class="fas fa-user"></i> ${a.cliente_nome}` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
-    }
+    // Verifica se os elementos existem antes de tentar escrever (Evita erros)
+    const elAgend = document.getElementById('statAgendamentosHoje');
+    if (elAgend) elAgend.textContent = agendamentosHoje.length;
 
-    // --- 2. LISTA: ALERTAS DE ESTOQUE (CORREÇÃO AQUI) ---
-    const alertasEstoque = appState.estoque.filter(p => p.quantidade <= p.quantidade_minima);
-    const alertasContainer = document.getElementById('alertasEstoque');
+    const elFat = document.getElementById('statFaturamentoHoje');
+    if (elFat) elFat.textContent = formatCurrency(faturamentoHoje);
+
+    const elCli = document.getElementById('statTotalClientes');
+    if (elCli) elCli.textContent = totalClientes; // Aqui vai aparecer o "1"
+
+    const elDeb = document.getElementById('statDebitosTotal');
+    if (elDeb) elDeb.textContent = formatCurrency(debitosTotal); // Aqui vai somar o valor pendente
+
+    // Renderiza as listas
+    renderizarListasDashboard();
     
-    if (alertasContainer) {
-        if (alertasEstoque.length === 0) {
-            alertasContainer.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-check-circle" style="color: var(--success)"></i>
-                    <p>Estoque em dia</p>
+    // Atualiza notificações
+    if (typeof atualizarNotificacoes === 'function') atualizarNotificacoes();
+}
+function renderizarListasDashboard() {
+    console.log('🔄 Iniciando renderização das listas do Dashboard...');
+    
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    // 1. PRÓXIMOS AGENDAMENTOS
+    const listaAgenda = document.getElementById('dashAgendamentosList');
+    if (!listaAgenda) {
+        console.error('❌ ERRO: Não achei a div "dashAgendamentosList" no HTML!');
+    } else {
+        console.log('✅ Achei a lista de Agenda. Desenhando...');
+        
+        // Filtra agendamentos futuros
+        const proximos = appState.agendamentos
+            .filter(a => {
+                const dataAgend = new Date(a.data);
+                return dataAgend >= hoje && a.status !== 'cancelado';
+            })
+            .sort((a, b) => new Date(a.data) - new Date(b.data))
+            .slice(0, 5);
+
+        if (proximos.length === 0) {
+            listaAgenda.innerHTML = `
+                <div class="empty-state-small" style="padding: 20px; text-align: center;">
+                    <i class="far fa-calendar-check" style="font-size: 2rem; color: #333; margin-bottom: 10px;"></i>
+                    <p style="color: #888;">Agenda livre por enquanto!</p>
                 </div>`;
         } else {
-            alertasContainer.innerHTML = alertasEstoque.map(p => `
-                <div class="agendamento-item" style="border-left-color: ${p.quantidade === 0 ? 'var(--error)' : 'var(--warning)'};">
-                    <div class="agendamento-header">
-                        <h4>${p.nome}</h4>
-                        <span style="color: ${p.quantidade === 0 ? 'var(--error)' : 'var(--warning)'}; font-weight: 700;">
-                            ${p.quantidade} un.
-                        </span>
+            listaAgenda.innerHTML = proximos.map(a => `
+                <div class="dash-list-item" onclick="abrirModalAgendamento('${a.id}')">
+                    <div class="dash-item-time">
+                        <span class="day">${new Date(a.data).getDate()}</span>
+                        <span class="month">${new Date(a.data).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</span>
                     </div>
-                    <div class="agendamento-info">
-                        Mínimo: ${p.quantidade_minima} un.
+                    <div class="dash-item-info">
+                        <h4>${a.tipo === 'servico' ? a.cliente_nome : a.evento_nome}</h4>
+                        <p>${a.tipo === 'servico' ? a.servico_nome : 'Evento'} • ${formatTime(a.data)}</p>
+                    </div>
+                    <div class="dash-item-action">
+                        <span class="status-badge ${a.status_pagamento || 'pendente'}">${a.status_pagamento || 'Agendado'}</span>
                     </div>
                 </div>
             `).join('');
         }
     }
 
-    // --- 3. LISTA: CLIENTES COM DÉBITOS (CORREÇÃO AQUI) ---
-    // Agrupar débitos por cliente
-    const debitosMap = {};
-    appState.agendamentos.forEach(a => {
-        if (a.status_pagamento === 'devendo' && a.status === 'concluido') {
-            if (!debitosMap[a.cliente_id]) {
-                debitosMap[a.cliente_id] = { 
-                    nome: a.cliente_nome, 
-                    total: 0, 
-                    qtd: 0,
-                    id: a.cliente_id 
-                };
-            }
-            debitosMap[a.cliente_id].total += Number(a.valor);
-            debitosMap[a.cliente_id].qtd++;
-        }
-    });
+    // 2. ALERTAS DE ESTOQUE
+    const listaEstoque = document.getElementById('dashEstoqueList');
+    if (!listaEstoque) {
+        console.error('❌ ERRO: Não achei a div "dashEstoqueList" no HTML!');
+    } else {
+        // Lógica de Estoque
+        const criticos = appState.estoque
+            .filter(item => item.quantidade <= item.quantidade_minima)
+            .slice(0, 5);
 
-    const debitosArray = Object.values(debitosMap);
-    const debitosContainer = document.getElementById('clientesDebitos');
-
-    if (debitosContainer) {
-        if (debitosArray.length === 0) {
-            debitosContainer.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-check-circle" style="color: var(--success)"></i>
-                    <p>Nenhum débito pendente</p>
-                </div>`;
+        if (criticos.length === 0) {
+            listaEstoque.innerHTML = '<div class="empty-state-small success" style="padding:15px; text-align:center; color:#888;">Estoque abastecido.</div>';
         } else {
-            debitosContainer.innerHTML = debitosArray.map(d => `
-                <div class="agendamento-item" style="border-left-color: var(--error);" onclick="abrirDetalhesCliente('${d.id}')">
-                    <div class="agendamento-header">
-                        <h4>${d.nome}</h4>
-                        <span style="color: var(--error); font-weight: 700; font-size: 1.1rem;">
-                            ${formatCurrency(d.total)}
-                        </span>
-                    </div>
-                    <div class="agendamento-info">
-                        ${d.qtd} serviço(s) pendente(s)
-                        <i class="fas fa-chevron-right" style="float: right; margin-top: 3px;"></i>
+            listaEstoque.innerHTML = criticos.map(item => `
+                <div class="dash-list-item warning" onclick="navigateTo('estoque')">
+                    <div class="dash-item-icon"><i class="fas fa-box-open"></i></div>
+                    <div class="dash-item-info">
+                        <h4>${item.nome}</h4>
+                        <p>Restam: <strong>${item.quantidade}</strong></p>
                     </div>
                 </div>
             `).join('');
         }
     }
-    
-    // Atualizar também o dropdown de notificações se ele existir
-    if (typeof atualizarNotificacoes === 'function') {
-        atualizarNotificacoes();
+
+    // 3. CONTAS A RECEBER
+    const listaContas = document.getElementById('dashContasReceberList');
+    if (!listaContas) {
+        console.error('❌ ERRO: Não achei a div "dashContasReceberList" no HTML!');
+    } else {
+        const devedores = appState.agendamentos
+            .filter(a => a.status === 'concluido' && a.status_pagamento === 'devendo')
+            .slice(0, 5);
+
+        if (devedores.length === 0) {
+            listaContas.innerHTML = '<div class="empty-state-small success" style="padding:15px; text-align:center; color:#888;">Nenhum débito.</div>';
+        } else {
+            listaContas.innerHTML = devedores.map(a => `
+                <div class="dash-list-item danger" onclick="abrirDetalhesCliente('${a.cliente_id}')">
+                    <div class="dash-item-icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="dash-item-info">
+                        <h4>${a.cliente_nome}</h4>
+                        <p>${formatDate(a.data)}</p>
+                    </div>
+                    <div class="dash-item-value">${formatCurrency(a.valor)}</div>
+                </div>
+            `).join('');
+        }
     }
 }
 
@@ -551,7 +551,10 @@ async function salvarCliente(e) {
     }
 }
 
-// Substitua a função abrirDetalhesCliente por esta:
+// ========================================
+// FUNÇÃO CORRIGIDA: DETALHES DO CLIENTE (Histórico + Agendados)
+// ========================================
+
 async function abrirDetalhesCliente(clienteId) {
     const cliente = appState.clientes.find(c => c.id === clienteId);
     if (!cliente) return;
@@ -560,12 +563,10 @@ async function abrirDetalhesCliente(clienteId) {
     
     // --- 1. Preencher Textos Básicos ---
     document.getElementById('detalhesClienteNome').textContent = cliente.nome;
-    
-    // Preenche e trata valores vazios
     document.getElementById('detalhesClienteTelefone').textContent = cliente.telefone || '-';
     document.getElementById('detalhesClienteEmail').textContent = cliente.email || 'Não informado';
     
-    // Endereço: Mostra ou esconde a caixa inteira se não tiver endereço
+    // Endereço
     const boxEndereco = document.getElementById('boxEndereco');
     const spanEndereco = document.getElementById('detalhesClienteEndereco');
     
@@ -576,33 +577,67 @@ async function abrirDetalhesCliente(clienteId) {
         boxEndereco.style.display = 'none';
     }
 
-    // --- 2. Cálculos ---
-    const servicosCliente = appState.agendamentos.filter(a => a.cliente_id === cliente.id && a.status === 'concluido');
-    const totalServicos = servicosCliente.length;
-    const valorTotal = servicosCliente.reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
+    // --- 2. Separação dos Dados (Passado vs Futuro) ---
+    // Histórico: Tudo que está "concluido" ou "cancelado"
+    const historicoList = appState.agendamentos
+        .filter(a => a.cliente_id === cliente.id && (a.status === 'concluido' || a.status === 'cancelado'))
+        .sort((a, b) => new Date(b.data) - new Date(a.data)); // Do mais recente pro antigo
+
+    // Futuros: Tudo que está "agendado"
+    const agendadosList = appState.agendamentos
+        .filter(a => a.cliente_id === cliente.id && a.status === 'agendado')
+        .sort((a, b) => new Date(a.data) - new Date(b.data)); // Do mais próximo pro distante
+    
+    // --- 3. Cálculos Financeiros ---
+    const totalServicos = historicoList.filter(a => a.status === 'concluido').length;
+    const valorTotal = historicoList
+        .filter(a => a.status === 'concluido')
+        .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
+    
+    // Soma débitos de TUDO (passado concluído ou futuro que já marcou como devendo)
     const debitos = appState.agendamentos
-        .filter(a => a.cliente_id === cliente.id && a.status_pagamento === 'devendo' && a.status === 'concluido')
+        .filter(a => a.cliente_id === cliente.id && a.status_pagamento === 'devendo' && a.status !== 'cancelado')
         .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
     
     document.getElementById('detalhesTotalServicos').textContent = totalServicos;
     document.getElementById('detalhesValorTotal').textContent = formatCurrency(valorTotal);
     document.getElementById('detalhesDebitos').textContent = formatCurrency(debitos);
     
-    // --- 3. Listas (Histórico) ---
-    const historico = servicosCliente.sort((a, b) => new Date(b.data) - new Date(a.data));
+    // --- 4. Renderizar Lista: HISTÓRICO (Aba 1) ---
     const containerHist = document.getElementById('detalhesHistorico');
-    
-    if (historico.length === 0) {
-        containerHist.innerHTML = '<div class="empty-state" style="padding:10px"><p>Sem histórico</p></div>';
+    if (historicoList.length === 0) {
+        containerHist.innerHTML = '<div class="empty-state" style="padding:10px"><p>Sem histórico anterior</p></div>';
     } else {
-        containerHist.innerHTML = historico.map(a => `
-            <div class="agendamento-item" style="margin-bottom: 10px; padding: 12px;">
+        containerHist.innerHTML = historicoList.map(a => `
+            <div class="agendamento-item" style="margin-bottom: 10px; padding: 12px; opacity: 0.8;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                    <strong style="color:#fff">${a.servico_nome}</strong>
+                    <strong style="color:#fff">${a.servico_nome || 'Evento'}</strong>
                     <span style="color:var(--gold)">${formatCurrency(a.valor)}</span>
                 </div>
                 <div style="font-size:0.8rem; color:#888;">
-                    ${formatDate(a.data)} • <span class="${a.status_pagamento}">${a.status_pagamento}</span>
+                    ${formatDate(a.data)} • <span class="status-badge ${a.status}">${a.status}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // --- 5. Renderizar Lista: AGENDADOS (Aba 2 - QUE FALTAVA) ---
+    const containerFuturo = document.getElementById('detalhesAgendados'); // Esse ID deve existir no seu HTML
+    
+    if (agendadosList.length === 0) {
+        containerFuturo.innerHTML = '<div class="empty-state" style="padding:10px"><p>Nenhum agendamento futuro</p></div>';
+    } else {
+        containerFuturo.innerHTML = agendadosList.map(a => `
+            <div class="agendamento-item" style="margin-bottom: 10px; padding: 12px; border-left: 3px solid var(--gold); background: rgba(212, 175, 55, 0.05);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <strong style="color:#fff">${a.servico_nome || 'Evento'}</strong>
+                    <span style="color:var(--gold)">${formatDate(a.data)}</span>
+                </div>
+                <div style="font-size:0.8rem; color:#ccc; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Às ${formatTime(a.data)} • ${a.status_pagamento || 'Pendente'}</span>
+                    <button class="icon-btn-small" onclick="abrirModalAgendamento('${a.id}')" style="background:transparent; border:1px solid #444;">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
                 </div>
             </div>
         `).join('');
@@ -611,6 +646,9 @@ async function abrirDetalhesCliente(clienteId) {
     // Abre o modal
     document.getElementById('modalDetalhesCliente').classList.add('active');
     document.getElementById('overlay').classList.add('active');
+    
+    // Reseta para a primeira aba sempre que abrir
+    trocarTab('historico');
 }
 
 // Função auxiliar para o botão de excluir dentro do modal

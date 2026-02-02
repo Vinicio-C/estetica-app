@@ -27,7 +27,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <!-- CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=2.0">
 </head>
 <body>
     <!-- Loading Screen -->
@@ -113,55 +113,74 @@
         <div id="pageContainer" class="page-container">
     
             <div id="dashboardPage" class="page active">
+    
+                <div class="metrics-row">
+                    
+                    <div class="metric-card">
+                        <div class="metric-icon gold">
+                            <i class="far fa-calendar-check"></i>
+                        </div>
+                        <div class="metric-info">
+                            <h3 id="statAgendamentosHoje">0</h3>
+                            <p>AGENDAMENTOS HOJE</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon green">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="metric-info">
+                            <h3 id="statFaturamentoHoje">R$ 0,00</h3>
+                            <p>FATURAMENTO HOJE</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon blue">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="metric-info">
+                            <h3 id="statTotalClientes">0</h3>
+                            <p>TOTAL DE CLIENTES</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-card" style="border-left: 4px solid var(--error);">
+                        <div class="metric-icon red">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="metric-info">
+                            <h3 id="statDebitosTotal" style="color: var(--error);">R$ 0,00</h3>
+                            <p>A RECEBER (GERAL)</p>
+                        </div>
+                    </div>
+
+                </div>
+
                 <div class="dashboard-grid">
-                    <div class="stats-row">
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: var(--gold);"><i class="fas fa-calendar-check"></i></div>
-                            <div class="stat-info">
-                                <h3 id="statAgendamentosHoje">0</h3>
-                                <p>Agendamentos Hoje</p>
-                            </div>
+                    <div class="dashboard-card full-width">
+                        <div class="card-header">
+                            <h3><i class="far fa-clock" style="color: var(--gold);"></i> Próximos Agendamentos</h3>
+                            <button class="btn-link-gold" onclick="navigateTo('agenda')">Ver Agenda</button>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: var(--success);"><i class="fas fa-dollar-sign"></i></div>
-                            <div class="stat-info">
-                                <h3 id="statFaturamentoHoje" style="color: var(--success);">R$ 0,00</h3>
-                                <p>Faturamento Hoje</p>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: var(--info);"><i class="fas fa-users"></i></div>
-                            <div class="stat-info">
-                                <h3 id="statTotalClientes">0</h3>
-                                <p>Total de Clientes</p>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: var(--error);"><i class="fas fa-exclamation-triangle"></i></div>
-                            <div class="stat-info">
-                                <h3 id="statDebitosTotal" style="color: var(--error);">R$ 0,00</h3>
-                                <p>Débitos Pendentes</p>
-                            </div>
+                        <div id="dashAgendamentosList" class="dashboard-list">
+                            <div style="padding: 20px; text-align: center; color: #666;">Carregando...</div>
                         </div>
                     </div>
-                    
-                    <div class="dashboard-card">
-                        <h3><i class="fas fa-clock"></i> Próximos Agendamentos</h3>
-                        <div id="proximosAgendamentos" class="agendamentos-list"></div>
-                        <button class="btn-secondary btn-sm" onclick="navigateTo('agenda')" style="margin-top: 15px; width: 100%;">
-                            Ver Agenda Completa
-                        </button>
-                    </div>
-                    
-                    <div class="dashboard-grid-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+                    <div class="dashboard-row-split">
                         <div class="dashboard-card">
-                            <h3><i class="fas fa-box-open"></i> Alertas de Estoque</h3>
-                            <div id="alertasEstoque" class="alertas-list"></div>
+                            <div class="card-header">
+                                <h3><i class="fas fa-boxes" style="color: var(--warning);"></i> Alertas de Estoque</h3>
+                            </div>
+                            <div id="dashEstoqueList" class="dashboard-list"></div>
                         </div>
-                        
                         <div class="dashboard-card">
-                            <h3><i class="fas fa-hand-holding-usd"></i> Contas a Receber</h3>
-                            <div id="clientesDebitos" class="debitos-list"></div>
+                            <div class="card-header">
+                                <h3><i class="fas fa-file-invoice-dollar" style="color: var(--error);"></i> Contas a Receber</h3>
+                            </div>
+                            <div id="dashContasReceberList" class="dashboard-list"></div>
                         </div>
                     </div>
                 </div>
@@ -188,36 +207,38 @@
                     </button>
                 </div>
 
-                <div class="agenda-toolbar">
-                    <div class="view-switcher">
-                        <button class="view-btn active" onclick="setAgendaView('dia')" id="agendaViewDia">Dia</button>
-                        <button class="view-btn" onclick="setAgendaView('semana')" id="agendaViewSemana">Semana</button>
-                        <button class="view-btn" onclick="setAgendaView('mes')" id="agendaViewMes">Mês</button>
+                <div class="modern-calendar-wrapper">
+                    <div class="calendar-header">
+                        <button class="cal-btn" onclick="mudarMes(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        
+                        <h3 id="calendarMonthYear">CARREGANDO...</h3>
+                        
+                        <button class="cal-btn" onclick="mudarMes(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
                     </div>
-
-                    <div class="date-navigator">
-                        <button class="nav-arrow" onclick="mudarData(-1)"><i class="fas fa-chevron-left"></i></button>
-                        <div class="date-display-wrapper">
-                            <input type="date" id="agendaDate" onchange="carregarAgenda()">
-                        </div>
-                        <button class="nav-arrow" onclick="mudarData(1)"><i class="fas fa-chevron-right"></i></button>
-                        <button class="btn-today" onclick="hoje()">Hoje</button>
+                    
+                    <div class="calendar-weekdays">
+                        <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
                     </div>
-
-                    <button class="btn-primary" onclick="abrirModalAgendamento()">
-                        <i class="fas fa-plus"></i> Novo
-                    </button>
+                    
+                    <div id="calendarGrid" class="calendar-grid"></div>
+                    
+                    <div class="calendar-footer">
+                        <button class="btn-today-modern" onclick="hoje()">Ir para Hoje</button>
+                    </div>
                 </div>
 
-                <div class="agenda-stats-bar">
-                    <div class="agenda-stat">
-                        <span class="stat-label">Agendamentos</span>
-                        <strong id="agendaTotalServicos" class="stat-value">0</strong>
+                <div class="agenda-quick-actions" style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0; padding: 0 5px;">
+                    <div style="font-size: 1.1rem;">
+                        <span style="color: #888;">Data selecionada:</span>
+                        <strong id="dataSelecionadaTexto" style="color: var(--gold); margin-left: 5px;">-</strong>
                     </div>
-                    <div class="agenda-stat">
-                        <span class="stat-label">Faturamento Previsto</span>
-                        <strong id="agendaTotalValor" class="stat-value gold">R$ 0,00</strong>
-                    </div>
+                    <button class="btn-primary" onclick="abrirModalAgendamento()">
+                        <i class="fas fa-plus"></i> Novo Agendamento
+                    </button>
                 </div>
 
                 <div id="agendaContainer" class="agenda-timeline"></div>
@@ -255,6 +276,16 @@
                         <label>Período:</label>
                         <select id="relatorioMes" onchange="carregarRelatorios()">
                             <option value="0">Janeiro</option>
+                            <option value="1">Fevereiro</option>
+                            <option value="2">Março</option>
+                            <option value="3">Abril</option>
+                            <option value="4">Maio</option>
+                            <option value="5">Junho</option>
+                            <option value="6">Julho</option>
+                            <option value="7">Agosto</option>
+                            <option value="8">Setembro</option>
+                            <option value="9">Outubro</option>
+                            <option value="10">Novembro</option>
                             <option value="11">Dezembro</option>
                         </select>
                         <input type="number" id="relatorioAno" value="2026" onchange="carregarRelatorios()">
@@ -460,6 +491,11 @@
                         <span class="status-badge" style="background: var(--bg-input); color: var(--text-secondary); margin-top: 5px; display: inline-block;">Cliente Cadastrado</span>
                     </div>
                 </div>
+                <div class="modal-footer-actions">
+                    <button onclick="abrirAnamnese()" class="btn-action" style="border: 1px solid var(--gold); color: var(--gold); background: transparent;">
+                        <i class="fas fa-file-medical"></i> Ficha Anamnese
+                    </button>
+                </div>
                 <button class="modal-close" onclick="fecharModal('modalDetalhesCliente')">&times;</button>
             </div>
 
@@ -522,6 +558,116 @@
             </div>
         </div>
     </div>
+
+    <div id="modalAnamnese" class="modal">
+        <div class="modal-content anamnese-paper">
+            <div class="modal-header no-print">
+                <h2>Ficha de Anamnese</h2>
+                <button class="modal-close" onclick="fecharModal('modalAnamnese')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="anamnese-header-print only-print">
+                <h1>Estética Premium</h1>
+                <p>Ficha de Avaliação e Anamnese</p>
+            </div>
+
+            <div class="anamnese-tabs no-print">
+                <button type="button" class="tab-btn active" onclick="trocarTabAnamnese('texto')">
+                    <i class="fas fa-list-alt"></i> Perguntas
+                </button>
+                <button type="button" class="tab-btn" onclick="trocarTabAnamnese('desenho')">
+                    <i class="fas fa-pen-fancy"></i> Mapa Facial / Desenho
+                </button>
+            </div>
+
+            <form id="formAnamnese">
+                
+                <div id="tabAnamneseTexto" class="anamnese-tab-content active">
+                    <div class="anamnese-section">
+                        <h3>1. Histórico de Saúde</h3>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="saude_gestante"> Gestante / Lactante</label>
+                            <label><input type="checkbox" name="saude_cardiaco"> Problemas Cardíacos</label>
+                            <label><input type="checkbox" name="saude_diabetes"> Diabetes</label>
+                            <label><input type="checkbox" name="saude_alergia"> Alergias</label>
+                            <label><input type="checkbox" name="saude_oncologico"> Histórico Oncológico</label>
+                        </div>
+                        <div class="form-group">
+                            <label>Uso de Medicamentos Contínuos?</label>
+                            <input type="text" name="medicamentos" placeholder="Quais?">
+                        </div>
+                        <div class="form-group">
+                            <label>Alergias Específicas?</label>
+                            <input type="text" name="alergias_obs" placeholder="Medicamentos, cosméticos, alimentos...">
+                        </div>
+                    </div>
+
+                    <div class="anamnese-section">
+                        <h3>2. Histórico Estético</h3>
+                        <div class="form-group">
+                            <label>Queixa Principal</label>
+                            <textarea name="queixa_principal" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Cuidados Diários (Home Care)</label>
+                            <input type="text" name="home_care">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tabAnamneseDesenho" class="anamnese-tab-content">
+                    <div class="drawing-toolbar no-print">
+                        <label>Cor da Caneta:</label>
+                        <div class="color-picker">
+                            <div class="color-dot active" style="background: #000;" onclick="setCorCaneta('#000000', this)"></div> <div class="color-dot" style="background: #E53935;" onclick="setCorCaneta('#E53935', this)"></div> <div class="color-dot" style="background: #1E88E5;" onclick="setCorCaneta('#1E88E5', this)"></div> <div class="color-dot" style="background: #43A047;" onclick="setCorCaneta('#43A047', this)"></div> </div>
+                        <button type="button" class="btn-small" onclick="limparMapaFacial()">
+                            <i class="fas fa-eraser"></i> Limpar
+                        </button>
+                    </div>
+
+                    <div class="mapa-container">
+                        <canvas id="mapaFacialCanvas" width="600" height="500"></canvas>
+                        
+                        <div class="mapa-background">
+                            <svg viewBox="0 0 200 250" xmlns="http://www.w3.org/2000/svg" stroke="#ccc" fill="none" stroke-width="1">
+                                <path d="M50,60 C50,10 150,10 150,60 C150,130 130,160 100,170 C70,160 50,130 50,60 Z" />
+                                <path d="M70,75 Q80,65 90,75" />
+                                <path d="M110,75 Q120,65 130,75" />
+                                <path d="M100,80 L95,110 L105,110" />
+                                <path d="M85,130 Q100,140 115,130" />
+                                <path d="M70,155 L70,200" />
+                                <path d="M130,155 L130,200" />
+                            </svg>
+                        </div>
+                    </div>
+                    <p style="text-align: center; color: #888; font-size: 0.8rem;">Use a caneta do tablet para marcar áreas de interesse.</p>
+                </div>
+
+                <div class="anamnese-section">
+                    <h3>3. Termo e Assinatura</h3>
+                    <p class="legal-text">
+                        Declaro que as informações são verdadeiras.
+                    </p>
+                    
+                    <div class="signature-area">
+                        <label>Assinatura da Cliente:</label>
+                        <canvas id="signatureCanvas" width="500" height="150"></canvas>
+                        <div class="signature-actions no-print">
+                            <button type="button" class="btn-link-gold" onclick="limparAssinatura()">Limpar Assinatura</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-buttons no-print">
+                    <button type="button" class="btn-secondary" onclick="imprimirAnamnese()">Imprimir</button>
+                    <button type="submit" class="btn-primary">Salvar Ficha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal Agendamento -->
     <div id="modalAgendamento" class="modal">
         <div class="modal-content">
@@ -711,11 +857,12 @@
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <div id="toastContainer" class="toast-container"></div>
-    <script src="js/supabase-client.js"></script> 
-    <script src="js/app.js"></script>
-    <script src="js/app-agenda.js"></script>
-    <script src="js/app-relatorios.js"></script>
-    <script src="js/popular-dados.js"></script>
+    <script src="js/supabase-client.js?v=3.0"></script> 
+    <script src="js/app.js?v=3.0"></script>
+    <script src="js/app-agenda.js?v=3.0"></script>
+    <script src="js/app-relatorios.js?v=3.0"></script>
+    <script src="js/popular-dados.js?v=3.0"></script>
+    <script src="js/app-anamnese.js?v=3.0"></script>
 </body>
 </body>
 </html>

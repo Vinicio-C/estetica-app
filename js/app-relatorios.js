@@ -1,8 +1,7 @@
 // ========================================
-// RELATÓRIOS - MÓDULO COMPLETO
+// RELATÓRIOS INTELIGENTES (Financeiro + Operacional + VIPs)
 // ========================================
 
-// Variáveis globais para os gráficos
 let chartFaturamento = null;
 let chartQuantidade = null;
 
@@ -13,230 +12,254 @@ async function carregarRelatorios() {
     const container = document.getElementById('relatoriosContent');
     if (!container) return;
 
-    // 2. Filtros de Data (Pega do HTML)
+    // 2. Configura Filtros (Seleção Automática do Mês Atual)
     const elMes = document.getElementById('relatorioMes');
     const elAno = document.getElementById('relatorioAno');
     
-    // Se não tiver os filtros na tela (ex: mudou de página), para.
     if (!elMes || !elAno) return;
+
+    if (!elMes.dataset.init) {
+        const hoje = new Date();
+        elMes.value = hoje.getMonth();
+        elAno.value = hoje.getFullYear();
+        elMes.dataset.init = "true";
+    }
 
     const mes = parseInt(elMes.value);
     const ano = parseInt(elAno.value);
 
-    // 3. Filtrar Dados (Apenas CONCLUÍDOS do mês selecionado)
-    const dadosFiltrados = appState.agendamentos.filter(a => {
+    // 3. Filtrar Dados do Mês (TUDO que não foi cancelado)
+    const dadosDoMes = appState.agendamentos.filter(a => {
         const d = new Date(a.data);
         return d.getMonth() === mes && 
                d.getFullYear() === ano && 
-               a.status === 'concluido';
+               a.status !== 'cancelado';
     });
 
-    // 4. Cálculos dos Cards
-    const faturamentoTotal = dadosFiltrados.reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
-    const servicosRealizados = dadosFiltrados.length;
-    
-    // Total a Receber (Geral, todas as datas - dívida é dívida)
-    const totalReceber = appState.agendamentos
-        .filter(a => a.status_pagamento === 'devendo' && a.status === 'concluido')
+    // --- CÁLCULOS FINANCEIROS ---
+    const faturamentoReal = dadosDoMes
+        .filter(a => a.status === 'concluido' || a.status_pagamento === 'pago')
         .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
 
-    // 5. Preparar Dados para os Gráficos (Agrupar por Serviço)
-    const dadosPorServico = {};
-    dadosFiltrados.forEach(a => {
+    const faturamentoPrevisto = dadosDoMes
+        .filter(a => a.status === 'agendado' && a.status_pagamento !== 'pago')
+        .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
+
+    const totalReceberGeral = appState.agendamentos
+        .filter(a => a.status_pagamento === 'devendo' && a.status !== 'cancelado')
+        .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
+
+    // --- CÁLCULOS PARA GRÁFICOS E RANKING ---
+    
+    // A. Agrupar por Serviço (Valor e Quantidade)
+    const statsServicos = {};
+    dadosDoMes.forEach(a => {
         const nome = a.servico_nome || a.evento_nome || 'Outros';
-        if (!dadosPorServico[nome]) {
-            dadosPorServico[nome] = { qtd: 0, total: 0 };
+        if (!statsServicos[nome]) {
+            statsServicos[nome] = { qtd: 0, valor: 0 };
         }
-        dadosPorServico[nome].qtd += 1;
-        dadosPorServico[nome].total += (Number(a.valor) || 0);
+        statsServicos[nome].qtd += 1;
+        statsServicos[nome].valor += (Number(a.valor) || 0);
     });
 
-    const labels = Object.keys(dadosPorServico);
-    const valuesFaturamento = labels.map(k => dadosPorServico[k].total);
-    const valuesQuantidade = labels.map(k => dadosPorServico[k].qtd);
+    const labelsServicos = Object.keys(statsServicos);
+    const dataValor = labelsServicos.map(k => statsServicos[k].valor);
+    const dataQtd = labelsServicos.map(k => statsServicos[k].qtd);
 
-    // 6. Montar o HTML da Página
+    // B. Ranking de Clientes (Quem veio mais vezes neste mês)
+    const statsClientes = {};
+    dadosDoMes.forEach(a => {
+        // Ignora "Eventos Pessoais" sem cliente
+        if (!a.cliente_nome) return;
+        
+        if (!statsClientes[a.cliente_nome]) {
+            statsClientes[a.cliente_nome] = { qtd: 0, gasto: 0 };
+        }
+        statsClientes[a.cliente_nome].qtd += 1;
+        statsClientes[a.cliente_nome].gasto += (Number(a.valor) || 0);
+    });
+
+    // Transforma em array e ordena (Top 5)
+    const rankingClientes = Object.entries(statsClientes)
+        .map(([nome, dados]) => ({ nome, ...dados }))
+        .sort((a, b) => b.qtd - a.qtd) // Ordena por quantidade (quem vem mais)
+        .slice(0, 5); // Pega só os 5 primeiros
+
+    // 4. HTML DA PÁGINA (ATUALIZADO)
     container.innerHTML = `
         <div class="metrics-row">
             <div class="metric-card">
-                <div class="metric-icon" style="color: var(--gold);"><i class="fas fa-dollar-sign"></i></div>
+                <div class="metric-icon gold"><i class="fas fa-coins"></i></div>
                 <div class="metric-info">
-                    <p>Faturamento Total</p>
-                    <h3>${formatCurrency(faturamentoTotal)}</h3>
+                    <p>Faturamento Realizado</p>
+                    <h3>${formatCurrency(faturamentoReal)}</h3>
                 </div>
             </div>
-
-            <div class="metric-card" style="border-left: 4px solid var(--warning);">
-                <div class="metric-icon" style="color: var(--warning);"><i class="fas fa-hand-holding-usd"></i></div>
-                <div class="metric-info">
-                    <p>Total a Receber</p>
-                    <h3 style="color: var(--warning);">${formatCurrency(totalReceber)}</h3>
-                </div>
-            </div>
-
             <div class="metric-card">
-                <div class="metric-icon"><i class="fas fa-cut"></i></div>
+                <div class="metric-icon blue"><i class="fas fa-chart-line"></i></div>
                 <div class="metric-info">
-                    <p>Serviços Realizados</p>
-                    <h3>${servicosRealizados}</h3>
+                    <p>Previsão (Agendado)</p>
+                    <h3 style="color: var(--info);">${formatCurrency(faturamentoPrevisto)}</h3>
+                </div>
+            </div>
+            <div class="metric-card" style="border-left: 4px solid var(--error);">
+                <div class="metric-icon red"><i class="fas fa-hand-holding-usd"></i></div>
+                <div class="metric-info">
+                    <p>Total a Receber (Geral)</p>
+                    <h3 style="color: var(--error);">${formatCurrency(totalReceberGeral)}</h3>
                 </div>
             </div>
         </div>
 
         <div class="charts-row">
             <div class="chart-card">
-                <h3><i class="fas fa-chart-pie"></i> Faturamento por Serviço</h3>
-                <div style="height: 300px;">
+                <h3><i class="fas fa-chart-pie"></i> Faturamento por Serviço (R$)</h3>
+                <div style="height: 250px;">
                     <canvas id="chartFaturamentoTipo"></canvas>
                 </div>
             </div>
             
             <div class="chart-card">
-                <h3><i class="fas fa-chart-bar"></i> Quantidade de Serviços</h3>
-                <div style="height: 300px;">
-                    <canvas id="chartQuantidadeTipo"></canvas>
+                <h3><i class="fas fa-chart-bar"></i> Nº de Procedimentos</h3>
+                <div style="height: 250px;">
+                    <canvas id="chartQuantidadeServicos"></canvas>
                 </div>
             </div>
         </div>
 
-        <div class="table-card">
-            <h3><i class="fas fa-table"></i> Detalhes do Período</h3>
-            <div class="table-responsive">
-                <table class="relatorio-table">
-                    <thead>
-                        <tr>
-                            <th>Data/Cliente</th>
-                            <th>Serviço</th>
-                            <th>Status</th>
-                            <th>Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody id="relatorioTableBody"></tbody>
-                </table>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h3><i class="fas fa-crown" style="color: var(--gold);"></i> Top Clientes do Mês</h3>
+                <div class="ranking-list">
+                    ${rankingClientes.length === 0 ? '<p style="color:#666; text-align:center; padding:20px;">Sem dados.</p>' : 
+                        rankingClientes.map((c, index) => `
+                            <div class="ranking-item" style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #333;">
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <span style="font-weight:bold; color:var(--gold); font-size:1.2rem;">#${index + 1}</span>
+                                    <span>${c.nome}</span>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-weight:bold;">${c.qtd} visitas</div>
+                                    <div style="font-size:0.8rem; color:#888;">${formatCurrency(c.gasto)}</div>
+                                </div>
+                            </div>
+                        `).join('')
+                    }
+                </div>
             </div>
-        </div>
 
-        <div style="margin-top: 30px; text-align: right;">
-            <button class="btn-primary" onclick="window.print()">
-                <i class="fas fa-print"></i> Imprimir Relatório
-            </button>
+            <div class="chart-card">
+                <h3><i class="fas fa-list-ol"></i> Extrato Detalhado</h3>
+                <div class="table-responsive" style="height: 300px; overflow-y: auto;">
+                    <table class="relatorio-table">
+                        <thead>
+                            <tr>
+                                <th>Dia</th>
+                                <th>Cliente/Serviço</th>
+                                <th>Status</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${dadosDoMes.length === 0 ? 
+                                '<tr><td colspan="4" style="text-align:center; padding:20px;">Nenhum dado neste mês.</td></tr>' : 
+                                dadosDoMes.sort((a,b) => new Date(a.data) - new Date(b.data)).map(a => `
+                                    <tr>
+                                        <td>${new Date(a.data).getDate()}/${new Date(a.data).getMonth()+1}</td>
+                                        <td>
+                                            <strong>${a.cliente_nome || a.evento_nome}</strong><br>
+                                            <small>${a.servico_nome || ''}</small>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge ${a.status === 'concluido' ? 'pago' : 'pendente'}">
+                                                ${a.status === 'concluido' ? 'Realizado' : 'Agendado'}
+                                            </span>
+                                        </td>
+                                        <td style="color: var(--gold);">${formatCurrency(a.valor)}</td>
+                                    </tr>
+                                `).join('')
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     `;
 
-    // 7. Renderizar Gráficos e Tabela (Com delay para garantir que o HTML existe)
+    // 5. Renderizar Gráficos
     setTimeout(() => {
-        renderizarGraficos(labels, valuesFaturamento, valuesQuantidade);
-        renderizarTabelaRelatorio(dadosFiltrados);
+        renderizarGraficos(labelsServicos, dataValor, dataQtd);
     }, 100);
 }
 
-// --- FUNÇÃO QUE DESENHA OS GRÁFICOS (FALTAVA NO SEU ARQUIVO) ---
-function renderizarGraficos(labels, dataFat, dataQtd) {
-    const colors = ['#D4AF37', '#F4E4C1', '#B88A00', '#FFFFFF', '#666666'];
+function renderizarGraficos(labels, dataValor, dataQtd) {
+    if (typeof Chart === 'undefined') return;
 
-    // Configuração Global Chart.js
-    if (typeof Chart !== 'undefined') {
-        Chart.defaults.color = '#A0A0A0';
-        Chart.defaults.borderColor = '#333';
-        Chart.defaults.font.family = "'Montserrat', sans-serif";
-    }
+    // --- Gráfico 1: Pizza (Faturamento) ---
+    const ctxFat = document.getElementById('chartFaturamentoTipo');
+    if (ctxFat) {
+        if (chartFaturamento) chartFaturamento.destroy();
+        const colors = ['#D4AF37', '#F9A825', '#FFD54F', '#FFF176', '#FFEE58', '#FFFFFF'];
 
-    // Destruir gráficos antigos
-    if (chartFaturamento) chartFaturamento.destroy();
-    if (chartQuantidade) chartQuantidade.destroy();
-
-    // 1. Gráfico Pizza (Rosquinha)
-    const ctx1 = document.getElementById('chartFaturamentoTipo');
-    if (ctx1) {
-        chartFaturamento = new Chart(ctx1.getContext('2d'), {
+        chartFaturamento = new Chart(ctxFat.getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: labels,
                 datasets: [{
-                    data: dataFat,
+                    data: dataValor,
                     backgroundColor: colors,
-                    borderWidth: 0,
-                    hoverOffset: 4
+                    borderWidth: 0
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'right', labels: { boxWidth: 12, color: '#ECECEC' } }
+                    legend: { position: 'right', labels: { color: '#ccc', font: { size: 10 } } }
                 }
             }
         });
     }
 
-    // 2. Gráfico Barras
-    const ctx2 = document.getElementById('chartQuantidadeTipo');
-    if (ctx2) {
-        chartQuantidade = new Chart(ctx2.getContext('2d'), {
+    // --- Gráfico 2: Barras (Quantidade) - NOVO! ---
+    const ctxQtd = document.getElementById('chartQuantidadeServicos');
+    if (ctxQtd) {
+        if (chartQuantidade) chartQuantidade.destroy();
+
+        chartQuantidade = new Chart(ctxQtd.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Qtd',
+                    label: 'Qtd. Procedimentos',
                     data: dataQtd,
                     backgroundColor: '#D4AF37',
-                    borderRadius: 4,
-                    barThickness: 40
+                    borderRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: '#333' } },
-                    x: { grid: { display: false } }
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { color: '#888', stepSize: 1 }, // Inteiros apenas
+                        grid: { color: '#333' }
+                    },
+                    x: { ticks: { color: '#ccc' }, grid: { display: false } }
+                },
+                plugins: {
+                    legend: { display: false }
                 }
             }
         });
     }
 }
 
-// --- FUNÇÃO DA TABELA ---
-function renderizarTabelaRelatorio(dados) {
-    const tbody = document.getElementById('relatorioTableBody');
-    if (!tbody) return;
-
-    if (dados.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color: #666;">Nenhum serviço concluído neste período.</td></tr>';
-        return;
-    }
-
-    // Ordenar por data
-    dados.sort((a, b) => new Date(a.data) - new Date(b.data));
-
-    tbody.innerHTML = dados.map(a => `
-        <tr style="border-bottom: 1px solid #333;">
-            <td style="padding: 12px;">
-                <div style="font-weight:bold; color: #ECECEC;">${a.cliente_nome || 'Evento'}</div>
-                <small style="color: #888;">${formatDate(a.data)}</small>
-            </td>
-            <td style="padding: 12px;">${a.servico_nome || a.evento_nome}</td>
-            <td style="padding: 12px;">
-                <span class="status-badge ${a.status_pagamento}" style="font-size:0.75rem; padding:2px 8px; border-radius:4px;">
-                    ${a.status_pagamento}
-                </span>
-            </td>
-            <td style="padding: 12px; font-weight:bold; color: var(--gold);">
-                ${formatCurrency(a.valor)}
-            </td>
-        </tr>
-    `).join('');
-}
-
-// Inicializar ao carregar a página
+// Inicializador
 document.addEventListener('DOMContentLoaded', () => {
     const elMes = document.getElementById('relatorioMes');
-    const elAno = document.getElementById('relatorioAno');
-    
-    if (elMes && elAno) {
-        const hoje = new Date();
-        elMes.value = hoje.getMonth();
-        elAno.value = hoje.getFullYear();
+    if (elMes) {
+        carregarRelatorios();
     }
 });
