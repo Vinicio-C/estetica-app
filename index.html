@@ -665,10 +665,64 @@
                 </div>
 
                 <div class="modal-buttons no-print">
-                    <button type="button" class="btn-secondary" onclick="imprimirAnamnese()">Imprimir</button>
+                    <button type="button" class="btn-secondary" onclick="buscarEImprimirFicha()">
+                        <i class="fas fa-print"></i> Imprimir Ficha Salva
+                    </button>
+                    
                     <button type="submit" class="btn-primary">Salvar Ficha</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="fichaImpressao" class="print-only-container">
+        <div class="print-header">
+            <h1>Estética Premium</h1>
+            <p>Ficha de Avaliação e Anamnese</p>
+            <div class="print-meta">
+                <span><strong>Cliente:</strong> <span id="printNomeCliente"></span></span>
+                <span><strong>Data:</strong> <span id="printDataFicha"></span></span>
+            </div>
+        </div>
+
+        <div class="print-body">
+            <div class="print-section">
+                <h3>1. Histórico de Saúde</h3>
+                <div class="print-grid">
+                    <div><span id="checkGestante">☐</span> Gestante/Lactante</div>
+                    <div><span id="checkCardiaco">☐</span> Cardíaco</div>
+                    <div><span id="checkDiabetes">☐</span> Diabetes</div>
+                    <div><span id="checkAlergia">☐</span> Alergias</div>
+                    <div><span id="checkOnco">☐</span> Histórico Oncológico</div>
+                </div>
+                <p><strong>Medicamentos:</strong> <span id="printMedicamentos"></span></p>
+                <p><strong>Alergias/Obs:</strong> <span id="printAlergias"></span></p>
+            </div>
+
+            <div class="print-section">
+                <h3>2. Histórico Estético</h3>
+                <p><strong>Queixa Principal:</strong> <br> <span id="printQueixa"></span></p>
+                <p><strong>Home Care:</strong> <span id="printHomeCare"></span></p>
+            </div>
+
+            <div class="print-section keep-together">
+                <h3>3. Mapeamento Facial</h3>
+                <div class="print-map-container">
+                    <img id="printMapaImg" src="" alt="Mapa Facial" style="max-height: 300px; max-width: 100%; display: block; margin: 0 auto;">
+                </div>
+            </div>
+
+            <div class="print-section keep-together">
+                <h3>4. Termo de Responsabilidade</h3>
+                <p class="legal-text-small">
+                    Declaro que as informações acima são verdadeiras e autorizo a realização dos procedimentos.
+                </p>
+                <div class="print-sig-container" style="text-align: center; margin-top: 30px;">
+                    <img id="printAssinaturaImg" src="" alt="Assinatura" style="height: 80px; display: block; margin: 0 auto;">
+                    <div class="line" style="border-top: 1px solid #000; display: inline-block; width: 300px; margin-top: 5px;"></div>
+                    <div class="label">Assinatura do Cliente</div>
+                </div>
+            </div>
         </div>
     </div>
 

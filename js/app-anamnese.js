@@ -1,9 +1,10 @@
 // ========================================
-// ANAMNESE: VERSÃO TABLET ROBUSTA v2
+// ANAMNESE: SISTEMA DE FICHA ÚNICA (EDITÁVEL)
 // ========================================
 
 let sigPad = { canvas: null, ctx: null, isDrawing: false };
 let mapPad = { canvas: null, ctx: null, isDrawing: false, color: '#000000' };
+let currentFichaId = null; // Guarda o ID se a ficha já existir
 
 document.addEventListener('DOMContentLoaded', () => {
     setupCanvas('signatureCanvas', sigPad);
@@ -13,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (form) form.addEventListener('submit', salvarAnamnese);
 });
 
+// --- CONFIGURAÇÃO DOS CANVAS ---
 function setupCanvas(id, padObj) {
     const canvas = document.getElementById(id);
     if (!canvas) return;
@@ -20,96 +22,64 @@ function setupCanvas(id, padObj) {
     padObj.canvas = canvas;
     padObj.ctx = canvas.getContext('2d');
 
-    // --- FUNÇÃO MÁGICA DE REDIMENSIONAMENTO ---
-    // Ajusta a resolução interna do canvas para bater com o tamanho da tela
     function fixResolution() {
         const rect = canvas.getBoundingClientRect();
-        // Se a tela for retina/alta resolução, aumenta os pixels
         const ratio = Math.max(window.devicePixelRatio || 1, 1);
-        
-        // Só redimensiona se mudou o tamanho, pra não limpar o desenho a toda hora
         if (canvas.width !== rect.width * ratio || canvas.height !== rect.height * ratio) {
             canvas.width = rect.width * ratio;
             canvas.height = rect.height * ratio;
             padObj.ctx.scale(ratio, ratio);
         }
-        
-        // IMPORTANTE: Resetar estilos após redimensionar
-        padObj.ctx.lineWidth = 3; // Traço mais grosso pro tablet
+        padObj.ctx.lineWidth = 3;
         padObj.ctx.lineCap = 'round';
         padObj.ctx.lineJoin = 'round';
         padObj.ctx.strokeStyle = padObj.color || '#000000';
     }
-
-    // Chama o fix logo de cara
     setTimeout(fixResolution, 500);
 
-    // --- FUNÇÕES DE DESENHO ---
-    
-    // Pega a posição exata do dedo/mouse relativa ao canvas
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
-        let clientX, clientY;
-
-        if (e.touches && e.touches.length > 0) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
-
-        return {
-            x: clientX - rect.left,
-            y: clientY - rect.top
-        };
+        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
     }
 
-    function startDrawing(e) {
-        e.preventDefault(); // Mata o scroll
-        fixResolution(); // Garante que o canvas está pronto e com tinta
-        
+    function start(e) {
+        e.preventDefault();
+        fixResolution();
         padObj.isDrawing = true;
         const pos = getPos(e);
-        
         padObj.ctx.beginPath();
         padObj.ctx.moveTo(pos.x, pos.y);
-        padObj.ctx.lineTo(pos.x, pos.y); // Ponto inicial
+        padObj.ctx.lineTo(pos.x, pos.y);
         padObj.ctx.stroke();
     }
 
-    function draw(e) {
+    function move(e) {
         if (!padObj.isDrawing) return;
-        e.preventDefault(); // Mata o scroll
-
+        e.preventDefault();
         const pos = getPos(e);
         padObj.ctx.lineTo(pos.x, pos.y);
         padObj.ctx.stroke();
     }
 
-    function stopDrawing(e) {
-        if (padObj.isDrawing) {
+    function end(e) {
+        if(padObj.isDrawing) {
             e.preventDefault();
             padObj.isDrawing = false;
             padObj.ctx.closePath();
         }
     }
 
-    // --- EVENTOS (Híbridos para garantir compatibilidade) ---
-    
-    // Mouse
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseout', stopDrawing);
-
-    // Touch (Tablet/Celular)
-    canvas.addEventListener('touchstart', startDrawing, { passive: false });
-    canvas.addEventListener('touchmove', draw, { passive: false });
-    canvas.addEventListener('touchend', stopDrawing);
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', end);
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', end);
 }
 
-// --- OUTRAS FUNÇÕES (CORES, LIMPEZA, ABAS) ---
+// --- FUNÇÕES DE UTILIDADE ---
 
 function setCorCaneta(cor, elemento) {
     if (mapPad.ctx) {
@@ -121,16 +91,11 @@ function setCorCaneta(cor, elemento) {
 }
 
 function limparMapaFacial() {
-    if (mapPad.canvas && mapPad.ctx) {
-        // Limpa usando coordenadas gigantes pra garantir
-        mapPad.ctx.clearRect(0, 0, 9999, 9999);
-    }
+    if (mapPad.canvas && mapPad.ctx) mapPad.ctx.clearRect(0, 0, 9999, 9999);
 }
 
 function limparAssinatura() {
-    if (sigPad.canvas && sigPad.ctx) {
-        sigPad.ctx.clearRect(0, 0, 9999, 9999);
-    }
+    if (sigPad.canvas && sigPad.ctx) sigPad.ctx.clearRect(0, 0, 9999, 9999);
 }
 
 function trocarTabAnamnese(tab) {
@@ -144,21 +109,83 @@ function trocarTabAnamnese(tab) {
     if (tab === 'desenho') document.getElementById('tabAnamneseDesenho').classList.add('active');
 }
 
-function abrirAnamnese() {
+// --- ABRIR FICHA (Carrega dados existentes) ---
+async function abrirAnamnese() {
     if (!appState.currentCliente) {
         showToast('Selecione um cliente primeiro.', 'warning');
         return;
     }
-    
+
+    // 1. Reseta o formulário visualmente
     document.getElementById('formAnamnese').reset();
     limparAssinatura();
     limparMapaFacial();
     trocarTabAnamnese('texto');
-    
+    currentFichaId = null; // Reseta o ID
+
+    // 2. Abre o modal
     document.getElementById('modalAnamnese').classList.add('active');
     document.getElementById('overlay').classList.add('active');
+
+    // 3. Tenta buscar ficha existente no banco
+    try {
+        const { data, error } = await _supabase
+            .from('anamneses')
+            .select('*')
+            .eq('cliente_id', appState.currentCliente.id)
+            .limit(1); // Pega qualquer uma (idealmente a única)
+
+        if (data && data.length > 0) {
+            console.log("📂 Ficha encontrada! Carregando dados...");
+            preencherFichaNaTela(data[0]);
+        } else {
+            console.log("🆕 Nenhuma ficha encontrada. Criando nova.");
+        }
+    } catch (err) {
+        console.error("Erro ao carregar ficha:", err);
+    }
 }
 
+// Função auxiliar para colocar os dados de volta na tela
+function preencherFichaNaTela(ficha) {
+    currentFichaId = ficha.id; // IMPORTANTE: Guarda o ID para atualizar depois
+    const resp = ficha.respostas || {};
+
+    // Inputs de Texto
+    const form = document.getElementById('formAnamnese');
+    if (resp.medicamentos) form.medicamentos.value = resp.medicamentos;
+    if (resp.alergias_obs) form.alergias_obs.value = resp.alergias_obs;
+    if (resp.queixa_principal) form.queixa_principal.value = resp.queixa_principal;
+    if (resp.home_care) form.home_care.value = resp.home_care;
+
+    // Checkboxes
+    const keys = ['saude_gestante', 'saude_cardiaco', 'saude_diabetes', 'saude_alergia', 'saude_oncologico'];
+    keys.forEach(k => {
+        if (resp[k] === true || resp[k] === 'true') {
+            const el = form.querySelector(`input[name="${k}"]`);
+            if (el) el.checked = true;
+        }
+    });
+
+    // Restaurar Desenhos (Canvas)
+    // Precisamos criar uma imagem HTML e desenhá-la no canvas
+    if (resp.mapa_facial_img) drawImageOnCanvas(mapPad.ctx, resp.mapa_facial_img);
+    if (ficha.assinatura) drawImageOnCanvas(sigPad.ctx, ficha.assinatura);
+}
+
+function drawImageOnCanvas(ctx, dataUrl) {
+    const img = new Image();
+    img.onload = function() {
+        // Desenha a imagem salva de volta no canvas editável
+        // O tamanho 600x500 é uma referência base do canvas
+        ctx.drawImage(img, 0, 0, 300, 150); // Ajuste simples para assinatura
+        // Nota: Restaurar desenho perfeitamente em canvas responsivo é complexo,
+        // mas isso deve carregar o visual básico.
+    };
+    img.src = dataUrl;
+}
+
+// --- SALVAR (Atualiza ou Cria) ---
 async function salvarAnamnese(e) {
     e.preventDefault();
     if (!appState.currentCliente) return;
@@ -170,25 +197,105 @@ async function salvarAnamnese(e) {
         respostas[chk.name] = chk.checked;
     });
 
-    // Salva imagens
+    // Captura imagens atuais
     const assinaturaImg = sigPad.canvas.toDataURL();
     const mapaImg = mapPad.canvas.toDataURL();
     respostas['mapa_facial_img'] = mapaImg;
 
     try {
-        const { error } = await _supabase.from('anamneses').insert({
-            cliente_id: appState.currentCliente.id,
-            respostas: respostas,
-            assinatura: assinaturaImg,
-            profissional_nome: 'Dra. Estética'
-        });
+        let result;
+        
+        // LÓGICA DE FICHA ÚNICA:
+        if (currentFichaId) {
+            // SE JÁ EXISTE ID -> UPDATE (ATUALIZAR)
+            console.log("🔄 Atualizando ficha existente ID:", currentFichaId);
+            result = await _supabase.from('anamneses').update({
+                respostas: respostas,
+                assinatura: assinaturaImg,
+                // created_at geralmente não muda no update, mas você pode ter um updated_at
+            }).eq('id', currentFichaId);
+        } else {
+            // SE NÃO EXISTE -> INSERT (CRIAR NOVA)
+            console.log("✨ Criando nova ficha");
+            result = await _supabase.from('anamneses').insert({
+                cliente_id: appState.currentCliente.id,
+                respostas: respostas,
+                assinatura: assinaturaImg,
+                profissional_nome: 'Dra. Estética'
+            });
+        }
 
-        if (error) throw error;
+        if (result.error) throw result.error;
+
         showToast('Ficha salva com sucesso!', 'success');
         fecharModal('modalAnamnese');
+
     } catch (error) {
         console.error(error);
         showToast('Erro ao salvar ficha.', 'error');
+    }
+}
+
+// --- IMPRIMIR (Mantido e ajustado) ---
+async function buscarEImprimirFicha() {
+    // Reutiliza a lógica de abrir para pegar os dados
+    // Mas agora imprimimos o que está na tela ou buscamos do banco
+    if (!appState.currentCliente) return;
+    
+    // Se acabamos de salvar ou abrir, currentFichaId deve estar definido se existir
+    // Mas por segurança, buscamos de novo
+    try {
+        const { data, error } = await _supabase
+            .from('anamneses')
+            .select('*')
+            .eq('cliente_id', appState.currentCliente.id)
+            .limit(1);
+
+        if (!data || data.length === 0) {
+            alert('Preencha e salve a ficha antes de imprimir.');
+            return;
+        }
+        
+        // Preenche o HTML de Impressão (Igual ao código anterior)
+        const ficha = data[0];
+        const resp = ficha.respostas || {};
+        
+        document.getElementById('printNomeCliente').textContent = appState.currentCliente.nome;
+        const dataF = ficha.created_at ? new Date(ficha.created_at) : new Date();
+        document.getElementById('printDataFicha').textContent = dataF.toLocaleDateString('pt-BR');
+
+        const check = (v) => (v === true || v === 'true') ? '☒' : '☐';
+        const txt = (t) => t || '----------------';
+
+        document.getElementById('checkGestante').textContent = check(resp.saude_gestante);
+        document.getElementById('checkCardiaco').textContent = check(resp.saude_cardiaco);
+        document.getElementById('checkDiabetes').textContent = check(resp.saude_diabetes);
+        document.getElementById('checkAlergia').textContent = check(resp.saude_alergia);
+        document.getElementById('checkOnco').textContent = check(resp.saude_oncologico);
+
+        document.getElementById('printMedicamentos').textContent = txt(resp.medicamentos);
+        document.getElementById('printAlergias').textContent = txt(resp.alergias_obs);
+        document.getElementById('printQueixa').textContent = txt(resp.queixa_principal);
+        document.getElementById('printHomeCare').textContent = txt(resp.home_care);
+
+        const imgMapa = document.getElementById('printMapaImg');
+        const imgAss = document.getElementById('printAssinaturaImg');
+        
+        if (resp.mapa_facial_img && resp.mapa_facial_img.length > 100) {
+            imgMapa.src = resp.mapa_facial_img;
+            imgMapa.style.display = 'block';
+        } else imgMapa.style.display = 'none';
+
+        if (ficha.assinatura && ficha.assinatura.length > 100) {
+            imgAss.src = ficha.assinatura;
+            imgAss.style.display = 'block';
+        } else imgAss.style.display = 'none';
+
+        setTimeout(() => window.print(), 500);
+
+    } catch (err) {
+        console.error(err);
+        alert('Erro ao gerar impressão.');
     }
 }
 

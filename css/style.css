@@ -1869,3 +1869,44 @@ canvas {
     position: relative; 
     z-index: 10;
 }
+
+/* =======================================================
+   CSS DE IMPRESSÃO PROFISSIONAL (GERA O DOCUMENTO)
+   ======================================================= */
+
+/* Esconde o molde na tela normal */
+.print-only-container {
+    display: none;
+}
+
+@media print {
+    /* 1. Esconde TUDO da tela (App, Modais, Menus) */
+    body > *:not(#fichaImpressao) {
+        display: none !important;
+    }
+
+    #fichaImpressao {
+        display: block !important; /* O !important é crucial aqui */
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: white;
+        color: #000;
+        font-family: 'Times New Roman', serif;
+        padding: 20px;
+        box-sizing: border-box;
+        z-index: 99999;
+    }
+
+    /* Layout Geral */
+    .print-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .print-section { margin-bottom: 20px; page-break-inside: avoid; }
+    .print-section h3 { border-bottom: 1px solid #000; text-transform: uppercase; font-size: 14pt; margin-bottom: 10px; }
+    .print-only-container {
+        display: none;
+    }
+    
+    /* Força imagens a aparecerem */
+    img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
