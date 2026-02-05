@@ -1552,34 +1552,35 @@ window.selectCliente = function() {
 };
 
 // ========================================
-// FUNÇÃO DE COMPARTILHAR LINK (CORRIGIDA PARA GITHUB PAGES)
+// FUNÇÃO DE COMPARTILHAR LINK (FIXA NO FINAL DO APP.JS)
 // ========================================
 
+// Removemos qualquer palavra 'export' e usamos window direto
 window.copiarLinkAgendamento = function() {
-    // 1. Detecta onde o site está rodando
+    console.log("Tentando copiar link..."); // Log para debug
+
     const urlAtual = window.location.href;
     let linkPublico = '';
 
+    // Lógica para GitHub Pages vs Localhost
     if (urlAtual.includes('github.io')) {
-        // Se estiver no GitHub Pages, remove o arquivo atual (ex: index.html) e aponta para agendar.html
-        // Ex: https://usuario.github.io/repo/index.html -> https://usuario.github.io/repo/agendar.html
-        
-        // Pega a URL base (até a última barra)
         const baseUrl = urlAtual.substring(0, urlAtual.lastIndexOf('/') + 1);
         linkPublico = baseUrl + 'agendar.html';
-        
     } else {
-        // Se estiver local (localhost ou file://), avisa que precisa subir pro GitHub
-        alert("Atenção: Você está rodando localmente. O link gerado só funcionará no seu computador.\n\nPara clientes reais, certifique-se de acessar pelo link do GitHub Pages primeiro.");
+        // Fallback para local
         const baseUrl = urlAtual.substring(0, urlAtual.lastIndexOf('/') + 1);
         linkPublico = baseUrl + 'agendar.html';
     }
 
-    // 2. Copia para a área de transferência
-    navigator.clipboard.writeText(linkPublico).then(() => {
-        showToast('Link copiado! Envie para o cliente.', 'success');
-    }).catch(err => {
-        console.error("Erro ao copiar:", err);
-        prompt("Copie o link abaixo e envie para o cliente:", linkPublico);
-    });
+    // Tenta copiar
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(linkPublico).then(() => {
+            alert('Link copiado: ' + linkPublico);
+        }).catch(err => {
+            prompt("Copie o link manualmente:", linkPublico);
+        });
+    } else {
+        // Fallback para navegadores antigos
+        prompt("Copie o link manualmente:", linkPublico);
+    }
 };
