@@ -261,23 +261,24 @@ async function carregarDashboard() {
 function renderizarListasDashboard() {
     console.log('🔄 Iniciando renderização das listas do Dashboard...');
     
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
+    // Data de hoje (sem horas) para comparação segura
+    const hojeStr = new Date().toISOString().split('T')[0];
 
     // 1. PRÓXIMOS AGENDAMENTOS
     const listaAgenda = document.getElementById('dashAgendamentosList');
-    if (!listaAgenda) {
-        console.error('❌ ERRO: Não achei a div "dashAgendamentosList" no HTML!');
-    } else {
-        console.log('✅ Achei a lista de Agenda. Desenhando...');
-        
-        // Filtra agendamentos futuros
+    
+    if (listaAgenda) {
+        // Filtra futuros ou hoje
         const proximos = appState.agendamentos
             .filter(a => {
-                const dataAgend = new Date(a.data);
-                return dataAgend >= hoje && a.status !== 'cancelado';
+                // Compara strings: "2026-02-12" >= "2026-02-04"
+                return a.data >= hojeStr && a.status !== 'cancelado';
             })
-            .sort((a, b) => new Date(a.data) - new Date(b.data))
+            .sort((a, b) => {
+                // Ordena por Data e depois por Hora
+                if (a.data === b.data) return a.hora.localeCompare(b.hora);
+                return a.data.localeCompare(b.data);
+            })
             .slice(0, 5);
 
         if (proximos.length === 0) {
@@ -287,21 +288,36 @@ function renderizarListasDashboard() {
                     <p style="color: #888;">Agenda livre por enquanto!</p>
                 </div>`;
         } else {
-            listaAgenda.innerHTML = proximos.map(a => `
+            listaAgenda.innerHTML = proximos.map(a => {
+                const [ano, mes, dia] = a.data.split('-');
+                const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+                const nomeMes = meses[parseInt(mes) - 1];
+
+                // LÓGICA INTELIGENTE PARA O NOME
+                // Prioriza o nome do Serviço. Se não tiver, tenta o Cliente. Se for evento, usa o nome do evento.
+                let titulo = a.cliente_nome || 'Cliente';
+                if (a.tipo === 'evento') titulo = a.evento_nome || 'Evento';
+
+                let descricao = 'Agendamento';
+                if (a.servico_nome) descricao = a.servico_nome; // Mostra "Peeling Químico" se existir
+                else if (a.evento_nome) descricao = a.evento_nome;
+                else if (a.tipo === 'bloqueio') descricao = 'Bloqueio de Agenda';
+
+                return `
                 <div class="dash-list-item" onclick="abrirModalAgendamento('${a.id}')">
                     <div class="dash-item-time">
-                        <span class="day">${new Date(a.data).getDate()}</span>
-                        <span class="month">${new Date(a.data).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</span>
+                        <span class="day">${dia}</span>
+                        <span class="month">${nomeMes}</span>
                     </div>
                     <div class="dash-item-info">
-                        <h4>${a.tipo === 'servico' ? a.cliente_nome : a.evento_nome}</h4>
-                        <p>${a.tipo === 'servico' ? a.servico_nome : 'Evento'} • ${formatTime(a.data)}</p>
+                        <h4>${titulo}</h4>
+                        <p style="color: #bbb;">${descricao} • ${formatTime(a.hora)}</p>
                     </div>
                     <div class="dash-item-action">
-                        <span class="status-badge ${a.status_pagamento || 'pendente'}">${a.status_pagamento || 'Agendado'}</span>
+                        <span class="status-badge ${a.status_pagamento || 'pendente'}">${a.status_pagamento || 'Pendente'}</span>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
     }
 
@@ -1158,7 +1174,6 @@ async function limparAgendaGoogleDoDia(dataString) {
 // HELPER FUNCTIONS (Funções Auxiliares)
 // ========================================
 
-// Formata moeda (R$)
 function formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', {
         style: 'currency',
@@ -1179,21 +1194,22 @@ function formatDateTime(dateString) {
     }).format(date);
 }
 
-// Formata apenas data (DD/MM/YYYY)
+// Formata Data (DD/MM/YYYY) usando split (seguro)
 function formatDate(dateString) {
     if (!dateString) return '-';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-BR').format(date);
+    // Se vier YYYY-MM-DD
+    if (dateString.includes('-')) {
+        const partes = dateString.split('-');
+        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+    return dateString;
 }
 
-// Formata apenas hora (HH:mm)
-function formatTime(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit'
-    }).format(date);
+// Formata Hora (HH:mm) pegando direto da coluna HORA
+function formatTime(timeString) {
+    if (!timeString) return '-';
+    // Pega apenas os 5 primeiros caracteres (ex: "13:00:00" vira "13:00")
+    return timeString.slice(0, 5);
 }
 
 // Mostra notificações (Toast)
@@ -1285,3 +1301,252 @@ function toggleTipoAgendamento() {
         if(evento) evento.required = true;
     }
 }
+
+// --- FUNÇÃO DE SALVAR AGENDAMENTO (ADMIN - CORRIGIDA) ---
+async function salvarAgendamento(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('agendamentoId').value;
+    const clienteId = document.getElementById('agendamentoCliente').value;
+    const servicoId = document.getElementById('agendamentoServico').value;
+    const data = document.getElementById('agendamentoData').value;
+    const hora = document.getElementById('agendamentoHora').value;
+    const statusPagamento = document.getElementById('agendamentoStatusPagamento').value;
+    const obs = document.getElementById('agendamentoObservacoes').value;
+    
+    // Check type (Service vs Event)
+    const tipo = document.querySelector('input[name="tipoAgendamento"]:checked').value;
+    const eventoNome = document.getElementById('eventoNome').value;
+
+    // Validation
+    if (tipo === 'servico' && (!clienteId || !servicoId)) {
+        showToast('Selecione o Cliente e o Serviço.', 'warning');
+        return;
+    }
+    if (tipo === 'evento' && !eventoNome) {
+        showToast('Digite o nome do evento.', 'warning');
+        return;
+    }
+    if (!data || !hora) {
+        showToast('Data e Hora são obrigatórios.', 'warning');
+        return;
+    }
+
+    try {
+        // 1. Get Names (We need to look up the text names from the IDs)
+        let clienteNome = null;
+        let servicoNome = null;
+        let valor = 0;
+
+        if (tipo === 'servico') {
+            // Find client name in the global list
+            const clienteObj = appState.clientes.find(c => c.id == clienteId);
+            if (clienteObj) clienteNome = clienteObj.nome;
+
+            // Find service name and value
+            const servicoObj = appState.servicos.find(s => s.id == servicoId);
+            if (servicoObj) {
+                servicoNome = servicoObj.nome;
+                valor = servicoObj.valor;
+            }
+        }
+
+        // 2. Prepare the Payload (COMPLETE DATA)
+        const dados = {
+            data: data,
+            hora: hora,
+            observacoes: obs,
+            status: 'pendente', // Default status
+            status_pagamento: statusPagamento,
+            tipo: tipo,
+            
+            // Text Fields (Crucial for Dashboard/Agenda display)
+            cliente_nome: clienteNome,
+            servico_nome: servicoNome,
+            evento_nome: tipo === 'evento' ? eventoNome : null,
+            valor: valor
+        };
+
+        // Add IDs only if it's a service
+        if (tipo === 'servico') {
+            dados.cliente_id = clienteId;
+            dados.servico_id = servicoId;
+        } else {
+            dados.cliente_id = null;
+            dados.servico_id = null;
+        }
+
+        let error;
+        
+        if (id) {
+            // Update
+            const res = await _supabase.from('agendamentos').update(dados).eq('id', id);
+            error = res.error;
+        } else {
+            // Insert
+            const res = await _supabase.from('agendamentos').insert(dados);
+            error = res.error;
+        }
+
+        if (error) throw error;
+
+        showToast('Agendamento salvo com sucesso!', 'success');
+        fecharModal('modalAgendamento');
+        
+        // Refresh Screens
+        if(typeof carregarDashboard === 'function') carregarDashboard();
+        
+        // Refresh Agenda if the function exists and we are on that page
+        if(typeof carregarAgendaDoDia === 'function' && document.getElementById('agendaContainer')) {
+            // Reload the specific date being viewed or the date of the new appointment
+            const dataObj = new Date(data);
+            // Adjust for timezone offset to ensure correct day is loaded
+            const userTimezoneOffset = dataObj.getTimezoneOffset() * 60000;
+            const adjustedDate = new Date(dataObj.getTime() + userTimezoneOffset);
+            carregarAgendaDoDia(adjustedDate); 
+            
+            // Also refresh the dots
+            if(typeof renderCalendar === 'function') renderCalendar();
+        }
+
+    } catch (err) {
+        console.error("Erro ao salvar:", err);
+        showToast('Erro ao salvar agendamento.', 'error');
+    }
+}
+
+// ========================================
+// FUNÇÕES QUE FALTAVAM (MODAL DE AGENDAMENTO)
+// ========================================
+
+async function abrirModalAgendamento(id = null) {
+    const modal = document.getElementById('modalAgendamento');
+    const form = document.getElementById('formAgendamento');
+    
+    // 1. Resetar Form e ID
+    if(form) form.reset();
+    document.getElementById('agendamentoId').value = '';
+    
+    // 2. Popular Selects (Clientes e Serviços) usando o Estado Global (appState)
+    // Isso evita ter que ir no banco toda vez, já que carregamos no início
+    const selCliente = document.getElementById('agendamentoCliente');
+    const selServico = document.getElementById('agendamentoServico');
+    
+    if (selCliente && appState.clientes.length > 0) {
+        // Mantém a opção padrão "Selecione..." e adiciona os clientes
+        selCliente.innerHTML = '<option value="">Selecione o Cliente...</option>' + 
+            appState.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+    }
+    
+    if (selServico && appState.servicos.length > 0) {
+        selServico.innerHTML = '<option value="">Selecione o Serviço...</option>' + 
+            appState.servicos.map(s => `<option value="${s.id}" data-valor="${s.valor}">${s.nome}</option>`).join('');
+    }
+
+    // 3. Lógica: Edição vs Novo
+    if (id) {
+        // --- MODO EDIÇÃO ---
+        document.getElementById('modalAgendamentoTitle').textContent = 'Editar Agendamento';
+        
+        // Busca primeiro no estado local (mais rápido)
+        let agendamento = appState.agendamentos.find(a => a.id === id);
+        
+        // Se não achar (ex: acabou de criar), busca no banco
+        if (!agendamento) {
+            try {
+                const { data } = await _supabase.from('agendamentos').select('*').eq('id', id).single();
+                agendamento = data;
+            } catch (e) { console.error(e); }
+        }
+
+        if (agendamento) {
+            document.getElementById('agendamentoId').value = agendamento.id;
+            document.getElementById('agendamentoCliente').value = agendamento.cliente_id;
+            document.getElementById('agendamentoServico').value = agendamento.servico_id;
+            document.getElementById('agendamentoData').value = agendamento.data; // YYYY-MM-DD
+            document.getElementById('agendamentoHora').value = agendamento.hora; // HH:MM
+            document.getElementById('agendamentoStatusPagamento').value = agendamento.status_pagamento;
+            document.getElementById('agendamentoObservacoes').value = agendamento.observacoes || '';
+            
+            // Atualiza o valor visualmente (se tiver campo de valor visual)
+            updateValorServico();
+        }
+    } else {
+        // --- MODO NOVO ---
+        document.getElementById('modalAgendamentoTitle').textContent = 'Novo Agendamento';
+        // Define data de hoje como padrão
+        document.getElementById('agendamentoData').value = new Date().toISOString().split('T')[0];
+    }
+
+    modal.classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+}
+
+// Helper para atualizar o preço quando troca o serviço no select
+function updateValorServico() {
+    const sel = document.getElementById('agendamentoServico');
+    if (!sel || sel.selectedIndex < 0) return;
+    
+    const opt = sel.options[sel.selectedIndex];
+    const valor = opt.getAttribute('data-valor');
+    
+    // Se você tiver um input visual de valor (opcional)
+    const inputValor = document.getElementById('agendamentoValor'); 
+    if (inputValor && valor) {
+        inputValor.value = "R$ " + parseFloat(valor).toFixed(2).replace('.', ',');
+    }
+}
+
+// Adiciona o evento de troca de serviço para atualizar valor
+const selServicoRef = document.getElementById('agendamentoServico');
+if (selServicoRef) selServicoRef.addEventListener('change', updateValorServico);
+
+
+// ========================================
+// EXPORTAÇÕES GLOBAIS (ESSENCIAL!)
+// ========================================
+// Isso garante que o HTML (onclick="") consiga enxergar as funções JS
+window.abrirModalAgendamento = abrirModalAgendamento;
+window.abrirDetalhesCliente = abrirDetalhesCliente;
+window.navigateTo = navigateTo;
+window.fecharModal = fecharModal;
+window.excluirCliente = excluirCliente;
+window.excluirProduto = excluirProduto;
+window.excluirServico = excluirServico;
+window.abrirModalServico = abrirModalServico;
+window.abrirModalEstoque = abrirModalEstoque;
+window.abrirModalCliente = abrirModalCliente;
+window.salvarAgendamento = salvarAgendamento;
+window.carregarDashboard = carregarDashboard;
+
+// ========================================
+// CORREÇÃO DOS DROPDOWNS (ADICIONE NO FINAL DO ARQUIVO)
+// ========================================
+
+// 1. Atualiza o Valor quando seleciona o Serviço
+window.selectServico = function() {
+    const sel = document.getElementById('agendamentoServico');
+    const inputValor = document.getElementById('agendamentoValor');
+    
+    if (!sel || !inputValor) return;
+
+    // Pega a opção selecionada
+    const opt = sel.options[sel.selectedIndex];
+    
+    // Pega o valor que guardamos no atributo data-valor
+    const valor = opt.getAttribute('data-valor');
+
+    if (valor) {
+        // Formata e joga no input
+        inputValor.value = parseFloat(valor).toFixed(2); // Salva como número decimal (ex: 150.00)
+    } else {
+        inputValor.value = "";
+    }
+};
+
+// 2. Função vazia para o Cliente (só para parar o erro)
+window.selectCliente = function() {
+    // Por enquanto não precisamos fazer nada automático ao selecionar cliente
+    // Mas a função precisa existir para o HTML não quebrar
+    console.log("Cliente selecionado"); 
+};

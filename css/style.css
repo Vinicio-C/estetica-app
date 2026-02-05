@@ -1575,48 +1575,6 @@ input[type="date"] {
 
 .only-print { display: none; }
 
-/* --- MODO DE IMPRESSÃO (O Segredo) --- */
-@media print {
-    /* Esconde TUDO que não seja o modal */
-    body * {
-        visibility: hidden;
-    }
-    
-    /* Mostra só o modal de Anamnese */
-    #modalAnamnese, #modalAnamnese * {
-        visibility: visible;
-    }
-
-    /* Posiciona o modal como uma folha A4 */
-    #modalAnamnese {
-        position: absolute;
-        left: 0; top: 0;
-        background: white !important;
-        color: black !important;
-        width: 100%;
-        height: auto;
-        display: block !important;
-        overflow: visible;
-    }
-
-    .modal-content {
-        box-shadow: none !important;
-        border: none !important;
-        padding: 0 !important;
-        background: white !important;
-    }
-
-    /* Cores para Impressão (Economia de Tinta) */
-    h1, h2, h3, label, p, strong { color: black !important; }
-    input, textarea { border: 1px solid #ccc !important; background: transparent !important; color: black !important; }
-    
-    /* Esconde botões na impressão */
-    .no-print { display: none !important; }
-    .only-print { display: block !important; text-align: center; margin-bottom: 20px; }
-    
-    #signatureCanvas { border: 1px solid #000 !important; }
-}
-
 /* ========================================
    ESTILOS DAS LISTAS DO DASHBOARD
    ======================================================= */
@@ -1871,42 +1829,243 @@ canvas {
 }
 
 /* =======================================================
-   CSS DE IMPRESSÃO PROFISSIONAL (GERA O DOCUMENTO)
+   CSS DE IMPRESSÃO - CORREÇÃO FINAL
    ======================================================= */
 
-/* Esconde o molde na tela normal */
+/* =======================================================
+   ESTILOS DE IMPRESSÃO PROFISSIONAL (ORGANIZADO)
+   ======================================================= */
+
+/* Garante que o molde fique escondido na tela normal */
 .print-only-container {
-    display: none;
+    display: none !important;
 }
 
 @media print {
-    /* 1. Esconde TUDO da tela (App, Modais, Menus) */
+    /* --- 1. RESET GERAL PARA IMPRESSÃO --- */
+    /* Margens da página (ajuste se sua impressora cortar) */
+    @page { margin: 1.5cm; }
+
+    /* Esconde tudo que não seja a ficha */
     body > *:not(#fichaImpressao) {
         display: none !important;
     }
 
+    /* Configura o container principal da folha A4 */
     #fichaImpressao {
-        display: block !important; /* O !important é crucial aqui */
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background: white;
-        color: #000;
-        font-family: 'Times New Roman', serif;
-        padding: 20px;
-        box-sizing: border-box;
-        z-index: 99999;
+        display: block !important;
+        visibility: visible !important;
+        position: relative !important; /* Muda de absolute para relative para fluir melhor */
+        width: 100% !important;
+        height: auto !important;
+        background: white !important;
+        color: #000 !important;
+        /* Fonte mais limpa e profissional para leitura */
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+        font-size: 11pt !important;
+        line-height: 1.4;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    /* Layout Geral */
-    .print-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-    .print-section { margin-bottom: 20px; page-break-inside: avoid; }
-    .print-section h3 { border-bottom: 1px solid #000; text-transform: uppercase; font-size: 14pt; margin-bottom: 10px; }
-    .print-only-container {
-        display: none;
+    /* Garante que todos os textos internos sejam pretos */
+    #fichaImpressao * {
+        color: #000 !important;
+        text-shadow: none !important;
+        box-shadow: none !important;
+    }
+
+    /* --- 2. CABEÇALHO (HEADER) --- */
+    .print-header {
+        text-align: center;
+        border-bottom: 3px double #000; /* Borda dupla elegante */
+        margin-bottom: 20px;
+        padding-bottom: 15px;
     }
     
-    /* Força imagens a aparecerem */
-    img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .print-header h1 {
+        font-size: 22pt !important;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin: 0 0 5px 0;
+        font-family: 'Cormorant Garamond', serif !important; /* Mantém a identidade da marca no título */
+    }
+    
+    .print-header p {
+        font-size: 14pt;
+        font-style: italic;
+        margin: 0 0 15px 0;
+    }
+    
+    /* Barra de Cliente e Data */
+    .print-meta {
+        display: flex;
+        justify-content: space-between; /* Separa os itens nas pontas */
+        border-top: 1px solid #ccc;
+        padding-top: 10px;
+        font-weight: 600;
+        font-size: 12pt;
+    }
+
+    /* --- 3. SEÇÕES DO CORPO --- */
+    .print-body {
+        padding: 0 5px;
+    }
+    
+    .print-section {
+        margin-bottom: 25px;
+        /* Evita quebrar uma seção no meio da página */
+        break-inside: avoid;
+        page-break-inside: avoid; 
+    }
+    
+    /* Títulos das Seções (H3) */
+    .print-section h3 {
+        font-size: 13pt !important;
+        font-weight: 700;
+        text-transform: uppercase;
+        background-color: #f0f0f0 !important; /* Fundo cinza claro para destacar */
+        padding: 5px 10px;
+        margin-bottom: 12px;
+        border-left: 5px solid #333; /* Detalhe lateral */
+    }
+
+    /* Estilo para os campos de texto preenchidos */
+    .print-section p {
+        margin-bottom: 8px;
+    }
+    .print-section p strong {
+        margin-right: 5px;
+    }
+    /* Adiciona uma linha pontilhada onde estão os dados */
+    .print-section span[id^="print"] {
+        border-bottom: 1px dotted #999;
+        padding: 0 5px;
+        display: inline-block;
+        min-width: 50px;
+    }
+
+    /* --- 4. GRID DE CHECKBOXES (Organizado) --- */
+    .print-grid { 
+        display: flex;
+        flex-wrap: wrap; /* Permite quebrar linha se precisar */
+        gap: 10px 20px; /* Espaçamento vertical e horizontal */
+        margin-bottom: 15px;
+    }
+    
+    .print-grid div {
+        display: flex;
+        align-items: center;
+        min-width: 150px; /* Largura mínima para alinhar colunas */
+    }
+
+    /* O quadrado do checkbox */
+    .print-grid span[id^="check"] {
+        font-family: monospace; /* Fonte monoespaçada para o quadrado ficar perfeito */
+        font-size: 14pt;
+        margin-right: 8px;
+        font-weight: bold;
+        line-height: 1;
+        border-bottom: none; /* Remove a linha pontilhada dos checkboxes */
+    }
+
+    /* --- 5. IMAGENS (MAPA E ASSINATURA) --- */
+    .print-section.keep-together {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    /* Container do Mapa Facial */
+    .print-map-container {
+        text-align: center;
+        margin-top: 10px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        background: #fff !important;
+    }
+
+    #printMapaImg {
+        max-height: 220px !important; /* Reduz um pouco para caber melhor */
+        width: auto !important;
+        max-width: 100% !important;
+        margin: 0 auto;
+        display: block;
+        /* Força a impressão de imagens */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Área de Assinatura */
+    .legal-text-small {
+        font-size: 10pt;
+        font-style: italic;
+        text-align: center;
+        margin-bottom: 15px;
+        color: #555 !important;
+    }
+
+    .print-sig-container {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    #printAssinaturaImg {
+        height: 60px !important; /* Altura fixa para a assinatura */
+        width: auto;
+        display: block;
+        margin: 0 auto 5px auto;
+    }
+
+    /* A linha da assinatura */
+    .print-sig-container .line {
+        border-top: 1px solid #000 !important;
+        width: 250px !important;
+        margin: 0 auto 5px auto !important;
+    }
+    
+    .print-sig-container .label {
+        font-size: 9pt;
+        text-transform: uppercase;
+    }
+}
+
+/* Botão de Compartilhar Link */
+.btn-share-link {
+    background-color: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; 
+    align-items: center; 
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-share-link:hover {
+    background-color: var(--gold);
+    color: #000; /* Texto fica preto no hover para contraste */
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.4); /* Brilho dourado */
+}
+
+/* Indicador de Evento no Calendário (Bolinha) */
+.event-dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--gold); /* Dourado */
+    border-radius: 50%;
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 0 5px rgba(212, 175, 55, 0.5); /* Brilho suave */
+}
+
+/* Ajuste para o dia selecionado (bolinha fica preta para contraste) */
+.cal-day.selected .event-dot,
+.cal-day.today .event-dot {
+    background-color: #000; 
 }

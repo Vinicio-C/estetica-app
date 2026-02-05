@@ -1,0 +1,122 @@
+:root {
+    --bg: #121212;
+    --card: #1E1E1E;
+    --gold: #D4AF37;
+    --text: #ECECEC;
+    --text-muted: #A0A0A0;
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Montserrat', sans-serif;
+    margin: 0; padding: 0;
+}
+
+/* Header */
+.public-header {
+    text-align: center;
+    padding: 30px 20px;
+    background: linear-gradient(to bottom, #1a1a1a, #121212);
+    border-bottom: 1px solid #333;
+}
+.public-header i { font-size: 2rem; color: var(--gold); margin-bottom: 10px; }
+.public-header h1 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; margin: 0; color: var(--gold); }
+.public-header p { color: var(--text-muted); font-size: 0.9rem; margin: 5px 0 0 0; letter-spacing: 1px; }
+
+/* Container */
+.container {
+    max-width: 500px; /* Largura de celular mesmo no PC */
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Steps (Navegação) */
+.step { display: none; animation: fadeIn 0.4s ease; }
+.step.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+h2 { font-family: 'Cormorant Garamond', serif; color: var(--gold); border-left: 4px solid var(--gold); padding-left: 10px; margin-bottom: 20px; }
+
+/* Grid de Serviços */
+.services-grid { display: flex; flex-direction: column; gap: 15px; }
+.service-card {
+    background: var(--card); border: 1px solid #333; padding: 20px; border-radius: 12px;
+    display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s;
+}
+.service-card:hover { border-color: var(--gold); background: #252525; }
+.srv-info h3 { margin: 0 0 5px 0; font-size: 1.1rem; }
+.srv-info p { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
+.srv-price { font-weight: bold; color: var(--gold); font-size: 1.1rem; }
+
+/* Date Picker e Horários */
+.date-picker-wrapper input {
+    width: 100%; background: var(--card); border: 1px solid #444; color: white;
+    padding: 15px; border-radius: 8px; font-size: 1rem; color-scheme: dark;
+    margin-bottom: 20px; outline: none;
+}
+.date-picker-wrapper input:focus { border-color: var(--gold); }
+
+.time-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.time-btn {
+    background: var(--card); border: 1px solid #444; color: var(--text);
+    padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
+}
+.time-btn:hover { border-color: var(--gold); }
+.time-btn.selected { background: var(--gold); color: #000; border-color: var(--gold); }
+.time-btn.disabled { opacity: 0.3; pointer-events: none; text-decoration: line-through; }
+
+/* Formulário Final */
+.summary-card {
+    background: #1a1a1a;
+    border: 1px solid var(--gold);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+.summary-card p { margin: 5px 0; font-size: 0.95rem; }
+.summary-card strong { color: var(--gold); }
+
+.input-group { margin-bottom: 15px; }
+.input-group label { display: block; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted); font-weight: bold; }
+.input-group input {
+    width: 100%; padding: 12px; background: var(--card); border: 1px solid #444;
+    color: white; border-radius: 8px; font-size: 1rem; box-sizing: border-box;
+}
+.input-group input:focus { border-color: var(--gold); outline: none; }
+
+.btn-confirmar {
+    width: 100%; background: linear-gradient(135deg, var(--gold), #b88a00);
+    color: #000; border: none; padding: 15px; font-size: 1rem; font-weight: bold;
+    border-radius: 8px; cursor: pointer; margin-top: 10px;
+}
+
+.btn-back {
+    background: transparent; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: 0.9rem; margin-bottom: 10px; display: flex; align-items: center; gap: 5px;
+}
+
+/* Sucesso */
+.success-message { text-align: center; padding: 40px 20px; }
+.success-message i { font-size: 4rem; color: #66BB6A; margin-bottom: 20px; }
+.success-message h2 { border: none; color: #fff; }
+.btn-home {
+    display: inline-block; margin-top: 30px; text-decoration: none;
+    color: var(--gold); border: 1px solid var(--gold); padding: 10px 20px; border-radius: 50px;
+}
+
+.form-row-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.final-info {
+    background: #222;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    display: inline-block;
+    min-width: 200px;
+}

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Agende seu Horário | Estética Premium</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/publico.css">
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+</head>
+<body>
+
+    <header class="public-header">
+        <i class="fas fa-spa logo-icon"></i>
+        <h1>Estética Premium</h1>
+        <p>Realce sua beleza natural</p>
+    </header>
+
+    <main class="container">
+        <div id="step1" class="step active">
+            <h2>1. Escolha o Procedimento</h2>
+            <div id="listaServicos" class="services-grid">
+                <div class="loading">Carregando serviços...</div>
+            </div>
+        </div>
+
+        <div id="step2" class="step">
+            <button class="btn-back" onclick="changeStep(1)"><i class="fas fa-arrow-left"></i> Voltar</button>
+            <h2>2. Escolha o Horário</h2>
+            <div class="date-picker-wrapper">
+                <label>Selecione o Dia:</label>
+                <input type="date" id="dateInput" onchange="carregarHorariosDisponiveis()">
+            </div>
+            <div id="horariosGrid" class="time-slots">
+                <p class="hint">Selecione uma data acima para ver os horários.</p>
+            </div>
+        </div>
+
+        <div id="step3" class="step">
+            <button class="btn-back" onclick="changeStep(2)"><i class="fas fa-arrow-left"></i> Voltar</button>
+            <h2>3. Seus Dados</h2>
+            
+            <div class="summary-card">
+                <p><strong>Serviço:</strong> <span id="resumoServico">...</span></p>
+                <p><strong>Data:</strong> <span id="resumoData">...</span> às <span id="resumoHora" style="color: var(--gold); font-weight: bold;">...</span></p>
+                <p><strong>Valor:</strong> <span id="resumoValor">...</span></p>
+            </div>
+
+            <form id="formClientePublico">
+                <input type="hidden" id="clienteIdExistente">
+
+                <div class="input-group">
+                    <label>E-mail *</label> 
+                    <input type="email" id="clienteEmail" required placeholder="seu@email.com" onblur="verificarEmail()">
+                    <small id="emailFeedback" style="display: block; margin-top: 5px; height: 20px; font-weight: 600; font-size: 0.9rem;"></small>
+                </div>
+
+                <div class="input-group">
+                    <label>Nome Completo *</label>
+                    <input type="text" id="clienteNome" required placeholder="Seu nome">
+                </div>
+                
+                <div class="input-group">
+                    <label>WhatsApp *</label>
+                    <input type="tel" id="clienteTelefone" required placeholder="(00) 00000-0000">
+                </div>
+
+                <div class="form-row-split">
+                    <div class="input-group">
+                        <label>CPF (Opcional)</label>
+                        <input type="text" id="clienteCpf" placeholder="000.000.000-00">
+                    </div>
+                    <div class="input-group">
+                        <label>Data Nascimento</label>
+                        <input type="date" id="clienteNascimento">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-confirmar">CONFIRMAR AGENDAMENTO</button>
+            </form>
+        </div>
+
+        <div id="stepSuccess" class="step">
+            <div class="success-message">
+                <i class="fas fa-check-circle"></i>
+                <h2>Agendamento Confirmado!</h2>
+                
+                <p>Obrigado, <strong id="nomeSucesso"></strong>.</p>
+                
+                <p>Seu horário para <strong id="servicoSucesso" style="color: var(--gold);"></strong> está reservado.</p>
+                
+                <div class="final-info">
+                    <p>📅 <span id="dataSucesso"></span></p>
+                    <p>⏰ <span id="horaSucesso"></span></p>
+                </div>
+                <br>
+                <a href="agendar.html" class="btn-home">Novo Agendamento</a>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/app-publico.js?v=3.1"></script> <script>
+        $(document).ready(function(){
+            $('#clienteTelefone').mask('(00) 00000-0000');
+            $('#clienteCpf').mask('000.000.000-00', {reverse: true});
+        });
+    </script>
+</body>
+</html>

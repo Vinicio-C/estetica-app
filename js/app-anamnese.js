@@ -236,36 +236,43 @@ async function salvarAnamnese(e) {
     }
 }
 
-// --- IMPRIMIR (Mantido e ajustado) ---
 async function buscarEImprimirFicha() {
-    // Reutiliza a lógica de abrir para pegar os dados
-    // Mas agora imprimimos o que está na tela ou buscamos do banco
-    if (!appState.currentCliente) return;
-    
-    // Se acabamos de salvar ou abrir, currentFichaId deve estar definido se existir
-    // Mas por segurança, buscamos de novo
+    if (!appState.currentCliente) {
+        showToast('Nenhum cliente selecionado.', 'error');
+        return;
+    }
+
+    const clienteId = appState.currentCliente.id;
+    console.log("🔍 Buscando ficha para impressão...");
+
     try {
         const { data, error } = await _supabase
             .from('anamneses')
             .select('*')
-            .eq('cliente_id', appState.currentCliente.id)
+            .eq('cliente_id', clienteId)
+            .order('created_at', { ascending: false })
             .limit(1);
 
+        if (error) throw error;
+
         if (!data || data.length === 0) {
-            alert('Preencha e salve a ficha antes de imprimir.');
+            alert('Nenhuma ficha salva encontrada. Salve uma ficha primeiro!');
             return;
         }
-        
-        // Preenche o HTML de Impressão (Igual ao código anterior)
+
         const ficha = data[0];
         const resp = ficha.respostas || {};
-        
-        document.getElementById('printNomeCliente').textContent = appState.currentCliente.nome;
-        const dataF = ficha.created_at ? new Date(ficha.created_at) : new Date();
-        document.getElementById('printDataFicha').textContent = dataF.toLocaleDateString('pt-BR');
 
+        // --- PREENCHIMENTO DOS DADOS ---
+        document.getElementById('printNomeCliente').textContent = appState.currentCliente.nome;
+        
+        // Data formatada
+        const dataF = ficha.created_at ? new Date(ficha.created_at) : new Date();
+        document.getElementById('printDataFicha').textContent = dataF.toLocaleDateString('pt-BR') + ' ' + dataF.toLocaleTimeString('pt-BR').slice(0,5);
+
+        // Checkboxes
         const check = (v) => (v === true || v === 'true') ? '☒' : '☐';
-        const txt = (t) => t || '----------------';
+        const txt = (t) => t ? t : '_________________________';
 
         document.getElementById('checkGestante').textContent = check(resp.saude_gestante);
         document.getElementById('checkCardiaco').textContent = check(resp.saude_cardiaco);
@@ -278,24 +285,45 @@ async function buscarEImprimirFicha() {
         document.getElementById('printQueixa').textContent = txt(resp.queixa_principal);
         document.getElementById('printHomeCare').textContent = txt(resp.home_care);
 
+        // Imagens
         const imgMapa = document.getElementById('printMapaImg');
         const imgAss = document.getElementById('printAssinaturaImg');
         
         if (resp.mapa_facial_img && resp.mapa_facial_img.length > 100) {
             imgMapa.src = resp.mapa_facial_img;
             imgMapa.style.display = 'block';
-        } else imgMapa.style.display = 'none';
+        } else {
+            imgMapa.style.display = 'none';
+        }
 
         if (ficha.assinatura && ficha.assinatura.length > 100) {
             imgAss.src = ficha.assinatura;
             imgAss.style.display = 'block';
-        } else imgAss.style.display = 'none';
+        } else {
+            imgAss.style.display = 'none';
+        }
 
-        setTimeout(() => window.print(), 500);
+        // ==================================================
+        // ⚡ FIX NUCLEAR: FORÇA A EXIBIÇÃO ANTES DE IMPRIMIR
+        // ==================================================
+        const fichaElement = document.getElementById('fichaImpressao');
+        
+        // 1. Remove o bloqueio do HTML (o style="display:none")
+        fichaElement.style.display = 'block'; 
+        fichaElement.style.visibility = 'visible';
+
+        // 2. Aguarda meio segundo para o navegador desenhar
+        setTimeout(() => {
+            window.print();
+            
+            // 3. (Opcional) Esconde de novo depois de imprimir para não atrapalhar o uso
+            // Você pode comentar a linha abaixo se quiser ver a ficha na tela pra testar
+            fichaElement.style.display = 'none'; 
+        }, 500);
 
     } catch (err) {
-        console.error(err);
-        alert('Erro ao gerar impressão.');
+        console.error("Erro na impressão:", err);
+        alert('Erro ao gerar documento: ' + (err.message || err));
     }
 }
 

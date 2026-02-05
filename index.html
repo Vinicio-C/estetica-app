@@ -201,10 +201,20 @@
 
             <div id="agendaPage" class="page">
                 <div class="page-header-custom">
-                    <h2 style="color: var(--gold); margin: 0;"><i class="far fa-calendar-alt"></i> Agenda</h2>
-                    <button id="btnConnectGoogle" onclick="conectarGoogle()" class="btn-google-sync">
-                        <i class="fab fa-google"></i> Sincronizar Google
+                    <button onclick="abrirModalHorarios()" class="btn-secondary" style="border: 1px solid #444;">
+                        <i class="fas fa-cog"></i> Horários
                     </button>
+                    <h2 style="color: var(--gold); margin: 0;"><i class="far fa-calendar-alt"></i> Agenda</h2>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="copiarLinkAgendamento()" class="btn-share-link">
+                            <i class="fas fa-share-alt"></i> Link para Cliente
+                        </button>
+
+                        <button id="btnConnectGoogle" onclick="conectarGoogle()" class="btn-google-sync">
+                            <i class="fab fa-google"></i> Sincronizar
+                        </button>
+                    </div>
                 </div>
 
                 <div class="modern-calendar-wrapper">
@@ -303,7 +313,7 @@
         <div id="modalAgendamento" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>Novo Agendamento</h2>
+                    <h2 id="modalAgendamentoTitle">Novo Agendamento</h2>
                     <button class="modal-close" onclick="fecharModal('modalAgendamento')">
                         <i class="fas fa-times"></i>
                     </button>
@@ -903,6 +913,26 @@
                     <button type="submit" class="btn-primary">Salvar</button>
                 </div>
             </form>
+        </div>
+    </div>
+    <div id="modalHorarios" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Configurar Horários de Atendimento</h2>
+                <button class="modal-close" onclick="fecharModal('modalHorarios')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #888; font-size: 0.9rem; margin-bottom: 15px;">Defina os horários que aparecerão para os clientes.</p>
+                <form id="formHorarios">
+                    <div id="listaDiasSemana">
+                        <div style="text-align: center; padding: 20px;">Carregando...</div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="btn-secondary" onclick="fecharModal('modalHorarios')">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar Configuração</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
