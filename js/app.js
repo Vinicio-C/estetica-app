@@ -1550,3 +1550,27 @@ window.selectCliente = function() {
     // Mas a função precisa existir para o HTML não quebrar
     console.log("Cliente selecionado"); 
 };
+
+// ========================================
+// FUNÇÃO DE COMPARTILHAR LINK (Adicione no final do app.js)
+// ========================================
+
+window.copiarLinkAgendamento = function() {
+    // Pega a URL atual do site
+    const urlAtual = window.location.href;
+    
+    // Remove o nome do arquivo atual (ex: index.html) e deixa só a pasta
+    const baseUrl = urlAtual.substring(0, urlAtual.lastIndexOf('/') + 1);
+    
+    // Cria o link para a página pública
+    const linkPublico = baseUrl + 'agendar.html';
+
+    // Tenta copiar para a área de transferência
+    navigator.clipboard.writeText(linkPublico).then(() => {
+        showToast('Link copiado! Envie para o cliente.', 'success');
+    }).catch(err => {
+        console.error("Erro ao copiar:", err);
+        // Se falhar (alguns navegadores bloqueiam), mostra um prompt para copiar manual
+        prompt("Copie o link abaixo e envie para o cliente:", linkPublico);
+    });
+};
