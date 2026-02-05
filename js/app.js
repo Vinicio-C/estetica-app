@@ -1552,25 +1552,34 @@ window.selectCliente = function() {
 };
 
 // ========================================
-// FUNÇÃO DE COMPARTILHAR LINK (Adicione no final do app.js)
+// FUNÇÃO DE COMPARTILHAR LINK (CORRIGIDA PARA GITHUB PAGES)
 // ========================================
 
 window.copiarLinkAgendamento = function() {
-    // Pega a URL atual do site
+    // 1. Detecta onde o site está rodando
     const urlAtual = window.location.href;
-    
-    // Remove o nome do arquivo atual (ex: index.html) e deixa só a pasta
-    const baseUrl = urlAtual.substring(0, urlAtual.lastIndexOf('/') + 1);
-    
-    // Cria o link para a página pública
-    const linkPublico = baseUrl + 'agendar.html';
+    let linkPublico = '';
 
-    // Tenta copiar para a área de transferência
+    if (urlAtual.includes('github.io')) {
+        // Se estiver no GitHub Pages, remove o arquivo atual (ex: index.html) e aponta para agendar.html
+        // Ex: https://usuario.github.io/repo/index.html -> https://usuario.github.io/repo/agendar.html
+        
+        // Pega a URL base (até a última barra)
+        const baseUrl = urlAtual.substring(0, urlAtual.lastIndexOf('/') + 1);
+        linkPublico = baseUrl + 'agendar.html';
+        
+    } else {
+        // Se estiver local (localhost ou file://), avisa que precisa subir pro GitHub
+        alert("Atenção: Você está rodando localmente. O link gerado só funcionará no seu computador.\n\nPara clientes reais, certifique-se de acessar pelo link do GitHub Pages primeiro.");
+        const baseUrl = urlAtual.substring(0, urlAtual.lastIndexOf('/') + 1);
+        linkPublico = baseUrl + 'agendar.html';
+    }
+
+    // 2. Copia para a área de transferência
     navigator.clipboard.writeText(linkPublico).then(() => {
         showToast('Link copiado! Envie para o cliente.', 'success');
     }).catch(err => {
         console.error("Erro ao copiar:", err);
-        // Se falhar (alguns navegadores bloqueiam), mostra um prompt para copiar manual
         prompt("Copie o link abaixo e envie para o cliente:", linkPublico);
     });
 };
