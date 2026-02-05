@@ -1611,3 +1611,103 @@ window.copiarLinkAgendamento = function() {
         prompt("Copie o link manualmente:", linkPublico);
     }
 };
+
+// ========================================
+// FUNÇÃO DE CANCELAR AGENDAMENTO (RESTAURADA)
+// ========================================
+
+window.cancelarAgendamento = async function(id) {
+    if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+
+    try {
+        // 1. Atualiza o status no Supabase para 'cancelado'
+        const { error } = await _supabase
+            .from('agendamentos')
+            .update({ 
+                status: 'cancelado',
+                status_pagamento: 'cancelado' // Opcional: marca financeiro como cancelado também
+            })
+            .eq('id', id);
+
+        if (error) throw error;
+
+        showToast('Agendamento cancelado com sucesso.', 'success');
+
+        // 2. Atualiza o Dashboard (se estiver visível)
+        if (typeof carregarDashboard === 'function') carregarDashboard();
+        
+        // 3. Atualiza a Agenda (se estiver na tela de agenda)
+        const displayData = document.getElementById('dataSelecionadaTexto');
+        if (displayData && displayData.textContent !== '-' && typeof carregarAgendaDoDia === 'function') {
+            // Recarrega o dia que estava aberto para sumir com o card cancelado
+            const [dia, mes, ano] = displayData.textContent.split('/');
+            // Cria a data (Mês no JS começa em 0)
+            const dataObj = new Date(ano, mes - 1, dia);
+            carregarAgendaDoDia(dataObj);
+            
+            // Atualiza as bolinhas do calendário também
+            if(typeof renderCalendar === 'function') renderCalendar();
+        }
+
+    } catch (err) {
+        console.error("Erro ao cancelar:", err);
+        showToast('Erro ao cancelar agendamento.', 'error');
+    }
+};
+
+// ========================================
+// INTEGRAÇÃO GOOGLE CALENDAR (FINAL)
+// ========================================
+
+// 1. Função para Iniciar a Conexão (Redireciona para o Google)
+window.conectarGoogle = async function() {
+    console.log("🔌 Iniciando conexão com Google...");
+    
+    const { data, error } = await _supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: window.location.href, // Volta para a mesma página
+            scopes: 'https://www.googleapis.com/auth/calendar', // Permissão de Agenda
+            queryParams: {
+                access_type: 'offline', // ⚠️ O SEGREDO: Pede um token que se renova
+                prompt: 'consent'       // Força a tela de permissão para garantir o token
+            }
+        }
+    });
+
+    if (error) {
+        console.error("Erro ao conectar:", error);
+        showToast('Erro ao conectar com Google', 'error');
+    }
+};
+
+// 2. Verifica se está conectado e muda a cor do botão
+async function verificarStatusGoogle() {
+    const btn = document.getElementById('btnConnectGoogle');
+    if (!btn) return;
+
+    const { data: { session } } = await _supabase.auth.getSession();
+    
+    // Se tiver sessão e tiver o token do provedor (Google)
+    if (session && session.provider_token) {
+        btn.innerHTML = '<i class="fab fa-google"></i> Conectado';
+        btn.classList.add('connected'); // Você pode criar um estilo verde para isso
+        btn.style.background = '#4CAF50';
+        btn.style.color = '#fff';
+        btn.style.borderColor = '#4CAF50';
+        console.log("✅ Google Conectado!");
+    } else {
+        btn.innerHTML = '<i class="fab fa-google"></i> Sincronizar';
+        btn.style.background = ''; // Volta ao padrão
+        console.log("❌ Google Não conectado.");
+    }
+}
+
+// Roda a verificação assim que o App carrega
+document.addEventListener('DOMContentLoaded', () => {
+    // Espera um pouco para o Supabase carregar a sessão
+    setTimeout(verificarStatusGoogle, 1000);
+});
+
+// Exporta para garantir
+window.verificarStatusGoogle = verificarStatusGoogle;
