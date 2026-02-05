@@ -4,8 +4,8 @@
 const SUPABASE_URL = 'https://frnwbcvcaacraliropsw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZybndiY3ZjYWFjcmFsaXJvcHN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NDA5NzcsImV4cCI6MjA4NTIxNjk3N30.PmGVlSwl4KOSDezFRB8I_5IcsFTineYjE-vjF5G6Ce4';
 
-// 1. Inicializa o cliente
-const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Prende na janela global para garantir acesso
+window._supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 console.log('☁️ Conector Supabase Ativo!');
 
