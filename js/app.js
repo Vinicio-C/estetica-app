@@ -567,17 +567,20 @@ async function salvarCliente(e) {
     }
 }
 
-// ========================================
-// FUNÇÃO CORRIGIDA: DETALHES DO CLIENTE (Histórico + Agendados)
-// ========================================
-
 async function abrirDetalhesCliente(clienteId) {
-    const cliente = appState.clientes.find(c => c.id === clienteId);
+    // 1. Pega dados básicos do cliente (do estado local ou busca se precisar)
+    let cliente = appState.clientes.find(c => c.id === clienteId);
+    
+    // Se não achar no estado local, busca no banco (segurança)
+    if (!cliente) {
+        const { data } = await _supabase.from('clientes').select('*').eq('id', clienteId).single();
+        cliente = data;
+    }
+    
     if (!cliente) return;
-    
-    appState.currentCliente = cliente;
-    
-    // --- 1. Preencher Textos Básicos ---
+    appState.currentCliente = cliente; // Guarda para uso no botão excluir/editar
+
+    // 2. CONFIGURA A UI (Preenche nome, email, etc)
     document.getElementById('detalhesClienteNome').textContent = cliente.nome;
     document.getElementById('detalhesClienteTelefone').textContent = cliente.telefone || '-';
     document.getElementById('detalhesClienteEmail').textContent = cliente.email || 'Não informado';
@@ -585,7 +588,6 @@ async function abrirDetalhesCliente(clienteId) {
     // Endereço
     const boxEndereco = document.getElementById('boxEndereco');
     const spanEndereco = document.getElementById('detalhesClienteEndereco');
-    
     if (cliente.endereco) {
         spanEndereco.textContent = `${cliente.endereco}, ${cliente.numero || ''} - ${cliente.bairro || ''}`;
         boxEndereco.style.display = 'block';
@@ -593,77 +595,102 @@ async function abrirDetalhesCliente(clienteId) {
         boxEndereco.style.display = 'none';
     }
 
-    // --- 2. Separação dos Dados (Passado vs Futuro) ---
-    // Histórico: Tudo que está "concluido" ou "cancelado"
-    const historicoList = appState.agendamentos
-        .filter(a => a.cliente_id === cliente.id && (a.status === 'concluido' || a.status === 'cancelado'))
-        .sort((a, b) => new Date(b.data) - new Date(a.data)); // Do mais recente pro antigo
-
-    // Futuros: Tudo que está "agendado"
-    const agendadosList = appState.agendamentos
-        .filter(a => a.cliente_id === cliente.id && a.status === 'agendado')
-        .sort((a, b) => new Date(a.data) - new Date(b.data)); // Do mais próximo pro distante
-    
-    // --- 3. Cálculos Financeiros ---
-    const totalServicos = historicoList.filter(a => a.status === 'concluido').length;
-    const valorTotal = historicoList
-        .filter(a => a.status === 'concluido')
-        .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
-    
-    // Soma débitos de TUDO (passado concluído ou futuro que já marcou como devendo)
-    const debitos = appState.agendamentos
-        .filter(a => a.cliente_id === cliente.id && a.status_pagamento === 'devendo' && a.status !== 'cancelado')
-        .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
-    
-    document.getElementById('detalhesTotalServicos').textContent = totalServicos;
-    document.getElementById('detalhesValorTotal').textContent = formatCurrency(valorTotal);
-    document.getElementById('detalhesDebitos').textContent = formatCurrency(debitos);
-    
-    // --- 4. Renderizar Lista: HISTÓRICO (Aba 1) ---
+    // 3. BUSCA AGENDAMENTOS FRESCOS NO BANCO (A Mágica acontece aqui)
+    // Isso garante que agendamentos feitos no site público apareçam na hora
     const containerHist = document.getElementById('detalhesHistorico');
-    if (historicoList.length === 0) {
-        containerHist.innerHTML = '<div class="empty-state" style="padding:10px"><p>Sem histórico anterior</p></div>';
-    } else {
-        containerHist.innerHTML = historicoList.map(a => `
-            <div class="agendamento-item" style="margin-bottom: 10px; padding: 12px; opacity: 0.8;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                    <strong style="color:#fff">${a.servico_nome || 'Evento'}</strong>
-                    <span style="color:var(--gold)">${formatCurrency(a.valor)}</span>
-                </div>
-                <div style="font-size:0.8rem; color:#888;">
-                    ${formatDate(a.data)} • <span class="status-badge ${a.status}">${a.status}</span>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // --- 5. Renderizar Lista: AGENDADOS (Aba 2 - QUE FALTAVA) ---
-    const containerFuturo = document.getElementById('detalhesAgendados'); // Esse ID deve existir no seu HTML
+    const containerFuturo = document.getElementById('detalhesAgendados');
     
-    if (agendadosList.length === 0) {
-        containerFuturo.innerHTML = '<div class="empty-state" style="padding:10px"><p>Nenhum agendamento futuro</p></div>';
-    } else {
-        containerFuturo.innerHTML = agendadosList.map(a => `
-            <div class="agendamento-item" style="margin-bottom: 10px; padding: 12px; border-left: 3px solid var(--gold); background: rgba(212, 175, 55, 0.05);">
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                    <strong style="color:#fff">${a.servico_nome || 'Evento'}</strong>
-                    <span style="color:var(--gold)">${formatDate(a.data)}</span>
+    // Mostra "Carregando..." enquanto busca
+    containerFuturo.innerHTML = '<div style="padding:10px; color:#888;">Buscando agendamentos...</div>';
+    
+    try {
+        const { data: agendamentosReais, error } = await _supabase
+            .from('agendamentos')
+            .select('*')
+            .eq('cliente_id', clienteId)
+            .neq('status', 'cancelado') // Traz tudo que não foi cancelado
+            .order('data', { ascending: false }); // Do mais novo para o mais velho
+
+        if (error) throw error;
+
+        // --- 4. SEPARAÇÃO E CÁLCULOS ---
+        const hoje = new Date().toISOString().split('T')[0]; // "2026-02-05"
+
+        // Histórico: Data anterior a hoje OU Status Concluído
+        const historicoList = agendamentosReais.filter(a => a.data < hoje || a.status === 'concluido');
+        
+        // Futuros: Data igual ou maior que hoje E Status não concluído (Pendente/Agendado)
+        // AQUI ESTAVA O ERRO: Aceitamos 'pendente' (público) ou 'agendado' (admin)
+        const agendadosList = agendamentosReais.filter(a => a.data >= hoje && a.status !== 'concluido');
+
+        // Totais
+        const totalServicos = historicoList.filter(a => a.status === 'concluido').length;
+        const valorTotal = historicoList
+            .filter(a => a.status === 'concluido')
+            .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
+        
+        const debitos = agendamentosReais
+            .filter(a => a.status_pagamento === 'devendo')
+            .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
+
+        // Atualiza números na tela
+        document.getElementById('detalhesTotalServicos').textContent = totalServicos;
+        document.getElementById('detalhesValorTotal').textContent = formatCurrency(valorTotal);
+        document.getElementById('detalhesDebitos').textContent = formatCurrency(debitos);
+
+        // --- 5. RENDERIZA LISTA: HISTÓRICO ---
+        if (historicoList.length === 0) {
+            containerHist.innerHTML = '<div class="empty-state" style="padding:10px"><p>Sem histórico anterior</p></div>';
+        } else {
+            containerHist.innerHTML = historicoList.map(a => `
+                <div class="agendamento-item" style="margin-bottom: 10px; padding: 12px; opacity: 0.8; border: 1px solid #333; border-radius: 8px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <strong style="color:#fff">${a.servico_nome || a.evento_nome || 'Serviço'}</strong>
+                        <span style="color:var(--gold)">${formatCurrency(a.valor)}</span>
+                    </div>
+                    <div style="font-size:0.8rem; color:#888;">
+                        ${formatDate(a.data)} • <span class="status-badge ${a.status}">${a.status}</span>
+                    </div>
                 </div>
-                <div style="font-size:0.8rem; color:#ccc; display:flex; justify-content:space-between; align-items:center;">
-                    <span>Às ${formatTime(a.data)} • ${a.status_pagamento || 'Pendente'}</span>
-                    <button class="icon-btn-small" onclick="abrirModalAgendamento('${a.id}')" style="background:transparent; border:1px solid #444;">
-                        <i class="fas fa-pencil-alt"></i>
-                    </button>
+            `).join('');
+        }
+
+        // --- 6. RENDERIZA LISTA: AGENDADOS (FUTURO) ---
+        if (agendadosList.length === 0) {
+            containerFuturo.innerHTML = '<div class="empty-state" style="padding:10px"><p>Nenhum agendamento futuro</p></div>';
+        } else {
+            // Reordena futuros para o mais próximo ficar em cima
+            agendadosList.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+            containerFuturo.innerHTML = agendadosList.map(a => `
+                <div class="agendamento-item" style="margin-bottom: 10px; padding: 12px; border-left: 3px solid var(--gold); background: rgba(212, 175, 55, 0.05); border-radius: 4px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <strong style="color:#fff">${a.servico_nome || 'Agendamento Online'}</strong>
+                        <span style="color:var(--gold)">${formatDate(a.data)}</span>
+                    </div>
+                    <div style="font-size:0.8rem; color:#ccc; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Às ${formatTime(a.hora)} • <span style="text-transform:uppercase; font-size: 0.7rem; background:#333; padding:2px 5px; border-radius:4px;">${a.status}</span></span>
+                        
+                        <div style="display:flex; gap: 10px;">
+                            <button class="icon-btn-small" onclick="fecharModal('modalDetalhesCliente'); abrirModalAgendamento('${a.id}')" style="background:transparent; border:1px solid #444; color: #fff; cursor: pointer;">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
+
+    } catch (err) {
+        console.error("Erro ao buscar detalhes:", err);
+        containerFuturo.innerHTML = '<p style="color:red">Erro ao carregar.</p>';
     }
 
     // Abre o modal
     document.getElementById('modalDetalhesCliente').classList.add('active');
     document.getElementById('overlay').classList.add('active');
     
-    // Reseta para a primeira aba sempre que abrir
+    // Reseta para a primeira aba
     trocarTab('historico');
 }
 
