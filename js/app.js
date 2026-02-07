@@ -1709,5 +1709,37 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(verificarStatusGoogle, 1000);
 });
 
+(async function verificarLogin() {
+    const { data: { session } } = await _supabase.auth.getSession();
+    
+    // Se não tiver sessão e não estiver na tela de login, chuta pra fora
+    if (!session) {
+        window.location.href = 'login.html';
+    } else {
+        console.log("✅ Usuário logado:", session.user.email);
+        // Opcional: injeta o ID do usuário nas operações futuras se precisar
+        window.currentUserId = session.user.id;
+    }
+})();
+
+// ========================================
+// FUNÇÃO DE LOGOUT (SAIR)
+// ========================================
+window.fazerLogout = async function() {
+    if(!confirm("Deseja realmente sair do sistema?")) return;
+
+    try {
+        const { error } = await _supabase.auth.signOut();
+        if (error) throw error;
+        
+        // Redireciona para a tela de login
+        window.location.href = 'login.html';
+        
+    } catch (err) {
+        console.error("Erro ao sair:", err);
+        alert("Erro ao sair. Tente novamente.");
+    }
+};
+
 // Exporta para garantir
 window.verificarStatusGoogle = verificarStatusGoogle;
