@@ -2069,3 +2069,15 @@ canvas {
 .cal-day.today .event-dot {
     background-color: #000; 
 }
+
+/* Ajuste para botão de Sair no Mobile */
+.sidebar-footer {
+    padding-bottom: 40px; /* Empurra pra cima para fugir da barra do iPhone/Android */
+}
+
+/* Garante que o botão seja grande e fácil de tocar */
+.btn-logout {
+    min-height: 44px; /* Tamanho mínimo de toque Apple */
+    font-size: 1rem;
+    touch-action: manipulation; /* Melhora a resposta do toque */
+}

@@ -1723,22 +1723,36 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 // ========================================
-// FUNÇÃO DE LOGOUT (SAIR)
+// FUNÇÃO DE LOGOUT (OTIMIZADA PARA MOBILE)
 // ========================================
-window.fazerLogout = async function() {
-    if(!confirm("Deseja realmente sair do sistema?")) return;
+window.fazerLogout = async function(event) {
+    // Evita comportamentos fantasmas de clique duplo
+    if(event) event.preventDefault();
 
-    try {
-        const { error } = await _supabase.auth.signOut();
-        if (error) throw error;
-        
-        // Redireciona para a tela de login
-        window.location.href = 'login.html';
-        
-    } catch (err) {
-        console.error("Erro ao sair:", err);
-        alert("Erro ao sair. Tente novamente.");
-    }
+    console.log("Tentando sair..."); // Debug
+
+    // Pequeno delay para garantir que a UI do mobile processe o toque
+    setTimeout(async () => {
+        if(!confirm("Deseja realmente desconectar e sair?")) return;
+
+        try {
+            // Mostra feedback visual
+            const btn = document.querySelector('.btn-logout');
+            if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saindo...';
+
+            const { error } = await _supabase.auth.signOut();
+            if (error) throw error;
+            
+            // Força o redirecionamento
+            window.location.href = 'login.html';
+            
+        } catch (err) {
+            console.error("Erro ao sair:", err);
+            alert("Erro ao sair: " + err.message);
+            // Se der erro, recarrega a página para tentar limpar o estado
+            window.location.reload();
+        }
+    }, 100);
 };
 
 // Exporta para garantir
