@@ -1,6 +1,17 @@
+//api key resend = re_YTYgiHiT_g8bcov2XNGi5bZhheWjjtvwY
+
 // ========================================
 // Estética Premium - App JavaScript
 // ========================================
+
+if (window._supabase) {
+    window._supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+            console.log("🔄 Recuperação de senha detectada! Redirecionando...");
+            window.location.href = 'nova-senha.html';
+        }
+    });
+}
 
 // Estado global da aplicação
 const appState = {
