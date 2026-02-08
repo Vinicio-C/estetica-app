@@ -139,7 +139,6 @@
             <div id="dashboardPage" class="page active">
     
                 <div class="metrics-row">
-                    
                     <div class="metric-card">
                         <div class="metric-icon gold">
                             <i class="far fa-calendar-check"></i>
@@ -230,13 +229,17 @@
                     </button>
                     <h2 style="color: var(--gold); margin: 0;"><i class="far fa-calendar-alt"></i> Agenda</h2>
                     
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="copiarLinkAgendamento()" class="btn-share-link">
-                            <i class="fas fa-share-alt"></i> Link para Cliente
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button onclick="copiarLinkAgendamento()" class="btn-share-link" title="Copiar Link para Cliente">
+                            <i class="fas fa-share-alt"></i> <span class="texto-botao">Link</span>
                         </button>
 
-                        <button id="btnConnectGoogle" onclick="conectarGoogle()" class="btn-google-sync">
-                            <i class="fab fa-google"></i> Sincronizar
+                        <button id="btnConnectGoogle" onclick="conectarGoogle()" class="btn-google-sync" title="Conectar Agenda">
+                            <i class="fab fa-google"></i> <span class="texto-botao">Conectar</span>
+                        </button>
+
+                        <button onclick="sincronizarPendentesGoogle()" class="btn-secondary" style="padding: 10px 15px; border: 1px solid #D4AF37; color: #D4AF37;" title="Enviar agendamentos do site para o Google">
+                            <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
                 </div>
@@ -1032,7 +1035,8 @@
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <div id="toastContainer" class="toast-container"></div>
-    
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/supabase-client.js?v=4.0"></script>
     <script src="js/app-agenda.js?v=4.0"></script>
     <script src="js/app-relatorios.js?v=4.0"></script>

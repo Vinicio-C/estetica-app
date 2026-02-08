@@ -4,6 +4,48 @@
 // Estética Premium - App JavaScript
 // ========================================
 
+// ==========================================
+// 🔌 INICIALIZAÇÃO DO GOOGLE (Obrigatório)
+// ==========================================
+const CLIENT_ID = '202923629512-v63i5nl8et7rrmhhbah3brdqr510lgp4.apps.googleusercontent.com'; // <--- CONFIRA SE ESTÁ AQUI
+const API_KEY = 'AIzaSyDnpUtzu2QnkWSPvl2c-7tvy95BPioBB_g'; // <--- CONFIRA SE ESTÁ AQUI
+
+// Carrega a biblioteca gapi
+function handleClientLoad() {
+    gapi.load('client:auth2', initClient);
+}
+
+// Configura a biblioteca com suas chaves
+function initClient() {
+    gapi.client.init({
+        apiKey: API_KEY,
+        clientId: CLIENT_ID,
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
+        scope: "https://www.googleapis.com/auth/calendar.events"
+    }).then(function () {
+        console.log("✅ Google API Inicializada com Sucesso!");
+        
+        // Verifica se já estava logado antes
+        if (gapi.auth2.getAuthInstance().isSignedIn.get()) {
+            console.log("🔓 Usuário já estava logado no Google.");
+            // Atualiza ícone do botão se quiser
+        }
+    }, function(error) {
+        console.error("Erro ao inicializar Google API:", error);
+    });
+}
+
+// Inicia o carregamento assim que o script roda
+// Se o gapi já estiver na página (pelo script do HTML), ele carrega.
+if (typeof gapi !== 'undefined') {
+    handleClientLoad();
+} else {
+    // Se ainda não carregou, espera a janela carregar
+    window.onload = function() {
+        if (typeof gapi !== 'undefined') handleClientLoad();
+    }
+}
+
 // =========================================================
 // 🚨 FISCAL DE RECUPERAÇÃO DE SENHA (Coloque no TOPO do app.js)
 // =========================================================
@@ -2045,86 +2087,108 @@ if (typeof uploadFotoPerfil !== 'undefined') {
 }
 
 // ==============================================================
-// 🔄 ROBÔ SINCRONIZADOR (Manda agendamentos do Site -> Google)
+// 🔄 SINCRONIZADOR GOOGLE (Versão Manual e Automática)
 // ==============================================================
 window.sincronizarPendentesGoogle = async function() {
-    console.log("🔄 Verificando agendamentos pendentes de sincronização...");
-
-    // 1. Verifica se está conectado ao Google
-    if (!gapi.client || !gapi.client.calendar) {
-        console.log("⚠️ Google Calendar não conectado. Ignorando sincronização.");
+    console.log("🔄 Iniciando sincronização com Google Calendar...");
+    
+    // 1. Verifica se o Google está pronto
+    if (typeof gapi === 'undefined' || !gapi.client || !gapi.client.calendar) {
+        alert("⚠️ Google Calendar não está conectado ou carregado.\nClique no botão 'Sincronizar' no topo da Agenda primeiro.");
+        console.error("GAPI não inicializado:", gapi);
         return;
     }
 
+    // 2. Feedback visual
+    const btn = document.querySelector('button[onclick="sincronizarPendentesGoogle()"]');
+    const textoOriginal = btn ? btn.innerHTML : '';
+    if(btn) {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+        btn.disabled = true;
+    }
+
     try {
-        // 2. Busca agendamentos futuros que NÃO têm ID do Google (google_event_id IS NULL)
+        // 3. Busca agendamentos FUTUROS (de hoje em diante) que estão SEM ID do Google
         const hoje = new Date().toISOString().split('T')[0];
         
+        // Trazendo 'clientes' para pegar o nome
         const { data: pendentes, error } = await _supabase
             .from('agendamentos')
-            .select('*, clientes(nome)') // Traz o nome do cliente junto
-            .gte('data', hoje)           // Só agendamentos de hoje para frente
-            .is('google_event_id', null); // Que não estão no Google ainda
+            .select(`
+                *,
+                clientes ( nome )
+            `)
+            .gte('data', hoje)
+            .is('google_event_id', null); // O PULO DO GATO: Só pega quem não tem ID
 
         if (error) throw error;
 
         if (!pendentes || pendentes.length === 0) {
-            console.log("✅ Nenhum agendamento pendente para sincronizar.");
-            return;
-        }
-
-        console.log(`🚀 Encontrei ${pendentes.length} agendamentos para enviar ao Google!`);
-        showToast(`Sincronizando ${pendentes.length} agendamentos do site...`, "info");
-
-        // 3. Para cada agendamento, cria o evento no Google
-        for (const agenda of pendentes) {
+            alert("✅ Tudo sincronizado! Nenhum agendamento pendente.");
+        } else {
+            console.log(`🚀 Encontrei ${pendentes.length} agendamentos para enviar!`);
             
-            // Monta o evento
-            const inicio = `${agenda.data}T${agenda.hora}:00`;
-            // Calcula fim (assume 1h se não tiver duração, ou soma a duração)
-            // Aqui simplificado para +1 hora
-            const dataFim = new Date(new Date(inicio).getTime() + 60 * 60 * 1000); 
-            const fim = dataFim.toISOString().split('.')[0]; // Formata para ISO sem milisegundos
+            let sucesso = 0;
 
-            const evento = {
-                'summary': `💆‍♀️ ${agenda.servico} - ${agenda.clientes?.nome || 'Cliente Site'}`,
-                'description': `Agendamento via Site.\nObs: ${agenda.observacoes || '-'}`,
-                'start': {
-                    'dateTime': inicio,
-                    'timeZone': 'America/Sao_Paulo'
-                },
-                'end': {
-                    'dateTime': fim, // Precisa calcular o fim baseado na duração, aqui pus 1h padrão
-                    'timeZone': 'America/Sao_Paulo'
-                },
-                'colorId': '5' // Amarelo
-            };
+            // 4. Loop para enviar cada um
+            for (const agenda of pendentes) {
+                try {
+                    // Monta data/hora no formato do Google (ISO)
+                    const inicio = `${agenda.data}T${agenda.hora}:00`;
+                    // Calcula fim (adiciona 1 hora por padrão)
+                    const dataInicioObj = new Date(inicio);
+                    const dataFimObj = new Date(dataInicioObj.getTime() + 60*60*1000); 
+                    const fim = dataFimObj.toISOString().split('.')[0]; // Remove milisegundos
 
-            // Envia pro Google
-            const request = gapi.client.calendar.events.insert({
-                'calendarId': 'primary',
-                'resource': evento
-            });
+                    const nomeCliente = agenda.clientes ? agenda.clientes.nome : 'Cliente Site';
 
-            const response = await request;
+                    const evento = {
+                        'summary': `💆‍♀️ ${agenda.servico} - ${nomeCliente}`,
+                        'description': `Agendamento via Site.\nObs: ${agenda.observacoes || ''}`,
+                        'start': {
+                            'dateTime': inicio,
+                            'timeZone': 'America/Sao_Paulo'
+                        },
+                        'end': {
+                            'dateTime': fim,
+                            'timeZone': 'America/Sao_Paulo'
+                        },
+                        'colorId': '5' // Amarelo
+                    };
 
-            if (response.result && response.result.id) {
-                // 4. Salva o ID do Google de volta no Banco (para não duplicar depois)
-                await _supabase
-                    .from('agendamentos')
-                    .update({ google_event_id: response.result.id })
-                    .eq('id', agenda.id);
-                
-                console.log(`✅ Agendamento ${agenda.id} sincronizado!`);
+                    // Envia para o Google
+                    const response = await gapi.client.calendar.events.insert({
+                        'calendarId': 'primary',
+                        'resource': evento
+                    });
+
+                    // Se deu certo, salva o ID do Google no Banco (para não duplicar na próxima)
+                    if (response.result && response.result.id) {
+                        await _supabase
+                            .from('agendamentos')
+                            .update({ google_event_id: response.result.id })
+                            .eq('id', agenda.id);
+                        
+                        sucesso++;
+                        console.log(`✅ Agendamento ${agenda.id} enviado! ID Google: ${response.result.id}`);
+                    }
+
+                } catch (erroEnvio) {
+                    console.error(`Erro ao enviar agendamento ${agenda.id}:`, erroEnvio);
+                }
             }
+
+            alert(`🎉 Sincronização concluída!\n${sucesso} agendamentos enviados para o Google.`);
         }
-        
-        showToast("Agenda do Google atualizada com sucesso!", "success");
-        // Recarrega a lista da tela
-        if(window.carregarAgendamentos) window.carregarAgendamentos();
 
     } catch (erro) {
-        console.error("Erro na sincronização:", erro);
+        console.error("Erro geral na sincronização:", erro);
+        alert("Erro ao sincronizar: " + erro.message);
+    } finally {
+        if(btn) {
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
+        }
     }
 };
 
