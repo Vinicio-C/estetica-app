@@ -1746,16 +1746,31 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(verificarStatusGoogle, 1000);
 });
 
+// ========================================
+// VERIFICAÇÃO DE LOGIN (COM PROTEÇÃO PARA RECUPERAÇÃO)
+// ========================================
 (async function verificarLogin() {
+    // 1. O PULO DO GATO: Se tiver "type=recovery" na URL, NÃO FAÇA NADA!
+    // Deixe o Supabase processar o token e o "Fiscal" lá de cima redirecionar.
+    if (window.location.hash && window.location.hash.includes('type=recovery')) {
+        console.log("🛑 Link de recuperação detectado! Pausando verificação de login...");
+        return; // Sai da função e deixa o fluxo de recuperação seguir
+    }
+
     const { data: { session } } = await _supabase.auth.getSession();
     
     // Se não tiver sessão e não estiver na tela de login, chuta pra fora
     if (!session) {
-        window.location.href = 'login.html';
+        // Verifica se já não estamos na tela de login para evitar loop
+        if (!window.location.href.includes('login.html')) {
+            window.location.href = 'login.html';
+        }
     } else {
         console.log("✅ Usuário logado:", session.user.email);
-        // Opcional: injeta o ID do usuário nas operações futuras se precisar
-        window.currentUserId = session.user.id;
+        if (window.location.href.includes('login.html')) {
+            // Se estiver na tela de login mas já tem sessão, manda pro dashboard
+            window.location.href = 'index.html';
+        }
     }
 })();
 
