@@ -2044,4 +2044,104 @@ if (typeof uploadFotoPerfil !== 'undefined') {
     window.uploadFotoPerfil = uploadFotoPerfil;
 }
 
+// ==============================================================
+// 🔄 ROBÔ SINCRONIZADOR (Manda agendamentos do Site -> Google)
+// ==============================================================
+window.sincronizarPendentesGoogle = async function() {
+    console.log("🔄 Verificando agendamentos pendentes de sincronização...");
+
+    // 1. Verifica se está conectado ao Google
+    if (!gapi.client || !gapi.client.calendar) {
+        console.log("⚠️ Google Calendar não conectado. Ignorando sincronização.");
+        return;
+    }
+
+    try {
+        // 2. Busca agendamentos futuros que NÃO têm ID do Google (google_event_id IS NULL)
+        const hoje = new Date().toISOString().split('T')[0];
+        
+        const { data: pendentes, error } = await _supabase
+            .from('agendamentos')
+            .select('*, clientes(nome)') // Traz o nome do cliente junto
+            .gte('data', hoje)           // Só agendamentos de hoje para frente
+            .is('google_event_id', null); // Que não estão no Google ainda
+
+        if (error) throw error;
+
+        if (!pendentes || pendentes.length === 0) {
+            console.log("✅ Nenhum agendamento pendente para sincronizar.");
+            return;
+        }
+
+        console.log(`🚀 Encontrei ${pendentes.length} agendamentos para enviar ao Google!`);
+        showToast(`Sincronizando ${pendentes.length} agendamentos do site...`, "info");
+
+        // 3. Para cada agendamento, cria o evento no Google
+        for (const agenda of pendentes) {
+            
+            // Monta o evento
+            const inicio = `${agenda.data}T${agenda.hora}:00`;
+            // Calcula fim (assume 1h se não tiver duração, ou soma a duração)
+            // Aqui simplificado para +1 hora
+            const dataFim = new Date(new Date(inicio).getTime() + 60 * 60 * 1000); 
+            const fim = dataFim.toISOString().split('.')[0]; // Formata para ISO sem milisegundos
+
+            const evento = {
+                'summary': `💆‍♀️ ${agenda.servico} - ${agenda.clientes?.nome || 'Cliente Site'}`,
+                'description': `Agendamento via Site.\nObs: ${agenda.observacoes || '-'}`,
+                'start': {
+                    'dateTime': inicio,
+                    'timeZone': 'America/Sao_Paulo'
+                },
+                'end': {
+                    'dateTime': fim, // Precisa calcular o fim baseado na duração, aqui pus 1h padrão
+                    'timeZone': 'America/Sao_Paulo'
+                },
+                'colorId': '5' // Amarelo
+            };
+
+            // Envia pro Google
+            const request = gapi.client.calendar.events.insert({
+                'calendarId': 'primary',
+                'resource': evento
+            });
+
+            const response = await request;
+
+            if (response.result && response.result.id) {
+                // 4. Salva o ID do Google de volta no Banco (para não duplicar depois)
+                await _supabase
+                    .from('agendamentos')
+                    .update({ google_event_id: response.result.id })
+                    .eq('id', agenda.id);
+                
+                console.log(`✅ Agendamento ${agenda.id} sincronizado!`);
+            }
+        }
+        
+        showToast("Agenda do Google atualizada com sucesso!", "success");
+        // Recarrega a lista da tela
+        if(window.carregarAgendamentos) window.carregarAgendamentos();
+
+    } catch (erro) {
+        console.error("Erro na sincronização:", erro);
+    }
+};
+
+// Monitora a conexão do Google
+// Assim que conectar, ele roda a sincronização
+function iniciarVigilanteGoogle() {
+    // Tenta rodar a cada 5 segundos para garantir que o gapi carregou
+    const checkGapi = setInterval(() => {
+        if (typeof gapi !== 'undefined' && gapi.auth2 && gapi.auth2.getAuthInstance().isSignedIn.get()) {
+            clearInterval(checkGapi); // Parar de checar
+            console.log("🔗 Conexão Google detectada! Iniciando Sincronização...");
+            window.sincronizarPendentesGoogle();
+        }
+    }, 3000);
+}
+
+// Inicia o vigilante quando a página carrega
+document.addEventListener('DOMContentLoaded', iniciarVigilanteGoogle);
+
 window.copiarLinkPerfil = copiarLinkPerfil; // Se tiver criado essa também
