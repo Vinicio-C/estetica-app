@@ -1976,3 +1976,6 @@ function atualizarAvatarNaTela(url) {
 
 // Exporta para garantir
 window.verificarStatusGoogle = verificarStatusGoogle;
+window.carregarDadosPerfil = carregarDadosPerfil;
+window.uploadFotoPerfil = uploadFotoPerfil;
+window.copiarLinkPerfil = copiarLinkPerfil; // Se tiver criado essa também
