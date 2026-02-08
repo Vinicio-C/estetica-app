@@ -358,7 +358,7 @@
                         </div>
                     </div>
 
-                    <form id="formPerfilInterno">
+                    <form id="formPerfilInterno" onsubmit="salvarPerfilReal(event)">
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Nome Completo (Visível para o cliente)</label>
@@ -1034,75 +1034,76 @@
     <div id="toastContainer" class="toast-container"></div>
     
     <script src="js/supabase-client.js?v=4.0"></script> 
-    <script src="js/app.js?v=4.0"></script>
     <script src="js/app-agenda.js?v=4.0"></script>
     <script src="js/app-relatorios.js?v=4.0"></script>
     <script src="js/popular-dados.js?v=4.0"></script>
     <script src="js/app-anamnese.js?v=4.0"></script>
-    <script src="js/app.js?v=99999"></script> <script>
-    console.log("🚨 SCRIPT DE EMERGÊNCIA ATIVADO 🚨");
+    <script>
+        console.log("🚨 SCRIPT DE EMERGÊNCIA V2 (CARREGAR + SALVAR) 🚨");
 
-    // Força a função a existir na memória global
-    window.carregarDadosPerfil = async function() {
-        console.log("⚡ Botão Perfil Clicado (Via Script HTML)!");
-        
-        // 1. Verifica login
-        const { data: { user } } = await _supabase.auth.getUser();
-        if (!user) {
-            alert("Erro: Usuário não logado.");
-            return;
-        }
+        // --- 1. FUNÇÃO DE CARREGAR (Já estava funcionando) ---
+        window.carregarDadosPerfil = async function() {
+            console.log("⚡ Abrindo Perfil...");
+            const { data: { user } } = await _supabase.auth.getUser();
+            if (!user) return alert("Faça login novamente.");
 
-        // 2. Preenche dados fixos
-        const emailEl = document.getElementById('displayEmail');
-        if(emailEl) emailEl.textContent = user.email;
+            // Preenche Email e Link
+            document.getElementById('displayEmail').textContent = user.email;
+            const link = `${window.location.origin}${window.location.pathname.replace('index.html', '')}agendar.html?ref=${user.id}`;
+            if(document.getElementById('profLink')) document.getElementById('profLink').value = link;
 
-        // Gera Link
-        const urlBase = window.location.origin + window.location.pathname.replace('index.html', '');
-        const linkPublico = `${urlBase}agendar.html?ref=${user.id}`;
-        const inputLink = document.getElementById('profLink');
-        if(inputLink) inputLink.value = linkPublico;
-
-        // 3. Busca no banco
-        const { data: perfil, error } = await _supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-
-        if (perfil) {
-            // Preenche inputs (verifica se existem antes de tentar preencher)
-            const elNome = document.getElementById('profNome');
-            if(elNome) elNome.value = perfil.nome || '';
+            // Busca dados
+            const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
             
-            const elDisplay = document.getElementById('displayNome');
-            if(elDisplay) elDisplay.textContent = perfil.nome || 'Doutora';
-            
-            const elEsp = document.getElementById('profEspecialidade');
-            if(elEsp) elEsp.value = perfil.especialidade || '';
-            
-            const elTel = document.getElementById('profTelefone');
-            if(elTel) elTel.value = perfil.telefone || '';
-            
-            // Carrega foto se a função existir
-            if (perfil.foto_url && window.atualizarAvatarNaTela) {
-                window.atualizarAvatarNaTela(perfil.foto_url);
+            if (perfil) {
+                if(document.getElementById('profNome')) document.getElementById('profNome').value = perfil.nome || '';
+                if(document.getElementById('profEspecialidade')) document.getElementById('profEspecialidade').value = perfil.especialidade || '';
+                if(document.getElementById('profTelefone')) document.getElementById('profTelefone').value = perfil.telefone || '';
+                
+                // Carrega foto (se tiver a função)
+                if (perfil.foto_url && window.atualizarAvatarNaTela) window.atualizarAvatarNaTela(perfil.foto_url);
             }
-        }
-        
-        // 4. Troca de Tela
-        // Esconde todas as páginas
-        document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-        
-        // Mostra a de perfil
-        const pagePerfil = document.getElementById('perfilPage');
-        if (pagePerfil) {
-            pagePerfil.style.display = 'block';
-        } else {
-            console.error("ERRO: Não achei a div id='perfilPage'!");
-            alert("Erro: Página de perfil não encontrada no HTML.");
-        }
-    };
-</script>
+
+            // Mostra a tela
+            document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+            document.getElementById('perfilPage').style.display = 'block';
+        };
+
+        // --- 2. NOVA FUNÇÃO DE SALVAR (Adicionei agora) ---
+        window.salvarPerfilReal = async function(event) {
+            event.preventDefault(); // Não deixa recarregar a página
+            
+            const btn = event.target.querySelector('button');
+            const textoAntigo = btn.textContent;
+            btn.textContent = "Salvando...";
+            btn.disabled = true;
+
+            try {
+                const { data: { user } } = await _supabase.auth.getUser();
+                
+                const dados = {
+                    id: user.id,
+                    nome: document.getElementById('profNome').value,
+                    especialidade: document.getElementById('profEspecialidade').value,
+                    telefone: document.getElementById('profTelefone').value
+                };
+
+                const { error } = await _supabase.from('profiles').upsert(dados);
+                if (error) throw error;
+
+                alert("Perfil salvo com sucesso! 💎");
+                
+                // Atualiza o nome no menu lateral se existir
+                if(document.getElementById('menuNomeUser')) document.getElementById('menuNomeUser').textContent = dados.nome;
+
+            } catch (error) {
+                alert("Erro ao salvar: " + error.message);
+                console.error(error);
+            } finally {
+                btn.textContent = textoAntigo;
+                btn.disabled = false;
+            }
+        };
+    </script>
 </body>
 </html>
