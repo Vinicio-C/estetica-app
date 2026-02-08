@@ -1039,5 +1039,70 @@
     <script src="js/app-relatorios.js?v=4.0"></script>
     <script src="js/popular-dados.js?v=4.0"></script>
     <script src="js/app-anamnese.js?v=4.0"></script>
+    <script src="js/app.js?v=99999"></script> <script>
+    console.log("🚨 SCRIPT DE EMERGÊNCIA ATIVADO 🚨");
+
+    // Força a função a existir na memória global
+    window.carregarDadosPerfil = async function() {
+        console.log("⚡ Botão Perfil Clicado (Via Script HTML)!");
+        
+        // 1. Verifica login
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (!user) {
+            alert("Erro: Usuário não logado.");
+            return;
+        }
+
+        // 2. Preenche dados fixos
+        const emailEl = document.getElementById('displayEmail');
+        if(emailEl) emailEl.textContent = user.email;
+
+        // Gera Link
+        const urlBase = window.location.origin + window.location.pathname.replace('index.html', '');
+        const linkPublico = `${urlBase}agendar.html?ref=${user.id}`;
+        const inputLink = document.getElementById('profLink');
+        if(inputLink) inputLink.value = linkPublico;
+
+        // 3. Busca no banco
+        const { data: perfil, error } = await _supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (perfil) {
+            // Preenche inputs (verifica se existem antes de tentar preencher)
+            const elNome = document.getElementById('profNome');
+            if(elNome) elNome.value = perfil.nome || '';
+            
+            const elDisplay = document.getElementById('displayNome');
+            if(elDisplay) elDisplay.textContent = perfil.nome || 'Doutora';
+            
+            const elEsp = document.getElementById('profEspecialidade');
+            if(elEsp) elEsp.value = perfil.especialidade || '';
+            
+            const elTel = document.getElementById('profTelefone');
+            if(elTel) elTel.value = perfil.telefone || '';
+            
+            // Carrega foto se a função existir
+            if (perfil.foto_url && window.atualizarAvatarNaTela) {
+                window.atualizarAvatarNaTela(perfil.foto_url);
+            }
+        }
+        
+        // 4. Troca de Tela
+        // Esconde todas as páginas
+        document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+        
+        // Mostra a de perfil
+        const pagePerfil = document.getElementById('perfilPage');
+        if (pagePerfil) {
+            pagePerfil.style.display = 'block';
+        } else {
+            console.error("ERRO: Não achei a div id='perfilPage'!");
+            alert("Erro: Página de perfil não encontrada no HTML.");
+        }
+    };
+</script>
 </body>
 </html>
