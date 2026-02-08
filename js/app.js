@@ -1968,7 +1968,7 @@ function atualizarAvatarNaTela(url) {
         img.src = url;
         img.style.display = 'block'; // Mostra a foto
         icon.style.display = 'none'; // Esconde o ícone
-    } else {
+    } else { 
         img.style.display = 'none';
         icon.style.display = 'flex';
     }
@@ -1976,6 +1976,47 @@ function atualizarAvatarNaTela(url) {
 
 // Exporta para garantir
 window.verificarStatusGoogle = verificarStatusGoogle;
-window.carregarDadosPerfil = carregarDadosPerfil;
+window.carregarDadosPerfil = async function() {
+    console.log("⚡ Botão Perfil Clicado!"); // Log para provar que funcionou
+    
+    // 1. Verifica login
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) return;
+
+    // 2. Preenche dados fixos
+    const emailEl = document.getElementById('displayEmail');
+    if(emailEl) emailEl.textContent = user.email;
+
+    // 3. Busca no banco
+    const { data: perfil, error } = await _supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (perfil) {
+        document.getElementById('profNome').value = perfil.nome || '';
+        const displayNome = document.getElementById('displayNome');
+        if(displayNome) displayNome.textContent = perfil.nome || 'Doutora';
+        
+        document.getElementById('profEspecialidade').value = perfil.especialidade || '';
+        document.getElementById('profTelefone').value = perfil.telefone || '';
+        
+        // Se tiver foto, carrega
+        if (perfil.foto_url && window.atualizarAvatarNaTela) {
+            window.atualizarAvatarNaTela(perfil.foto_url);
+        }
+    }
+    
+    // 4. Troca de Tela
+    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+    document.getElementById('perfilPage').style.display = 'block';
+};
+
+// Expor também a função de upload (caso tenha dado erro nela também)
+if (typeof uploadFotoPerfil !== 'undefined') {
+    window.uploadFotoPerfil = uploadFotoPerfil;
+}
+
 window.uploadFotoPerfil = uploadFotoPerfil;
 window.copiarLinkPerfil = copiarLinkPerfil; // Se tiver criado essa também
