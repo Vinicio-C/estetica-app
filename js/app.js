@@ -1903,6 +1903,7 @@ function copiarLinkPerfil() {
 
 // --- FUNÇÃO DE UPLOAD DE FOTO ---
 async function uploadFotoPerfil(event) {
+    console.log("📸 Iniciando upload...");
     const file = event.target.files[0];
     if (!file) return;
 
@@ -1977,17 +1978,22 @@ function atualizarAvatarNaTela(url) {
 // Exporta para garantir
 window.verificarStatusGoogle = verificarStatusGoogle;
 window.carregarDadosPerfil = async function() {
-    console.log("⚡ Botão Perfil Clicado!"); // Log para provar que funcionou
-    
+    console.log("🚀 Função Carregar Perfil foi chamada!"); 
+
     // 1. Verifica login
     const { data: { user } } = await _supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+        alert("Usuário não logado!");
+        return;
+    }
 
-    // 2. Preenche dados fixos
+    console.log("Usuário encontrado:", user.email);
+
+    // 2. Preenche o e-mail no cabeçalho
     const emailEl = document.getElementById('displayEmail');
     if(emailEl) emailEl.textContent = user.email;
 
-    // 3. Busca no banco
+    // 3. Busca dados no banco
     const { data: perfil, error } = await _supabase
         .from('profiles')
         .select('*')
@@ -1995,22 +2001,42 @@ window.carregarDadosPerfil = async function() {
         .maybeSingle();
 
     if (perfil) {
-        document.getElementById('profNome').value = perfil.nome || '';
-        const displayNome = document.getElementById('displayNome');
-        if(displayNome) displayNome.textContent = perfil.nome || 'Doutora';
+        console.log("Perfil encontrado:", perfil);
         
-        document.getElementById('profEspecialidade').value = perfil.especialidade || '';
-        document.getElementById('profTelefone').value = perfil.telefone || '';
-        
-        // Se tiver foto, carrega
+        // Preenche os campos com segurança (verifica se o elemento existe antes)
+        if(document.getElementById('profNome')) 
+            document.getElementById('profNome').value = perfil.nome || '';
+            
+        if(document.getElementById('displayNome')) 
+            document.getElementById('displayNome').textContent = perfil.nome || 'Doutora';
+            
+        if(document.getElementById('profEspecialidade')) 
+            document.getElementById('profEspecialidade').value = perfil.especialidade || '';
+            
+        if(document.getElementById('profTelefone')) 
+            document.getElementById('profTelefone').value = perfil.telefone || '';
+            
+        // Carrega foto se existir e a função de foto estiver disponível
         if (perfil.foto_url && window.atualizarAvatarNaTela) {
             window.atualizarAvatarNaTela(perfil.foto_url);
         }
+    } else {
+        console.log("Nenhum perfil criado ainda.");
     }
-    
-    // 4. Troca de Tela
-    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-    document.getElementById('perfilPage').style.display = 'block';
+
+    // 4. TROCA DE TELA (Oculta todas e mostra a de perfil)
+    // Esconde todas as divs com classe 'page'
+    document.querySelectorAll('.page').forEach(page => {
+        page.style.display = 'none';
+    });
+
+    // Mostra apenas a div de perfil
+    const divPerfil = document.getElementById('perfilPage');
+    if (divPerfil) {
+        divPerfil.style.display = 'block';
+    } else {
+        alert("ERRO CRÍTICO: Não encontrei a div com id='perfilPage' no seu HTML!");
+    }
 };
 
 // Expor também a função de upload (caso tenha dado erro nela também)
@@ -2018,5 +2044,4 @@ if (typeof uploadFotoPerfil !== 'undefined') {
     window.uploadFotoPerfil = uploadFotoPerfil;
 }
 
-window.uploadFotoPerfil = uploadFotoPerfil;
 window.copiarLinkPerfil = copiarLinkPerfil; // Se tiver criado essa também
