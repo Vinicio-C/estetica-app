@@ -2081,3 +2081,32 @@ canvas {
     font-size: 1rem;
     touch-action: manipulation; /* Melhora a resposta do toque */
 }
+
+/* Botão de Novo Agendamento (Estilo Luxo) */
+.btn-outline {
+    background-color: transparent; /* Fundo transparente */
+    border: 2px solid #D4AF37;     /* Borda Dourada */
+    color: #D4AF37;                /* Texto Dourado */
+    padding: 12px 30px;            /* Espaçamento interno */
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;     /* Letras maiúsculas */
+    border-radius: 8px;            /* Cantos arredondados */
+    cursor: pointer;
+    transition: all 0.3s ease;     /* Animação suave */
+    margin-top: 20px;              /* Espaço acima dele */
+    font-family: inherit;          /* Usa a mesma fonte do site */
+}
+
+/* Efeito ao passar o mouse (Hover) */
+.btn-outline:hover {
+    background-color: #D4AF37;     /* Fica dourado */
+    color: #121212;                /* Texto fica preto */
+    transform: translateY(-2px);   /* Sobe um pouquinho */
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); /* Brilho dourado */
+}
+
+/* Efeito ao clicar */
+.btn-outline:active {
+    transform: scale(0.98);        /* Diminui um pouquinho ao clicar */
+}
