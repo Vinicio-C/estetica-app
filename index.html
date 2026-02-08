@@ -1043,166 +1043,149 @@
     <script src="js/popular-dados.js?v=4.0"></script>
     <script src="js/app-anamnese.js?v=4.0"></script>
     <script src="js/app.js?v=99999"></script>
-    <script>
-        console.log("🚨 SCRIPT DE EMERGÊNCIA V2 (CARREGAR + SALVAR) 🚨");
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://apis.google.com/js/api.js"></script> <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-        // --- 1. FUNÇÃO DE CARREGAR (Já estava funcionando) ---
+    <script src="js/supabase-client.js?v=4.0"></script> 
+    <script src="js/app.js?v=99999"></script> 
+    <script src="js/app-agenda.js?v=4.0"></script>
+    <script src="js/app-relatorios.js?v=4.0"></script>
+    <script src="js/popular-dados.js?v=4.0"></script>
+    <script src="js/app-anamnese.js?v=4.0"></script>
+
+    <script>
+        console.log("🚨 SCRIPT PERFIL ATIVO");
         window.carregarDadosPerfil = async function() {
+            /* ... (código do perfil que já funcionava) ... */
             console.log("⚡ Abrindo Perfil...");
             const { data: { user } } = await _supabase.auth.getUser();
             if (!user) return alert("Faça login novamente.");
-
-            // Preenche Email e Link
+            
             document.getElementById('displayEmail').textContent = user.email;
             const link = `${window.location.origin}${window.location.pathname.replace('index.html', '')}agendar.html?ref=${user.id}`;
             if(document.getElementById('profLink')) document.getElementById('profLink').value = link;
 
-            // Busca dados
             const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-            
             if (perfil) {
                 if(document.getElementById('profNome')) document.getElementById('profNome').value = perfil.nome || '';
                 if(document.getElementById('profEspecialidade')) document.getElementById('profEspecialidade').value = perfil.especialidade || '';
                 if(document.getElementById('profTelefone')) document.getElementById('profTelefone').value = perfil.telefone || '';
-                
-                // Carrega foto (se tiver a função)
                 if (perfil.foto_url && window.atualizarAvatarNaTela) window.atualizarAvatarNaTela(perfil.foto_url);
             }
-
-            // Mostra a tela
             document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
             document.getElementById('perfilPage').style.display = 'block';
         };
 
-        // --- 2. NOVA FUNÇÃO DE SALVAR (Adicionei agora) ---
         window.salvarPerfilReal = async function(event) {
-            event.preventDefault(); // Não deixa recarregar a página
-            
+            event.preventDefault();
             const btn = event.target.querySelector('button');
-            const textoAntigo = btn.textContent;
+            const txt = btn.textContent;
             btn.textContent = "Salvando...";
-            btn.disabled = true;
-
             try {
                 const { data: { user } } = await _supabase.auth.getUser();
-                
                 const dados = {
                     id: user.id,
                     nome: document.getElementById('profNome').value,
                     especialidade: document.getElementById('profEspecialidade').value,
                     telefone: document.getElementById('profTelefone').value
                 };
-
                 const { error } = await _supabase.from('profiles').upsert(dados);
                 if (error) throw error;
-
-                alert("Perfil salvo com sucesso! 💎");
-                
-                // Atualiza o nome no menu lateral se existir
-                if(document.getElementById('menuNomeUser')) document.getElementById('menuNomeUser').textContent = dados.nome;
-
-            } catch (error) {
-                alert("Erro ao salvar: " + error.message);
-                console.error(error);
-            } finally {
-                btn.textContent = textoAntigo;
-                btn.disabled = false;
-            }
+                alert("Salvo com sucesso!");
+            } catch (e) { alert("Erro: " + e.message); }
+            finally { btn.textContent = txt; }
         };
     </script>
-    <script>
-        console.log("🚨 SCRIPT GOOGLE SYNC CARREGADO NO HTML 🚨");
 
-        // Força a função a ser Global usando 'window.'
+    <script>
+        console.log("🚨 SCRIPT GOOGLE SYNC V3 (AUTO-REPAIR) 🚨");
+
+        // --- CONFIGURAÇÃO (PREENCHA AQUI!) ---
+        const GOOGLE_API_KEY = 'AIzaSyDnpUtzu2QnkWSPvl2c'; // <--- ⚠️ COLE SUA CHAVE AIza... AQUI
+        const GOOGLE_CLIENT_ID = '202923629512-v63i5nl8et7rrmhhbah3brdqr510lgp4.apps.googleusercontent.com';
+
         window.sincronizarPendentesGoogle = async function() {
-            console.log("🖱️ Botão de Sincronizar Clicado!");
+            console.log("🖱️ Sincronizar Clicado. Verificando motor...");
             
-            // 1. Acha o botão para dar feedback visual (Loading)
             const btn = document.querySelector('button[onclick*="sincronizarPendentesGoogle"]');
-            const iconeOriginal = btn ? btn.innerHTML : '';
-            
-            if (btn) {
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
-                btn.disabled = true;
-            }
+            const originalIcon = btn ? btn.innerHTML : '';
+            if(btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true; }
 
             try {
-                // 2. Verificações de Segurança do Google
-                if (typeof gapi === 'undefined' || !gapi.client) {
-                    throw new Error("A biblioteca do Google (GAPI) não carregou. Recarregue a página.");
-                }
-                
-                const auth = gapi.auth2 ? gapi.auth2.getAuthInstance() : null;
-                if (!auth || !auth.isSignedIn.get()) {
-                    throw new Error("Você não está conectado. Clique no botão 'G' (Conectar) primeiro.");
+                // 1. AUTO-CORREÇÃO: Se o gapi existe mas não iniciou, inicia agora
+                if (typeof gapi !== 'undefined' && (!gapi.client || !gapi.client.calendar)) {
+                    console.log("⚠️ GAPI não iniciado. Iniciando manualmente agora...");
+                    
+                    await new Promise((resolve, reject) => {
+                        gapi.load('client:auth2', resolve);
+                    });
+
+                    await gapi.client.init({
+                        apiKey: GOOGLE_API_KEY,
+                        clientId: GOOGLE_CLIENT_ID,
+                        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
+                        scope: "https://www.googleapis.com/auth/calendar.events"
+                    });
+                    console.log("✅ GAPI Iniciado via Script de Emergência!");
                 }
 
-                console.log("✅ Google API OK. Buscando agendamentos...");
+                // 2. Verifica Conexão
+                if (typeof gapi === 'undefined' || !gapi.auth2) {
+                    throw new Error("Erro Crítico: A biblioteca do Google não carregou. Verifique sua internet.");
+                }
 
-                // 3. Busca no Supabase (Agendamentos futuros sem ID do Google)
+                const auth = gapi.auth2.getAuthInstance();
+                if (!auth.isSignedIn.get()) {
+                    // Tenta logar na hora se não estiver logado
+                    await auth.signIn();
+                }
+
+                // 3. Busca Pendentes
                 const hoje = new Date().toISOString().split('T')[0];
-                
-                const { data: pendentes, error } = await _supabase
+                const { data: pendentes } = await _supabase
                     .from('agendamentos')
                     .select('*, clientes(nome)')
                     .gte('data', hoje)
-                    .is('google_event_id', null); // Só os que faltam enviar
-
-                if (error) throw error;
+                    .is('google_event_id', null);
 
                 if (!pendentes || pendentes.length === 0) {
-                    alert("✅ Tudo sincronizado! Não há novos agendamentos para enviar.");
+                    alert("✅ Tudo sincronizado! Nada novo para enviar.");
                 } else {
-                    console.log(`🚀 Enviando ${pendentes.length} agendamentos...`);
-                    
                     let enviados = 0;
-                    
-                    // 4. Loop de Envio
                     for (const agenda of pendentes) {
                         try {
                             const inicio = `${agenda.data}T${agenda.hora}:00`;
-                            const dataFim = new Date(new Date(inicio).getTime() + 60*60*1000); // +1 hora
-                            const fim = dataFim.toISOString().split('.')[0];
-                            const nomeCliente = agenda.clientes?.nome || 'Cliente Site';
-
+                            const fim = new Date(new Date(inicio).getTime() + 60*60*1000).toISOString().split('.')[0];
+                            
                             const evento = {
-                                'summary': `💆‍♀️ ${agenda.servico} - ${nomeCliente}`,
+                                'summary': `💆‍♀️ ${agenda.servico} - ${agenda.clientes?.nome || 'Site'}`,
                                 'description': `Obs: ${agenda.observacoes || '-'}`,
                                 'start': { 'dateTime': inicio, 'timeZone': 'America/Sao_Paulo' },
-                                'end':   { 'dateTime': fim, 'timeZone': 'America/Sao_Paulo' },
-                                'colorId': '5' // Amarelo
+                                'end':   { 'dateTime': fim, 'timeZone': 'America/Sao_Paulo' }
                             };
 
-                            const response = await gapi.client.calendar.events.insert({
+                            const res = await gapi.client.calendar.events.insert({
                                 'calendarId': 'primary',
                                 'resource': evento
                             });
 
-                            if (response.result?.id) {
-                                // Salva ID no banco para não duplicar
-                                await _supabase.from('agendamentos')
-                                    .update({ google_event_id: response.result.id })
-                                    .eq('id', agenda.id);
+                            if (res.result.id) {
+                                await _supabase.from('agendamentos').update({ google_event_id: res.result.id }).eq('id', agenda.id);
                                 enviados++;
                             }
-                        } catch (err) {
-                            console.error("Erro no item:", err);
-                        }
+                        } catch (err) { console.error(err); }
                     }
-                    alert(`🎉 Sucesso! ${enviados} agendamentos foram para o Google Agenda.`);
+                    alert(`🎉 Sucesso! ${enviados} agendamentos enviados.`);
                 }
 
             } catch (erro) {
-                console.error("Erro Sync:", erro);
-                alert("Erro: " + erro.message);
+                console.error(erro);
+                alert("Erro: " + erro.message + "\n(Verifique se colou a API KEY no script)");
             } finally {
-                // Restaura o botão
-                if (btn) {
-                    btn.innerHTML = iconeOriginal; // Volta o ícone normal
-                    btn.disabled = false;
-                }
+                if(btn) { btn.innerHTML = originalIcon; btn.disabled = false; }
             }
         };
     </script>
+    
 </body>
 </html>
