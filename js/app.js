@@ -1806,5 +1806,173 @@ window.fazerLogout = async function(event) {
     }, 100);
 };
 
+// ==========================================
+// LÓGICA DO PERFIL
+// ==========================================
+
+// Função chamada ao clicar no menu "Meu Perfil"
+async function carregarDadosPerfil() {
+    console.log("Carregando perfil...");
+    
+    // 1. Verifica sessão
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) return;
+
+    // 2. Preenche dados fixos (Email e Link)
+    document.getElementById('displayEmail').textContent = user.email;
+    
+    // Gera o link público baseado no ID
+    const urlBase = window.location.origin + window.location.pathname.replace('index.html', '');
+    const linkPublico = `${urlBase}agendar.html?ref=${user.id}`;
+    document.getElementById('profLink').value = linkPublico;
+
+    // 3. Busca dados no banco (Tabela profiles)
+    try {
+        const { data: perfil, error } = await _supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (perfil) {
+            document.getElementById('profNome').value = perfil.nome || '';
+            document.getElementById('displayNome').textContent = perfil.nome || 'Doutora';
+            document.getElementById('profEspecialidade').value = perfil.especialidade || '';
+            document.getElementById('profTelefone').value = perfil.telefone || '';
+            atualizarAvatarNaTela(perfil.foto_url);
+        }
+    } catch (err) {
+        console.error("Erro ao carregar perfil:", err);
+    }
+}
+
+// Salvar Perfil
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('formPerfilInterno');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = form.querySelector('button[type="submit"]');
+            const textoOriginal = btn.textContent;
+            btn.textContent = "Salvando...";
+            btn.disabled = true;
+
+            try {
+                const { data: { user } } = await _supabase.auth.getUser();
+                
+                const dados = {
+                    id: user.id, // Garante o ID
+                    nome: document.getElementById('profNome').value,
+                    especialidade: document.getElementById('profEspecialidade').value,
+                    telefone: document.getElementById('profTelefone').value
+                };
+
+                // Upsert: Cria ou Atualiza
+                const { error } = await _supabase
+                    .from('profiles')
+                    .upsert(dados);
+
+                if (error) throw error;
+
+                // Feedback visual
+                showToast("Perfil atualizado com sucesso!", "success");
+                document.getElementById('displayNome').textContent = dados.nome;
+                
+            } catch (err) {
+                showToast("Erro ao salvar: " + err.message, "error");
+            } finally {
+                btn.textContent = textoOriginal;
+                btn.disabled = false;
+            }
+        });
+    }
+});
+
+// Função auxiliar para copiar o link
+function copiarLinkPerfil() {
+    const input = document.getElementById('profLink');
+    input.select();
+    input.setSelectionRange(0, 99999); // Mobile
+    navigator.clipboard.writeText(input.value).then(() => {
+        showToast("Link copiado para a área de transferência!", "success");
+    });
+}
+
+// --- FUNÇÃO DE UPLOAD DE FOTO ---
+async function uploadFotoPerfil(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 1. Validação básica (ex: max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+        alert("A imagem é muito grande! Use uma foto com menos de 2MB.");
+        return;
+    }
+
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) return;
+
+    // Feedback visual (mostra que está carregando)
+    const iconDiv = document.getElementById('avatarDefaultIcon');
+    iconDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // Loading
+
+    try {
+        // 2. Nome do arquivo único (evita cache)
+        // Cria: avatar_IDDOUSUARIO_TIMESTAMP.png
+        const fileExt = file.name.split('.').pop();
+        const fileName = `avatar_${user.id}_${Date.now()}.${fileExt}`;
+
+        // 3. Envia para o Supabase Storage
+        const { error: uploadError } = await _supabase.storage
+            .from('avatars')
+            .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (uploadError) throw uploadError;
+
+        // 4. Pega a URL Pública (o link da imagem)
+        const { data: { publicUrl } } = _supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
+
+        // 5. Salva esse link na tabela 'profiles'
+        const { error: dbError } = await _supabase
+            .from('profiles')
+            .update({ foto_url: publicUrl })
+            .eq('id', user.id);
+
+        if (dbError) throw dbError;
+
+        // 6. Atualiza a tela imediatamente
+        atualizarAvatarNaTela(publicUrl);
+        alert("Foto atualizada com sucesso! ✨");
+
+    } catch (error) {
+        console.error("Erro no upload:", error);
+        alert("Erro ao enviar foto: " + error.message);
+        iconDiv.innerHTML = '<i class="fas fa-user"></i>'; // Volta o ícone normal
+    }
+}
+
+// Função auxiliar para mostrar a foto na tela
+function atualizarAvatarNaTela(url) {
+    const img = document.getElementById('avatarPreview');
+    const icon = document.getElementById('avatarDefaultIcon');
+    
+    if (url) {
+        img.src = url;
+        img.style.display = 'block'; // Mostra a foto
+        icon.style.display = 'none'; // Esconde o ícone
+    } else {
+        img.style.display = 'none';
+        icon.style.display = 'flex';
+    }
+}
+
 // Exporta para garantir
 window.verificarStatusGoogle = verificarStatusGoogle;

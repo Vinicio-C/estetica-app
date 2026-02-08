@@ -88,14 +88,13 @@
                 <i class="fas fa-chart-pie"></i>
                 <span>Relatórios</span>
             </li>
+            <li class="menu-item" data-page="perfil" onclick="carregarDadosPerfil()">
+                <i class="fas fa-user-circle"></i>
+                <span>Meu Perfil</span>
+            </li>
         </ul>
         
         <div class="sidebar-footer">
-            <div class="sync-status">
-                <i class="fas fa-cloud"></i>
-                <span>Sincronizado</span>
-            </div>
-            
             <button 
                 onclick="fazerLogout(event)" 
                 ontouchstart="fazerLogout(event)" 
@@ -331,6 +330,69 @@
                 </div>
                 <div id="relatoriosContent" class="relatorios-grid">
                     </div>
+            </div>
+            <div id="perfilPage" class="page">
+                <div class="page-header-custom">
+                    <h2 style="color: var(--gold); margin: 0;"><i class="fas fa-user-cog"></i> Meu Perfil</h2>
+                </div>
+
+                <div class="profile-container-premium">
+                    <div class="profile-header-card">
+                        <div class="profile-avatar-wrapper">
+                            <img id="avatarPreview" src="" alt="Foto de Perfil" style="display: none;">
+                            
+                            <div id="avatarDefaultIcon" class="avatar-default">
+                                <i class="fas fa-user"></i>
+                            </div>
+
+                            <label for="inputFotoPerfil" class="avatar-overlay">
+                                <i class="fas fa-camera"></i>
+                                <span>Alterar</span>
+                            </label>
+                            
+                            <input type="file" id="inputFotoPerfil" accept="image/*" onchange="uploadFotoPerfil(event)">
+                        </div>
+                        <div class="profile-title">
+                            <h3 id="displayNome">Doutora</h3>
+                            <span id="displayEmail">Carregando email...</span>
+                        </div>
+                    </div>
+
+                    <form id="formPerfilInterno">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nome Completo (Visível para o cliente)</label>
+                                <input type="text" id="profNome" placeholder="Ex: Dra. Ana Silva">
+                            </div>
+                            <div class="form-group">
+                                <label>Especialidade</label>
+                                <input type="text" id="profEspecialidade" placeholder="Ex: Biomédica Esteta">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Telefone / WhatsApp Profissional</label>
+                                <input type="text" id="profTelefone" placeholder="(00) 00000-0000">
+                            </div>
+                            <div class="form-group">
+                                <label>Link de Agendamento Personalizado</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="profLink" readonly style="background: #222; color: #888; font-size: 12px;">
+                                    <button type="button" class="btn-secondary" onclick="copiarLinkPerfil()" style="width: auto; padding: 0 15px;">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions" style="margin-top: 30px; border-top: 1px solid #333; padding-top: 20px;">
+                            <button type="submit" class="btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem;">
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
         </div>
