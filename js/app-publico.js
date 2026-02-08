@@ -86,24 +86,35 @@ async function carregarHorariosDisponiveis() {
     container.innerHTML = '<p class="hint">Verificando agenda...</p>';
 
     try {
-        let queryRegra = _supabase.from('disponibilidade').select('*').eq('dia_semana', diaSemana);
-        
+        // --- A LINHA QUE FALTOU ESTÁ AQUI EMBAIXO 👇 ---
+        const dataObj = new Date(state.dataSelecionada + 'T12:00:00');
+        const diaSemana = dataObj.getDay(); // 0 = Domingo, 1 = Segunda...
+        // ------------------------------------------------
+
+        // 1. Busca regra de horário (Filtrando pela Doutora)
+        let queryRegra = _supabase
+            .from('disponibilidade')
+            .select('*')
+            .eq('dia_semana', diaSemana); // Usa a variável diaSemana aqui
+
         if (state.doutoraId) {
             queryRegra = queryRegra.eq('user_id', state.doutoraId);
         }
-        
-        // Use maybeSingle para não dar erro se não achar
-        const { data: regra, error: errRegra } = await queryRegra.maybeSingle(); 
+
+        // Usa maybeSingle para não dar erro se não achar regra
+        const { data: regra, error: errRegra } = await queryRegra.maybeSingle();
 
         if (errRegra) throw errRegra;
 
-        // Se o dia estiver fechado (ativo = false)
+        // Se não tiver regra ou estiver fechado (ativo = false)
         if (!regra || !regra.ativo) {
-            container.innerHTML = '<div class="fechado-msg"><i class="fas fa-store-slash"></i><br>Não atendemos neste dia da semana.</div>';
+            container.innerHTML = '<div class="fechado-msg"><i class="fas fa-store-slash"></i><br>Não atendemos neste dia.</div>';
             return;
         }
-        
-        let queryOcup = _supabase.from('agendamentos')
+
+        // 2. Busca agendamentos ocupados (Filtrando pela Doutora)
+        let queryOcup = _supabase
+            .from('agendamentos')
             .select('hora')
             .eq('data', state.dataSelecionada)
             .neq('status', 'cancelado');
@@ -113,17 +124,16 @@ async function carregarHorariosDisponiveis() {
         }
 
         const { data: ocupados, error: errOcup } = await queryOcup;
-
         if (errOcup) throw errOcup;
-        const horariosOcupados = ocupados.map(a => a.hora.slice(0, 5)); // "13:00"
+        
+        const horariosOcupados = ocupados.map(a => a.hora.slice(0, 5));
 
-        // 4. Gerar Slots baseado no Horário de Abertura/Fechamento
-        const inicioHora = parseInt(regra.abertura.split(':')[0]); // Ex: 09
-        const fimHora = parseInt(regra.fechamento.split(':')[0]);  // Ex: 18
+        // 3. Gera os botões
+        const inicioHora = parseInt(regra.abertura.split(':')[0]); 
+        const fimHora = parseInt(regra.fechamento.split(':')[0]); 
 
         container.innerHTML = '';
         
-        // Loop do Início ao Fim definido pela Doutora
         for (let h = inicioHora; h < fimHora; h++) {
             const horaFormatada = `${h.toString().padStart(2, '0')}:00`;
             const btn = document.createElement('div');
