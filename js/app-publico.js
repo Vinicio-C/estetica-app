@@ -319,3 +319,15 @@ async function finalizarAgendamento(e) {
         btn.textContent = "CONFIRMAR AGENDAMENTO";
     }
 }
+
+// --- 5. FUNÇÃO PARA NOVO AGENDAMENTO (Mantendo o ID) ---
+window.novoAgendamento = function() {
+    if (state.doutoraId) {
+        // Força o recarregamento da página INCLUINDO o ID da doutora na URL
+        const novaUrl = window.location.pathname + '?ref=' + state.doutoraId;
+        window.location.href = novaUrl;
+    } else {
+        // Se não tiver ID (caso raro), apenas recarrega
+        window.location.reload();
+    }
+};
