@@ -2,6 +2,22 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <script>
+        // Verifica se a URL tem o código de recuperação (type=recovery)
+        if (window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery')) {
+            console.log("⚡ Recuperação detectada! Iniciando transporte...");
+            
+            // 1. Pega o "Hash" inteiro (tudo que vem depois de #, onde está o token)
+            var tokenHash = window.location.hash;
+            
+            // 2. Se não tiver hash, tenta pegar os parâmetros de busca (?code=...)
+            if (!tokenHash) tokenHash = window.location.search;
+
+            // 3. Joga o usuário para a página nova-senha.html LEVANDO O TOKEN JUNTO
+            // Sem o tokenHash, a página nova-senha não sabe quem é o usuário.
+            window.location.href = 'nova-senha.html' + tokenHash;
+        }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -28,6 +44,7 @@
     
     <!-- CSS -->
     <link rel="stylesheet" href="css/style.css?v=2.0">
+    
 </head>
 <body>
     <!-- Loading Screen -->
