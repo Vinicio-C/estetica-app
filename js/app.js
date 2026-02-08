@@ -4,6 +4,32 @@
 // Estética Premium - App JavaScript
 // ========================================
 
+// =========================================================
+// 🚨 FISCAL DE RECUPERAÇÃO DE SENHA (Coloque no TOPO do app.js)
+// =========================================================
+document.addEventListener('DOMContentLoaded', () => {
+    // Verifica se o Supabase já carregou
+    const supabaseCheck = setInterval(() => {
+        if (window._supabase) {
+            clearInterval(supabaseCheck);
+            
+            // Ouve as mudanças de estado (Login, Logout, Recuperação)
+            window._supabase.auth.onAuthStateChange((event, session) => {
+                console.log("🔔 Evento de Auth Detectado:", event);
+
+                // O GRANDE SEGREDO: Se o evento for 'PASSWORD_RECOVERY'
+                if (event === 'PASSWORD_RECOVERY') {
+                    console.log("🛑 É recuperação de senha! Redirecionando...");
+                    // Impede o app de carregar o dashboard normal
+                    document.body.innerHTML = '<div style="color:white; text-align:center; padding:50px;">Redirecionando para troca de senha...</div>';
+                    // Manda para a página certa
+                    window.location.href = 'nova-senha.html'; 
+                }
+            });
+        }
+    }, 100); // Checa a cada 100ms se o Supabase carregou
+});
+
 if (window._supabase) {
     window._supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'PASSWORD_RECOVERY') {
