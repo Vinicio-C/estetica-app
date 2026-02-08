@@ -7,12 +7,19 @@ const state = {
     servicoSelecionado: null,
     dataSelecionada: null,
     horaSelecionada: null,
-    clienteIdentificado: null // Guarda os dados se achar pelo email
+    clienteIdentificado: null,
+    doutoraId: null
 };
 
 const CONFIG = { inicio: 9, fim: 19 }; 
 
 document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const refId = params.get('ref');
+    if (refId) {
+        state.doutoraId = refId;
+        console.log("Agendando para:", refId);
+    }
     carregarServicos();
     
     // Data mínima: Hoje
@@ -36,7 +43,12 @@ async function carregarServicos() {
     if(!container) return;
     
     try {
-        const { data, error } = await _supabase.from('servicos').select('*').order('nome');
+        let query = _supabase.from('servicos').select('*').order('nome');
+        if (state.doutoraId) {
+            query = query.eq('user_id', state.doutoraId);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
 
         container.innerHTML = '';
@@ -74,17 +86,14 @@ async function carregarHorariosDisponiveis() {
     container.innerHTML = '<p class="hint">Verificando agenda...</p>';
 
     try {
-        // 1. Descobrir qual dia da semana é (0=Dom, 1=Seg...)
-        // Precisamos criar a data com timezone correto para não pegar dia errado
-        const dataObj = new Date(state.dataSelecionada + 'T12:00:00');
-        const diaSemana = dataObj.getDay();
-
-        // 2. Buscar regra DO DIA no Supabase
-        const { data: regra, error: errRegra } = await _supabase
-            .from('disponibilidade')
-            .select('*')
-            .eq('dia_semana', diaSemana)
-            .single();
+        let queryRegra = _supabase.from('disponibilidade').select('*').eq('dia_semana', diaSemana);
+        
+        if (state.doutoraId) {
+            queryRegra = queryRegra.eq('user_id', state.doutoraId);
+        }
+        
+        // Use maybeSingle para não dar erro se não achar
+        const { data: regra, error: errRegra } = await queryRegra.maybeSingle(); 
 
         if (errRegra) throw errRegra;
 
@@ -93,13 +102,17 @@ async function carregarHorariosDisponiveis() {
             container.innerHTML = '<div class="fechado-msg"><i class="fas fa-store-slash"></i><br>Não atendemos neste dia da semana.</div>';
             return;
         }
-
-        // 3. Buscar agendamentos JÁ FEITOS nesse dia
-        const { data: ocupados, error: errOcup } = await _supabase
-            .from('agendamentos')
+        
+        let queryOcup = _supabase.from('agendamentos')
             .select('hora')
             .eq('data', state.dataSelecionada)
             .neq('status', 'cancelado');
+
+        if (state.doutoraId) {
+            queryOcup = queryOcup.eq('user_id', state.doutoraId);
+        }
+
+        const { data: ocupados, error: errOcup } = await queryOcup;
 
         if (errOcup) throw errOcup;
         const horariosOcupados = ocupados.map(a => a.hora.slice(0, 5)); // "13:00"
@@ -241,10 +254,13 @@ async function finalizarAgendamento(e) {
                 // Atualiza com o novo email
                 await _supabase.from('clientes').update({ email, nome, cpf, data_nascimento: nascimento || null }).eq('id', clienteId);
             } else {
-                // Realmente novo
                 const { data: novo, error: errCriar } = await _supabase
                     .from('clientes')
-                    .insert({ nome, email, telefone, cpf, data_nascimento: nascimento || null })
+                    .insert({ 
+                        nome, email, telefone, cpf, 
+                        data_nascimento: nascimento || null,
+                        user_id: state.doutoraId // <--- IMPORTANTE
+                    })
                     .select().single();
                 
                 if (errCriar) throw errCriar;
@@ -256,6 +272,7 @@ async function finalizarAgendamento(e) {
         const payload = {
             cliente_id: clienteId,
             servico_id: state.servicoSelecionado.id,
+            user_id: state.doutoraId,
             
             // Dados Textuais (Backup)
             cliente_nome: nome,

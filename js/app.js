@@ -1619,33 +1619,32 @@ window.selectCliente = function() {
 // FUNÇÃO DE COMPARTILHAR LINK (FIXA NO FINAL DO APP.JS)
 // ========================================
 
-// Removemos qualquer palavra 'export' e usamos window direto
-window.copiarLinkAgendamento = function() {
-    console.log("Tentando copiar link..."); // Log para debug
+window.copiarLinkAgendamento = async function() {
+    console.log("Gerando link personalizado...");
 
-    const urlAtual = window.location.href;
-    let linkPublico = '';
-
-    // Lógica para GitHub Pages vs Localhost
-    if (urlAtual.includes('github.io')) {
-        const baseUrl = urlAtual.substring(0, urlAtual.lastIndexOf('/') + 1);
-        linkPublico = baseUrl + 'agendar.html';
-    } else {
-        // Fallback para local
-        const baseUrl = urlAtual.substring(0, urlAtual.lastIndexOf('/') + 1);
-        linkPublico = baseUrl + 'agendar.html';
+    // 1. Pega o ID do usuário logado
+    const { data: { session } } = await _supabase.auth.getSession();
+    
+    if (!session) {
+        alert("Erro: Você precisa estar logada para gerar o link.");
+        return;
     }
 
-    // Tenta copiar
+    const userId = session.user.id;
+    const urlBase = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+    
+    // 2. Cria o link com o parâmetro ?ref=ID
+    const linkFinal = `${urlBase}agendar.html?ref=${userId}`;
+
+    // 3. Copia
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(linkPublico).then(() => {
-            alert('Link copiado: ' + linkPublico);
+        navigator.clipboard.writeText(linkFinal).then(() => {
+            alert('Link copiado! Envie para seu cliente:\n' + linkFinal);
         }).catch(err => {
-            prompt("Copie o link manualmente:", linkPublico);
+            prompt("Copie o link manualmente:", linkFinal);
         });
     } else {
-        // Fallback para navegadores antigos
-        prompt("Copie o link manualmente:", linkPublico);
+        prompt("Copie o link manualmente:", linkFinal);
     }
 };
 
