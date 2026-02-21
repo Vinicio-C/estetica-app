@@ -88,6 +88,10 @@
                 <i class="fas fa-chart-pie"></i>
                 <span>Relatórios</span>
             </li>
+            <li class="menu-item" data-page="automacoes" onclick="carregarAutomacoes()">
+                <i class="fas fa-robot"></i>
+                <span>Automações</span>
+            </li>
             <li class="menu-item" data-page="perfil" onclick="carregarDadosPerfil()">
                 <i class="fas fa-user-circle"></i>
                 <span>Meu Perfil</span>
@@ -397,6 +401,69 @@
                     </form>
                 </div>
             </div>
+            <div id="automacoesPage" class="page">
+                <div class="page-header-custom">
+                    <h2 style="color: var(--gold); margin: 0;"><i class="fas fa-robot"></i> Automações e Mensagens</h2>
+                </div>
+
+                <div class="profile-container-premium">
+                    <div class="form-card" style="padding: 25px; background: #1E1E1E; border-radius: 12px; border: 1px solid #333;">
+                        <h3 style="margin-top: 0; color: #fff; display: flex; align-items: center; gap: 10px;">
+                            <i class="fab fa-whatsapp" style="color: #25D366; font-size: 1.5rem;"></i> Confirmação de Agendamento
+                        </h3>
+                        <p style="color: #888; font-size: 0.95rem; margin-bottom: 15px;">
+                            Personalize a mensagem que será enviada ao cliente. Clique nos botões abaixo para copiar as variáveis (elas serão trocadas automaticamente pelo sistema):
+                        </p>
+                        
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                            <button class="btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="inserirVariavel('{nome}')">{nome}</button>
+                            <button class="btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="inserirVariavel('{data}')">{data}</button>
+                            <button class="btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="inserirVariavel('{hora}')">{hora}</button>
+                            <button class="btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="inserirVariavel('{servico}')">{servico}</button>
+                        </div>
+
+                        <textarea id="textoAutomacaoZap" rows="7" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 15px; font-family: inherit; font-size: 1rem; resize: vertical;"></textarea>
+                        
+                        <div style="margin-top: 20px; text-align: right;">
+                            <button class="btn-primary" onclick="salvarAutomacoes(this)">
+                                <i class="fas fa-save"></i> Salvar Mensagem
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-card" style="padding: 25px; background: #1E1E1E; border-radius: 12px; border: 1px solid #333; margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0; color: #fff; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-envelope" style="color: #2196F3; font-size: 1.5rem;"></i> E-mail Automático
+                            </h3>
+                            <label class="switch">
+                                <input type="checkbox" id="emailAtivoToggle">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        
+                        <p style="color: #888; font-size: 0.95rem; margin-bottom: 15px;">
+                            Configure o e-mail de confirmação. As variáveis {nome}, {data}, {hora} e {servico} também funcionam aqui!
+                        </p>
+
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label style="color: var(--gold);">Assunto do E-mail</label>
+                            <input type="text" id="textoAssuntoEmail" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 10px;" placeholder="Ex: Confirmação de Agendamento - Estética Premium">
+                        </div>
+
+                        <div class="form-group">
+                            <label style="color: var(--gold);">Corpo da Mensagem</label>
+                            <textarea id="textoCorpoEmail" rows="7" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 15px; font-family: inherit; resize: vertical;"></textarea>
+                        </div>
+                        
+                        <div style="margin-top: 20px; text-align: right;">
+                            <button class="btn-primary" onclick="salvarAutomacoesEmail(this)">
+                                <i class="fas fa-save"></i> Salvar E-mail
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
 
@@ -425,14 +492,22 @@
                     </div>
                     
                     <div id="camposServico">
-                        <div class="form-group">
+                        <div class="form-group" style="position: relative;">
                             <label>Cliente *</label>
-                            <select id="agendamentoCliente" onchange="selectCliente()"></select>
+                            <input type="text" id="inputBuscaCliente" placeholder="🔍 Digite para buscar cliente..." oninput="filtrarClientesDropdown()" onfocus="abrirDropdownCliente()" style="width: 100%; padding: 12px; background: #222; border: 1px solid #444; color: #fff; border-radius: 6px; font-size: 1rem;" autocomplete="off">
+                            <input type="hidden" id="agendamentoCliente">
+                            
+                            <div id="dropdownClientes" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: #2A2A2A; border: 1px solid #D4AF37; border-radius: 6px; z-index: 1000; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                                </div>
                         </div>
                         
-                        <div class="form-group">
+                        <div class="form-group" style="position: relative;">
                             <label>Serviço *</label>
-                            <select id="agendamentoServico" onchange="selectServico()"></select>
+                            <input type="text" id="inputBuscaServico" placeholder="🔍 Digite para buscar serviço..." oninput="filtrarServicosDropdown()" onfocus="abrirDropdownServico()" style="width: 100%; padding: 12px; background: #222; border: 1px solid #444; color: #fff; border-radius: 6px; font-size: 1rem;" autocomplete="off">
+                            <input type="hidden" id="agendamentoServico">
+                            
+                            <div id="dropdownServicos" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: #2A2A2A; border: 1px solid #D4AF37; border-radius: 6px; z-index: 1000; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                                </div>
                         </div>
                         
                         <div class="form-row">
@@ -1034,24 +1109,15 @@
 
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <div id="toastContainer" class="toast-container"></div>
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
     <script src="js/supabase-client.js?v=4.0"></script>
     <script src="js/app-agenda.js?v=4.0"></script>
     <script src="js/app-relatorios.js?v=4.0"></script>
     <script src="js/popular-dados.js?v=4.0"></script>
     <script src="js/app-anamnese.js?v=4.0"></script>
-    <script src="js/app.js?v=99999"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://apis.google.com/js/api.js"></script> <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-    <script src="js/supabase-client.js?v=4.0"></script> 
-    <script src="js/app.js?v=99999"></script> 
-    <script src="js/app-agenda.js?v=4.0"></script>
-    <script src="js/app-relatorios.js?v=4.0"></script>
-    <script src="js/popular-dados.js?v=4.0"></script>
-    <script src="js/app-anamnese.js?v=4.0"></script>
+    <script src="js/app.js?v=123456"></script>
 
     <script>
         console.log("🚨 SCRIPT PERFIL ATIVO");

@@ -191,6 +191,11 @@ async function carregarAgendaDoDia(dataObj) {
             let statusClass = '';
             if (item.status_pagamento === 'pago') statusClass = 'status-concluido';
             
+            // --- PEGA O TELEFONE DO CLIENTE NO ESTADO GLOBAL ---
+            const clienteRef = appState.clientes.find(c => c.id === item.cliente_id);
+            const telefoneParaZap = clienteRef ? clienteRef.telefone : '';
+            const dataHoraParaZap = `${dataFormatadaBr} às ${horaFormatada}`;
+            
             const card = document.createElement('div');
             card.className = `agenda-card ${statusClass}`;
             card.innerHTML = `
@@ -206,6 +211,9 @@ async function carregarAgendaDoDia(dataObj) {
                 <div class="action-column">
                     <span class="price-tag">${valor}</span>
                     <div style="display: flex; gap: 5px; justify-content: flex-end;">
+                        <button class="icon-btn-small" style="background: #25D366; color: white; border: none; font-size: 1rem;" onclick="dispararWhatsAppManual('${telefoneParaZap}', '${nomeCliente}', '${dataHoraParaZap}', '${titulo}')" title="Confirmar pelo Zap">
+                            <i class="fab fa-whatsapp"></i>
+                        </button>
                         <button class="icon-btn-small edit" onclick="abrirModalAgendamento('${item.id}')"><i class="fas fa-pencil-alt"></i></button>
                         <button class="icon-btn-small delete" onclick="cancelarAgendamento('${item.id}')"><i class="fas fa-times"></i></button>
                     </div>

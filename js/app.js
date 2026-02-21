@@ -245,7 +245,8 @@ function navigateTo(page) {
         agenda: 'Agenda',
         servicos: 'Serviços',
         estoque: 'Estoque',
-        relatorios: 'Relatórios'
+        relatorios: 'Relatórios',
+        automacoes: 'Automações'
     };
     const pageTitle = document.getElementById('pageTitle');
     if (pageTitle) pageTitle.textContent = titles[page];
@@ -743,7 +744,7 @@ async function abrirDetalhesCliente(clienteId) {
 
             containerFuturo.innerHTML = agendadosList.map(a => `
                 <div class="agendamento-item" style="margin-bottom: 10px; padding: 12px; border-left: 3px solid var(--gold); background: rgba(212, 175, 55, 0.05); border-radius: 4px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;"> 
                         <strong style="color:#fff">${a.servico_nome || 'Agendamento Online'}</strong>
                         <span style="color:var(--gold)">${formatDate(a.data)}</span>
                     </div>
@@ -751,6 +752,9 @@ async function abrirDetalhesCliente(clienteId) {
                         <span>Às ${formatTime(a.hora)} • <span style="text-transform:uppercase; font-size: 0.7rem; background:#333; padding:2px 5px; border-radius:4px;">${a.status}</span></span>
                         
                         <div style="display:flex; gap: 10px;">
+                            <button class="icon-btn-small" style="background:transparent; border:1px solid #25D366; color: #25D366; cursor: pointer;" onclick="dispararWhatsAppManual('${cliente.telefone}', '${cliente.nome}', '${formatDate(a.data)} às ${formatTime(a.hora)}', '${a.servico_nome}')" title="Enviar WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </button>
                             <button class="icon-btn-small" onclick="fecharModal('modalDetalhesCliente'); abrirModalAgendamento('${a.id}')" style="background:transparent; border:1px solid #444; color: #fff; cursor: pointer;">
                                 <i class="fas fa-pencil-alt"></i>
                             </button>
@@ -1408,7 +1412,7 @@ function toggleTipoAgendamento() {
     }
 }
 
-// --- FUNÇÃO DE SALVAR AGENDAMENTO (ADMIN - CORRIGIDA) ---
+// --- FUNÇÃO DE SALVAR AGENDAMENTO (ATUALIZADA COM WHATSAPP) ---
 async function salvarAgendamento(e) {
     e.preventDefault();
     
@@ -1439,14 +1443,18 @@ async function salvarAgendamento(e) {
     }
 
     try {
-        // 1. Get Names (We need to look up the text names from the IDs)
+        // 1. Get Names & Data
         let clienteNome = null;
         let servicoNome = null;
         let valor = 0;
+        
+        // --- NOVO: Variável declarada fora para ser usada no final ---
+        let clienteObj = null; 
 
         if (tipo === 'servico') {
             // Find client name in the global list
-            const clienteObj = appState.clientes.find(c => c.id == clienteId);
+            // --- MODIFICADO: Guardamos na variável externa ---
+            clienteObj = appState.clientes.find(c => c.id == clienteId);
             if (clienteObj) clienteNome = clienteObj.nome;
 
             // Find service name and value
@@ -1496,6 +1504,16 @@ async function salvarAgendamento(e) {
 
         if (error) throw error;
 
+        // --- DISPARO DE E-MAIL AUTOMÁTICO ---
+        if (clienteObj && clienteObj.email) {
+            const procedimento = dados.servico_nome || dados.evento_nome || 'Atendimento';
+            const [ano, mes, dia] = dados.data.split('-');
+            const dataHoraBr = `${dia}/${mes}/${ano} às ${dados.hora}`;
+            
+            // Chama a função de e-mail sem "await", assim não trava o fechamento da tela!
+            window.dispararEmailAutomatico(clienteObj.email, clienteObj.nome, dataHoraBr, procedimento);
+        }
+
         showToast('Agendamento salvo com sucesso!', 'success');
         fecharModal('modalAgendamento');
         
@@ -1504,14 +1522,11 @@ async function salvarAgendamento(e) {
         
         // Refresh Agenda if the function exists and we are on that page
         if(typeof carregarAgendaDoDia === 'function' && document.getElementById('agendaContainer')) {
-            // Reload the specific date being viewed or the date of the new appointment
             const dataObj = new Date(data);
-            // Adjust for timezone offset to ensure correct day is loaded
             const userTimezoneOffset = dataObj.getTimezoneOffset() * 60000;
             const adjustedDate = new Date(dataObj.getTime() + userTimezoneOffset);
             carregarAgendaDoDia(adjustedDate); 
             
-            // Also refresh the dots
             if(typeof renderCalendar === 'function') renderCalendar();
         }
 
@@ -1529,35 +1544,25 @@ async function abrirModalAgendamento(id = null) {
     const modal = document.getElementById('modalAgendamento');
     const form = document.getElementById('formAgendamento');
     
-    // 1. Resetar Form e ID
     if(form) form.reset();
     document.getElementById('agendamentoId').value = '';
-    
-    // 2. Popular Selects (Clientes e Serviços) usando o Estado Global (appState)
-    // Isso evita ter que ir no banco toda vez, já que carregamos no início
-    const selCliente = document.getElementById('agendamentoCliente');
-    const selServico = document.getElementById('agendamentoServico');
-    
-    if (selCliente && appState.clientes.length > 0) {
-        // Mantém a opção padrão "Selecione..." e adiciona os clientes
-        selCliente.innerHTML = '<option value="">Selecione o Cliente...</option>' + 
-            appState.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-    }
-    
-    if (selServico && appState.servicos.length > 0) {
-        selServico.innerHTML = '<option value="">Selecione o Serviço...</option>' + 
-            appState.servicos.map(s => `<option value="${s.id}" data-valor="${s.valor}">${s.nome}</option>`).join('');
-    }
+
+    // 👇 MUDE DAQUI PARA BAIXO 👇
+
+    // 2. Limpa os campos visuais de busca
+    document.getElementById('inputBuscaCliente').value = '';
+    document.getElementById('agendamentoCliente').value = '';
+    document.getElementById('inputBuscaServico').value = '';
+    document.getElementById('agendamentoServico').value = '';
+    document.getElementById('agendamentoValor').value = '';
 
     // 3. Lógica: Edição vs Novo
     if (id) {
         // --- MODO EDIÇÃO ---
         document.getElementById('modalAgendamentoTitle').textContent = 'Editar Agendamento';
         
-        // Busca primeiro no estado local (mais rápido)
         let agendamento = appState.agendamentos.find(a => a.id === id);
         
-        // Se não achar (ex: acabou de criar), busca no banco
         if (!agendamento) {
             try {
                 const { data } = await _supabase.from('agendamentos').select('*').eq('id', id).single();
@@ -1567,20 +1572,30 @@ async function abrirModalAgendamento(id = null) {
 
         if (agendamento) {
             document.getElementById('agendamentoId').value = agendamento.id;
+            
+            // Preenche os Ids ocultos
             document.getElementById('agendamentoCliente').value = agendamento.cliente_id;
             document.getElementById('agendamentoServico').value = agendamento.servico_id;
-            document.getElementById('agendamentoData').value = agendamento.data; // YYYY-MM-DD
-            document.getElementById('agendamentoHora').value = agendamento.hora; // HH:MM
+            
+            // Preenche os nomes nas caixas de texto para a doutora ver
+            const clienteObj = appState.clientes.find(c => c.id == agendamento.cliente_id);
+            const servicoObj = appState.servicos.find(s => s.id == agendamento.servico_id);
+            
+            document.getElementById('inputBuscaCliente').value = clienteObj ? clienteObj.nome : (agendamento.cliente_nome || '');
+            document.getElementById('inputBuscaServico').value = servicoObj ? servicoObj.nome : (agendamento.servico_nome || '');
+
+            document.getElementById('agendamentoData').value = agendamento.data;
+            document.getElementById('agendamentoHora').value = agendamento.hora;
             document.getElementById('agendamentoStatusPagamento').value = agendamento.status_pagamento;
             document.getElementById('agendamentoObservacoes').value = agendamento.observacoes || '';
             
-            // Atualiza o valor visualmente (se tiver campo de valor visual)
-            updateValorServico();
+            if (agendamento.valor) {
+                document.getElementById('agendamentoValor').value = parseFloat(agendamento.valor).toFixed(2);
+            }
         }
     } else {
         // --- MODO NOVO ---
         document.getElementById('modalAgendamentoTitle').textContent = 'Novo Agendamento';
-        // Define data de hoje como padrão
         document.getElementById('agendamentoData').value = new Date().toISOString().split('T')[0];
     }
 
@@ -1628,27 +1643,6 @@ window.carregarDashboard = carregarDashboard;
 // ========================================
 // CORREÇÃO DOS DROPDOWNS (ADICIONE NO FINAL DO ARQUIVO)
 // ========================================
-
-// 1. Atualiza o Valor quando seleciona o Serviço
-window.selectServico = function() {
-    const sel = document.getElementById('agendamentoServico');
-    const inputValor = document.getElementById('agendamentoValor');
-    
-    if (!sel || !inputValor) return;
-
-    // Pega a opção selecionada
-    const opt = sel.options[sel.selectedIndex];
-    
-    // Pega o valor que guardamos no atributo data-valor
-    const valor = opt.getAttribute('data-valor');
-
-    if (valor) {
-        // Formata e joga no input
-        inputValor.value = parseFloat(valor).toFixed(2); // Salva como número decimal (ex: 150.00)
-    } else {
-        inputValor.value = "";
-    }
-};
 
 // 2. Função vazia para o Cliente (só para parar o erro)
 window.selectCliente = function() {
@@ -2197,4 +2191,335 @@ window.sincronizarPendentesGoogle = async function() {
             btn.disabled = false;
         }
     }
+};
+
+// ==============================================================
+// 🤖 ABA DE AUTOMAÇÕES E MENSAGENS
+// ==============================================================
+
+// Variável global para guardar a mensagem na memória
+let mensagemPadraoZap = `Olá {nome}! ✨\n\nPassando para confirmar seu agendamento na *Estética Premium*.\n\n🗓 *Quando:* {data} às {hora}\n💆‍♀️ *Procedimento:* {servico}\n\nPodemos confirmar sua presença? 😘`;
+
+// Carrega os dados quando a doutora clica na aba
+window.carregarAutomacoes = async function() {
+    console.log("Carregando automações...");
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+        const { data: perfil } = await _supabase.from('profiles').select('mensagem_whatsapp').eq('id', user.id).maybeSingle();
+        
+        const textarea = document.getElementById('textoAutomacaoZap');
+        if (textarea) {
+            // Se tiver salvo no banco, usa. Se não, usa a padrão.
+            textarea.value = (perfil && perfil.mensagem_whatsapp) ? perfil.mensagem_whatsapp : mensagemPadraoZap;
+        }
+    } catch (err) {
+        console.error("Erro ao carregar automações:", err);
+    }
+};
+
+// Salva o texto novo no banco de dados
+window.salvarAutomacoes = async function(btnElement) {
+    const textoNovo = document.getElementById('textoAutomacaoZap').value;
+    const textoBotaoOriginal = btnElement.innerHTML;
+    
+    btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    btnElement.disabled = true;
+
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        
+        // Salva na tabela profiles
+        const { error } = await _supabase.from('profiles').upsert({ 
+            id: user.id, 
+            mensagem_whatsapp: textoNovo 
+        });
+
+        if (error) throw error;
+
+        // Atualiza a memória local
+        mensagemPadraoZap = textoNovo;
+        showToast("Mensagem atualizada com sucesso!", "success");
+
+    } catch (err) {
+        console.error(err);
+        showToast("Erro ao salvar mensagem.", "error");
+    } finally {
+        btnElement.innerHTML = textoBotaoOriginal;
+        btnElement.disabled = false;
+    }
+};
+
+// Facilita a vida da doutora inserindo a tag onde o cursor estiver
+window.inserirVariavel = function(variavel) {
+    const textarea = document.getElementById('textoAutomacaoZap');
+    const inicio = textarea.selectionStart;
+    const fim = textarea.selectionEnd;
+    const texto = textarea.value;
+    
+    textarea.value = texto.substring(0, inicio) + variavel + texto.substring(fim);
+    textarea.focus();
+    // Coloca o cursor logo após a variável inserida
+    textarea.selectionEnd = inicio + variavel.length; 
+};
+
+// ==============================================================
+// 📱 DISPARO DE WHATSAPP MANUAL (USANDO O TEXTO PERSONALIZADO)
+// ==============================================================
+window.dispararWhatsAppManual = async function(telefone, nome, dataHoraBr, procedimento) {
+    if (!telefone || telefone.trim() === '') {
+        showToast('Este cliente não tem telefone cadastrado.', 'warning');
+        return;
+    }
+
+    const numLimpo = telefone.replace(/\D/g, '');
+    const numFinal = numLimpo.startsWith('55') ? numLimpo : `55${numLimpo}`;
+    
+    // Separa a data e a hora que vêm juntas na string "DD/MM/YYYY às HH:MM"
+    const partes = dataHoraBr.split(' às ');
+    const dataApenas = partes[0] || '';
+    const horaApenas = partes[1] || '';
+
+    // 1. Tenta buscar o texto personalizado no banco (para garantir que pegou o mais recente)
+    let textoBase = mensagemPadraoZap; // Cai pro padrão se der erro
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        const { data: perfil } = await _supabase.from('profiles').select('mensagem_whatsapp').eq('id', user.id).maybeSingle();
+        if (perfil && perfil.mensagem_whatsapp) {
+            textoBase = perfil.mensagem_whatsapp;
+        }
+    } catch(e) { console.warn("Usando mensagem padrão local."); }
+
+    // 2. O Mágico "Replace": Troca as tags pelas informações reais do cliente
+    let textoFinal = textoBase
+        .replace(/{nome}/g, nome.split(' ')[0]) // Pega só o primeiro nome pra ficar mais íntimo
+        .replace(/{data}/g, dataApenas)
+        .replace(/{hora}/g, horaApenas)
+        .replace(/{servico}/g, procedimento);
+    
+    // Abre a aba do WhatsApp
+    window.open(`https://wa.me/${numFinal}?text=${encodeURIComponent(textoFinal)}`, '_blank');
+};
+
+// ==============================================================
+// ✉️ LÓGICA DO E-MAIL AUTOMÁTICO
+// ==============================================================
+
+const EMAIL_PADRAO_ASSUNTO = "Seu agendamento está confirmado! ✨";
+const EMAIL_PADRAO_CORPO = "Olá {nome},\n\nSeu agendamento para o procedimento {servico} foi confirmado com sucesso!\n\nTe esperamos no dia {data} às {hora}.\n\nAtenciosamente,\nEquipe Estética Premium";
+
+// Atualize a função carregarAutomacoes que já existe para incluir os e-mails:
+window.carregarAutomacoes = async function() {
+    console.log("Carregando automações...");
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+        const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        
+        // Carrega WhatsApp
+        if (document.getElementById('textoAutomacaoZap')) {
+            document.getElementById('textoAutomacaoZap').value = (perfil && perfil.mensagem_whatsapp) ? perfil.mensagem_whatsapp : mensagemPadraoZap;
+        }
+
+        // Carrega E-mail
+        if (document.getElementById('textoAssuntoEmail')) {
+            document.getElementById('textoAssuntoEmail').value = (perfil && perfil.email_assunto) ? perfil.email_assunto : EMAIL_PADRAO_ASSUNTO;
+            document.getElementById('textoCorpoEmail').value = (perfil && perfil.email_corpo) ? perfil.email_corpo : EMAIL_PADRAO_CORPO;
+            document.getElementById('emailAtivoToggle').checked = (perfil && perfil.email_ativo === true);
+        }
+    } catch (err) {
+        console.error("Erro ao carregar automações:", err);
+    }
+};
+
+window.salvarAutomacoesEmail = async function(btnElement) {
+    const assunto = document.getElementById('textoAssuntoEmail').value;
+    const corpo = document.getElementById('textoCorpoEmail').value;
+    const ativo = document.getElementById('emailAtivoToggle').checked;
+    
+    const textoBotaoOriginal = btnElement.innerHTML;
+    btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    btnElement.disabled = true;
+
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        
+        const { error } = await _supabase.from('profiles').upsert({ 
+            id: user.id, 
+            email_assunto: assunto,
+            email_corpo: corpo,
+            email_ativo: ativo
+        });
+
+        if (error) throw error;
+        showToast("Configurações de e-mail atualizadas!", "success");
+
+    } catch (err) {
+        console.error(err);
+        showToast("Erro ao salvar e-mail.", "error");
+    } finally {
+        btnElement.innerHTML = textoBotaoOriginal;
+        btnElement.disabled = false;
+    }
+};
+
+// ==============================================================
+// ✉️ DISPARO DE E-MAIL (VIA SUPABASE EDGE FUNCTIONS)
+// ==============================================================
+window.dispararEmailAutomatico = async function(emailCliente, nomeCliente, dataHoraBr, procedimento) {
+    if (!emailCliente || !emailCliente.includes('@')) return;
+
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+
+        // Checagem de segurança
+        if (!perfil || perfil.email_ativo !== true) return;
+
+        const partes = dataHoraBr.split(' às ');
+        const dataApenas = partes[0] || '';
+        const horaApenas = partes[1] || '';
+
+        let assuntoFinal = (perfil.email_assunto || "Seu agendamento está confirmado! ✨")
+            .replace(/{nome}/g, nomeCliente.split(' ')[0])
+            .replace(/{data}/g, dataApenas)
+            .replace(/{hora}/g, horaApenas)
+            .replace(/{servico}/g, procedimento);
+
+        let corpoFinal = (perfil.email_corpo || "Olá {nome},\n\nSeu agendamento para {servico} foi confirmado!\nData: {data} às {hora}.\n\nAtenciosamente,\nEquipe Estética Premium")
+            .replace(/{nome}/g, nomeCliente.split(' ')[0])
+            .replace(/{data}/g, dataApenas)
+            .replace(/{hora}/g, horaApenas)
+            .replace(/{servico}/g, procedimento);
+
+        // A MÁGICA AQUI: Chama a Edge Function do Supabase!
+        const { data, error } = await _supabase.functions.invoke('enviar-email', {
+            body: {
+                para: emailCliente,
+                reply_to: user.email,
+                assunto: assuntoFinal,
+                corpo: corpoFinal
+            }
+        });
+
+        if (error) {
+            console.error("Erro ao chamar Edge Function:", error);
+        } else {
+            showToast("✅ Cliente avisada por e-mail com sucesso!", "success");
+        }
+
+    } catch (error) {
+        console.error("Erro interno no e-mail:", error);
+    }
+};
+
+// ==============================================================
+// 🔍 AUTOCOMPLETE INTELIGENTE (CLIENTES E SERVIÇOS)
+// ==============================================================
+
+window.abrirDropdownCliente = function() {
+    document.getElementById('dropdownClientes').style.display = 'block';
+    filtrarClientesDropdown(); // Mostra tudo ao focar na caixa
+}
+
+window.filtrarClientesDropdown = function() {
+    const termo = document.getElementById('inputBuscaCliente').value.toLowerCase();
+    const dropdown = document.getElementById('dropdownClientes');
+    
+    // Puxa do estado global e ordena de A a Z
+    let filtrados = [...appState.clientes].sort((a, b) => a.nome.localeCompare(b.nome));
+    if (termo) {
+        filtrados = filtrados.filter(c => c.nome.toLowerCase().includes(termo));
+    }
+
+    if (filtrados.length === 0) {
+        dropdown.innerHTML = '<div style="padding: 15px; color: #888; text-align: center;">Nenhum cliente encontrado.</div>';
+        return;
+    }
+
+    dropdown.innerHTML = filtrados.map(c => `
+        <div style="padding: 12px 15px; border-bottom: 1px solid #444; cursor: pointer; color: #fff;" 
+             onclick="selecionarCliente('${c.id}', '${c.nome.replace(/'/g, "\\'")}')">
+            ${c.nome}
+        </div>
+    `).join('');
+}
+
+window.selecionarCliente = function(id, nome) {
+    document.getElementById('agendamentoCliente').value = id; // Salva o ID oculto pro banco
+    document.getElementById('inputBuscaCliente').value = nome; // Mostra o nome bonito
+    document.getElementById('dropdownClientes').style.display = 'none'; // Esconde a lista
+}
+
+// --- SERVIÇOS ---
+window.abrirDropdownServico = function() {
+    document.getElementById('dropdownServicos').style.display = 'block';
+    filtrarServicosDropdown();
+}
+
+window.filtrarServicosDropdown = function() {
+    const termo = document.getElementById('inputBuscaServico').value.toLowerCase();
+    const dropdown = document.getElementById('dropdownServicos');
+    
+    // Ordena serviços de A a Z
+    let filtrados = [...appState.servicos].sort((a, b) => a.nome.localeCompare(b.nome));
+    if (termo) {
+        filtrados = filtrados.filter(s => s.nome.toLowerCase().includes(termo));
+    }
+
+    if (filtrados.length === 0) {
+        dropdown.innerHTML = '<div style="padding: 15px; color: #888; text-align: center;">Nenhum serviço encontrado.</div>';
+        return;
+    }
+
+    dropdown.innerHTML = filtrados.map(s => `
+        <div style="padding: 12px 15px; border-bottom: 1px solid #444; cursor: pointer; color: #fff; display: flex; justify-content: space-between;" 
+             onclick="selecionarServico('${s.id}', '${s.nome.replace(/'/g, "\\'")}', '${s.valor}')">
+            <span>${s.nome}</span>
+            <span style="color: var(--gold);">R$ ${parseFloat(s.valor).toFixed(2)}</span>
+        </div>
+    `).join('');
+}
+
+window.selecionarServico = function(id, nome, valor) {
+    document.getElementById('agendamentoServico').value = id;
+    document.getElementById('inputBuscaServico').value = nome;
+    document.getElementById('agendamentoValor').value = parseFloat(valor).toFixed(2); // Preenche o preço sozinho
+    document.getElementById('dropdownServicos').style.display = 'none';
+}
+
+// Mágica para fechar a caixinha se ela clicar fora da lista
+document.addEventListener('click', function(e) {
+    const boxClientes = document.getElementById('dropdownClientes');
+    const boxServicos = document.getElementById('dropdownServicos');
+    
+    // Se clicou fora do input de busca, esconde a lista
+    if (boxClientes && !e.target.closest('#inputBuscaCliente') && !e.target.closest('#dropdownClientes')) {
+        boxClientes.style.display = 'none';
+    }
+    if (boxServicos && !e.target.closest('#inputBuscaServico') && !e.target.closest('#dropdownServicos')) {
+        boxServicos.style.display = 'none';
+    }
+});
+
+window.filtrarServicosModal = function() {
+    const termo = document.getElementById('searchServicoModal')?.value.toLowerCase() || '';
+    const selServico = document.getElementById('agendamentoServico');
+    if (!selServico) return;
+
+    // Ordena serviços de A a Z
+    let servicosOrdenados = [...appState.servicos].sort((a, b) => a.nome.localeCompare(b.nome));
+    
+    if (termo) {
+        servicosOrdenados = servicosOrdenados.filter(s => s.nome.toLowerCase().includes(termo));
+    }
+
+    const valorAtual = selServico.value;
+
+    selServico.innerHTML = '<option value="">Selecione o Serviço...</option>' + 
+        servicosOrdenados.map(s => `<option value="${s.id}" data-valor="${s.valor}">${s.nome}</option>`).join('');
+
+    if (valorAtual) selServico.value = valorAtual;
 };
