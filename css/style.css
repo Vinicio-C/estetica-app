@@ -2267,3 +2267,16 @@ canvas {
 #inputFotoPerfil { 
     display: none !important; 
 }
+
+/* Correção para o Autocomplete não ser cortado no Modal */
+#dropdownClientes, #dropdownServicos {
+    position: absolute;
+    width: 100%;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #2A2A2A;
+    border: 1px solid #D4AF37;
+    border-radius: 6px;
+    z-index: 9999 !important; /* Força ficar na frente de tudo */
+    box-shadow: 0 8px 16px rgba(0,0,0,0.8);
+}

@@ -2416,20 +2416,28 @@ window.dispararEmailAutomatico = async function(emailCliente, nomeCliente, dataH
 };
 
 // ==============================================================
-// 🔍 AUTOCOMPLETE INTELIGENTE (CLIENTES E SERVIÇOS)
+// 🔍 AUTOCOMPLETE INTELIGENTE (CORRIGIDO)
 // ==============================================================
 
 window.abrirDropdownCliente = function() {
-    document.getElementById('dropdownClientes').style.display = 'block';
-    filtrarClientesDropdown(); // Mostra tudo ao focar na caixa
+    const dropdown = document.getElementById('dropdownClientes');
+    if(dropdown) dropdown.style.display = 'block';
+    filtrarClientesDropdown();
 }
 
 window.filtrarClientesDropdown = function() {
-    const termo = document.getElementById('inputBuscaCliente').value.toLowerCase();
+    const input = document.getElementById('inputBuscaCliente');
     const dropdown = document.getElementById('dropdownClientes');
+    if (!input || !dropdown) return;
+
+    const termo = input.value.toLowerCase();
+    
+    // Força a exibição enquanto digita
+    dropdown.style.display = 'block';
     
     // Puxa do estado global e ordena de A a Z
     let filtrados = [...appState.clientes].sort((a, b) => a.nome.localeCompare(b.nome));
+    
     if (termo) {
         filtrados = filtrados.filter(c => c.nome.toLowerCase().includes(termo));
     }
@@ -2439,31 +2447,40 @@ window.filtrarClientesDropdown = function() {
         return;
     }
 
+    // Monta a lista
     dropdown.innerHTML = filtrados.map(c => `
-        <div style="padding: 12px 15px; border-bottom: 1px solid #444; cursor: pointer; color: #fff;" 
-             onclick="selecionarCliente('${c.id}', '${c.nome.replace(/'/g, "\\'")}')">
+        <div style="padding: 12px 15px; border-bottom: 1px solid #444; cursor: pointer; color: #fff; background: #2A2A2A;" 
+             onclick="selecionarCliente('${c.id}', '${c.nome.replace(/'/g, "\\'")}')"
+             onmouseover="this.style.background='#333'" 
+             onmouseout="this.style.background='#2A2A2A'">
             ${c.nome}
         </div>
     `).join('');
 }
 
 window.selecionarCliente = function(id, nome) {
-    document.getElementById('agendamentoCliente').value = id; // Salva o ID oculto pro banco
-    document.getElementById('inputBuscaCliente').value = nome; // Mostra o nome bonito
-    document.getElementById('dropdownClientes').style.display = 'none'; // Esconde a lista
+    document.getElementById('agendamentoCliente').value = id;
+    document.getElementById('inputBuscaCliente').value = nome;
+    document.getElementById('dropdownClientes').style.display = 'none';
 }
 
 // --- SERVIÇOS ---
 window.abrirDropdownServico = function() {
-    document.getElementById('dropdownServicos').style.display = 'block';
+    const dropdown = document.getElementById('dropdownServicos');
+    if(dropdown) dropdown.style.display = 'block';
     filtrarServicosDropdown();
 }
 
 window.filtrarServicosDropdown = function() {
-    const termo = document.getElementById('inputBuscaServico').value.toLowerCase();
+    const input = document.getElementById('inputBuscaServico');
     const dropdown = document.getElementById('dropdownServicos');
+    if (!input || !dropdown) return;
+
+    const termo = input.value.toLowerCase();
     
-    // Ordena serviços de A a Z
+    // Força a exibição
+    dropdown.style.display = 'block';
+    
     let filtrados = [...appState.servicos].sort((a, b) => a.nome.localeCompare(b.nome));
     if (termo) {
         filtrados = filtrados.filter(s => s.nome.toLowerCase().includes(termo));
@@ -2475,8 +2492,10 @@ window.filtrarServicosDropdown = function() {
     }
 
     dropdown.innerHTML = filtrados.map(s => `
-        <div style="padding: 12px 15px; border-bottom: 1px solid #444; cursor: pointer; color: #fff; display: flex; justify-content: space-between;" 
-             onclick="selecionarServico('${s.id}', '${s.nome.replace(/'/g, "\\'")}', '${s.valor}')">
+        <div style="padding: 12px 15px; border-bottom: 1px solid #444; cursor: pointer; color: #fff; background: #2A2A2A; display: flex; justify-content: space-between;" 
+             onclick="selecionarServico('${s.id}', '${s.nome.replace(/'/g, "\\'")}', '${s.valor}')"
+             onmouseover="this.style.background='#333'" 
+             onmouseout="this.style.background='#2A2A2A'">
             <span>${s.nome}</span>
             <span style="color: var(--gold);">R$ ${parseFloat(s.valor).toFixed(2)}</span>
         </div>
@@ -2486,16 +2505,15 @@ window.filtrarServicosDropdown = function() {
 window.selecionarServico = function(id, nome, valor) {
     document.getElementById('agendamentoServico').value = id;
     document.getElementById('inputBuscaServico').value = nome;
-    document.getElementById('agendamentoValor').value = parseFloat(valor).toFixed(2); // Preenche o preço sozinho
+    document.getElementById('agendamentoValor').value = parseFloat(valor).toFixed(2);
     document.getElementById('dropdownServicos').style.display = 'none';
 }
 
-// Mágica para fechar a caixinha se ela clicar fora da lista
+// Fechar ao clicar fora
 document.addEventListener('click', function(e) {
     const boxClientes = document.getElementById('dropdownClientes');
     const boxServicos = document.getElementById('dropdownServicos');
     
-    // Se clicou fora do input de busca, esconde a lista
     if (boxClientes && !e.target.closest('#inputBuscaCliente') && !e.target.closest('#dropdownClientes')) {
         boxClientes.style.display = 'none';
     }
