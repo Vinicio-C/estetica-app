@@ -360,8 +360,8 @@
                             <input type="file" id="inputFotoPerfil" accept="image/*" onchange="uploadFotoPerfil(event)">
                         </div>
                         <div class="profile-title">
-                            <h3 id="displayNome">Doutora</h3>
-                            <span id="displayEmail">Carregando email...</span>
+                            <h2 id="headerNome">Doutora</h2> 
+                            <p id="headerEmail" style="color: #888; font-size: 0.9rem;"></p>
                         </div>
                     </div>
 
@@ -392,6 +392,7 @@
                                 </div>
                             </div>
                         </div>
+                        
 
                         <div class="form-actions" style="margin-top: 30px; border-top: 1px solid #333; padding-top: 20px;">
                             <button type="submit" class="btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem;">
@@ -1024,6 +1025,24 @@
                     <label for="servicoDescricao">Descrição</label>
                     <textarea id="servicoDescricao" rows="3" placeholder="Descrição detalhada do serviço..."></textarea>
                 </div>
+                <div class="form-group" style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
+                    <label style="color: var(--gold); margin-bottom: 10px; display: block;">
+                        <i class="fas fa-boxes"></i> Produtos do Estoque Utilizados
+                    </label>
+                    <p style="font-size: 0.8rem; color: #888; margin-bottom: 10px;">Vincule produtos a este serviço para ter controle do que é consumido a cada sessão.</p>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <select id="selectProdutoServico" style="flex: 2; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 4px;">
+                            </select>
+                        <input type="number" id="qtdProdutoServico" value="1" min="0.1" step="0.1" style="width: 70px; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 4px;" title="Quantidade Usada">
+                        <button type="button" onclick="adicionarProdutoAoServico()" class="btn-secondary" style="padding: 8px 15px; border: 1px solid var(--gold); color: var(--gold);">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+
+                    <div id="listaProdutosVinculados" style="background: #111; border-radius: 6px; padding: 10px; min-height: 50px; border: 1px solid #222;">
+                        </div>
+                </div>
                 
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" onclick="fecharModal('modalServico')">Cancelar</button>
@@ -1088,7 +1107,7 @@
             </div>
             <div class="modal-body">
                 <p style="color: #888; font-size: 0.9rem; margin-bottom: 15px;">Defina os horários que aparecerão para os clientes.</p>
-                <form id="formHorarios">
+                <form id="formHorarios" onsubmit="salvarHorariosConfig(event)">
                     <div id="listaDiasSemana">
                         <div style="text-align: center; padding: 20px;">Carregando...</div>
                     </div>
@@ -1113,55 +1132,12 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <script src="js/supabase-client.js?v=4.0"></script>
-    <script src="js/app-agenda.js?v=5.0"></script>
+    <script src="js/app-agenda.js?v=4.0"></script>
     <script src="js/app-relatorios.js?v=4.0"></script>
     <script src="js/popular-dados.js?v=4.0"></script>
     <script src="js/app-anamnese.js?v=4.0"></script>
-    <script src="js/app.js?v=123456"></script>
-
-    <script>
-        console.log("🚨 SCRIPT PERFIL ATIVO");
-        window.carregarDadosPerfil = async function() {
-            /* ... (código do perfil que já funcionava) ... */
-            console.log("⚡ Abrindo Perfil...");
-            const { data: { user } } = await _supabase.auth.getUser();
-            if (!user) return alert("Faça login novamente.");
-            
-            document.getElementById('displayEmail').textContent = user.email;
-            const link = `${window.location.origin}${window.location.pathname.replace('index.html', '')}agendar.html?ref=${user.id}`;
-            if(document.getElementById('profLink')) document.getElementById('profLink').value = link;
-
-            const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-            if (perfil) {
-                if(document.getElementById('profNome')) document.getElementById('profNome').value = perfil.nome || '';
-                if(document.getElementById('profEspecialidade')) document.getElementById('profEspecialidade').value = perfil.especialidade || '';
-                if(document.getElementById('profTelefone')) document.getElementById('profTelefone').value = perfil.telefone || '';
-                if (perfil.foto_url && window.atualizarAvatarNaTela) window.atualizarAvatarNaTela(perfil.foto_url);
-            }
-            document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-            document.getElementById('perfilPage').style.display = 'block';
-        };
-
-        window.salvarPerfilReal = async function(event) {
-            event.preventDefault();
-            const btn = event.target.querySelector('button');
-            const txt = btn.textContent;
-            btn.textContent = "Salvando...";
-            try {
-                const { data: { user } } = await _supabase.auth.getUser();
-                const dados = {
-                    id: user.id,
-                    nome: document.getElementById('profNome').value,
-                    especialidade: document.getElementById('profEspecialidade').value,
-                    telefone: document.getElementById('profTelefone').value
-                };
-                const { error } = await _supabase.from('profiles').upsert(dados);
-                if (error) throw error;
-                alert("Salvo com sucesso!");
-            } catch (e) { alert("Erro: " + e.message); }
-            finally { btn.textContent = txt; }
-        };
-    </script>
+    <script src="js/perfil.js?v=4.0"></script>
+    <script src="js/app.js?v=7.0"></script>
 
     <script>
         console.log("🚨 SCRIPT GOOGLE SYNC V3 (AUTO-REPAIR) 🚨");

@@ -334,3 +334,156 @@ document.getElementById('formHorarios').addEventListener('submit', async (e) => 
 
 // Exporta globalmente para o botão funcionar
 window.abrirModalHorarios = abrirModalHorarios;
+
+// ==============================================================
+// 🕒 GESTOR DE HORÁRIOS E BLOQUEIOS FIXOS (ACADEMIA, ALMOÇO)
+// ==============================================================
+
+// Molde padrão para quando a doutora abrir a primeira vez
+window.diasSemanaPadrao = [
+    { dia: 1, nome: 'Segunda-feira', ativo: true, inicio: '08:00', fim: '18:00', bloqueios: [] },
+    { dia: 2, nome: 'Terça-feira', ativo: true, inicio: '08:00', fim: '18:00', bloqueios: [] },
+    { dia: 3, nome: 'Quarta-feira', ativo: true, inicio: '08:00', fim: '18:00', bloqueios: [] },
+    { dia: 4, nome: 'Quinta-feira', ativo: true, inicio: '08:00', fim: '18:00', bloqueios: [] },
+    { dia: 5, nome: 'Sexta-feira', ativo: true, inicio: '08:00', fim: '18:00', bloqueios: [] },
+    { dia: 6, nome: 'Sábado', ativo: false, inicio: '08:00', fim: '12:00', bloqueios: [] },
+    { dia: 0, nome: 'Domingo', ativo: false, inicio: '08:00', fim: '12:00', bloqueios: [] }
+];
+
+// Variável que guarda o que está na tela
+window.configHorariosAtual = [];
+
+window.abrirModalHorarios = async function() {
+    const modal = document.getElementById('modalHorarios');
+    const container = document.getElementById('listaDiasSemana');
+    container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--gold);"><i class="fas fa-spinner fa-spin"></i> Carregando seus horários...</div>';
+
+    modal.classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        
+        // Busca a configuração salva no banco
+        const { data: perfil } = await _supabase.from('profiles').select('horarios_config').eq('id', user.id).single();
+
+        if (perfil && perfil.horarios_config) {
+            configHorariosAtual = perfil.horarios_config;
+        } else {
+            // Se nunca configurou, usa o molde padrão
+            configHorariosAtual = JSON.parse(JSON.stringify(diasSemanaPadrao));
+        }
+
+        renderizarConfigHorarios();
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<p style="color:#ff4444; text-align:center;">Erro ao carregar horários.</p>';
+    }
+};
+
+window.renderizarConfigHorarios = function() {
+    const container = document.getElementById('listaDiasSemana');
+    
+    container.innerHTML = configHorariosAtual.map((dia, index) => `
+        <div style="background: #1a1a1a; border: 1px solid ${dia.ativo ? '#D4AF37' : '#333'}; border-radius: 8px; padding: 15px; margin-bottom: 15px; transition: all 0.3s;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: ${dia.ativo ? '15px' : '0'};">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: ${dia.ativo ? '#fff' : '#666'}; font-weight: bold; font-size: 1.1rem;">
+                    <input type="checkbox" ${dia.ativo ? 'checked' : ''} onchange="toggleDiaAtivo(${index}, this.checked)" style="width: 18px; height: 18px; accent-color: var(--gold);">
+                    ${dia.nome}
+                </label>
+                ${!dia.ativo ? '<span style="color: #666; font-size: 0.8rem;">Folga</span>' : ''}
+            </div>
+            
+            ${dia.ativo ? `
+                <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; background: #222; padding: 10px; border-radius: 6px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8rem; color: #888; display: block; margin-bottom: 5px;">Início do Expediente</label>
+                        <input type="time" value="${dia.inicio}" onchange="atualizarHoraDia(${index}, 'inicio', this.value)" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 4px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8rem; color: #888; display: block; margin-bottom: 5px;">Fim do Expediente</label>
+                        <input type="time" value="${dia.fim}" onchange="atualizarHoraDia(${index}, 'fim', this.value)" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 4px;">
+                    </div>
+                </div>
+                
+                <div style="background: #222; padding: 10px; border-radius: 6px; border-left: 3px solid #E91E63;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 0.85rem; color: #aaa;"><i class="fas fa-lock" style="color: #E91E63;"></i> Bloqueios / Pausas Fixas</span>
+                        <button type="button" onclick="adicionarBloqueio(${index})" style="background: transparent; border: 1px solid #E91E63; color: #E91E63; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">+ Adicionar</button>
+                    </div>
+                    
+                    ${dia.bloqueios.length === 0 ? '<p style="color: #555; font-size: 0.8rem; margin: 0; text-align: center;">Nenhuma pausa neste dia.</p>' : ''}
+                    
+                    ${dia.bloqueios.map((b, bIndex) => `
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px; background: #111; padding: 8px; border-radius: 4px; border: 1px solid #333;">
+                            <input type="text" placeholder="Ex: Academia, Almoço..." value="${b.titulo || ''}" onchange="atualizarBloqueio(${index}, ${bIndex}, 'titulo', this.value)" style="flex: 2; background: transparent; border: none; color: #fff; border-bottom: 1px solid #444; font-size: 0.9rem;" title="Motivo do Bloqueio">
+                            
+                            <input type="time" value="${b.inicio}" onchange="atualizarBloqueio(${index}, ${bIndex}, 'inicio', this.value)" style="background: #222; border: 1px solid #444; color: #fff; padding: 5px; border-radius: 4px; font-size: 0.85rem;">
+                            <span style="color: #666;">às</span>
+                            <input type="time" value="${b.fim}" onchange="atualizarBloqueio(${index}, ${bIndex}, 'fim', this.value)" style="background: #222; border: 1px solid #444; color: #fff; padding: 5px; border-radius: 4px; font-size: 0.85rem;">
+                            
+                            <button type="button" onclick="removerBloqueio(${index}, ${bIndex})" style="background: transparent; border: none; color: #ff4444; cursor: pointer; padding: 5px;" title="Remover Pausa">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `).join('');
+};
+
+// Funções Auxiliares para manipular os dados na tela
+window.toggleDiaAtivo = (index, valor) => { configHorariosAtual[index].ativo = valor; renderizarConfigHorarios(); };
+window.atualizarHoraDia = (index, campo, valor) => { configHorariosAtual[index][campo] = valor; };
+window.adicionarBloqueio = (index) => { 
+    if(!configHorariosAtual[index].bloqueios) configHorariosAtual[index].bloqueios = [];
+    // Adiciona um molde padrão (ex: horário de almoço)
+    configHorariosAtual[index].bloqueios.push({ titulo: 'Academia', inicio: '12:00', fim: '13:00' }); 
+    renderizarConfigHorarios(); 
+};
+window.atualizarBloqueio = (diaIndex, bIndex, campo, valor) => { configHorariosAtual[diaIndex].bloqueios[bIndex][campo] = valor; };
+window.removerBloqueio = (diaIndex, bIndex) => { configHorariosAtual[diaIndex].bloqueios.splice(bIndex, 1); renderizarConfigHorarios(); };
+
+// Salvar no Banco de Dados
+window.salvarHorariosConfig = async function(event) {
+    event.preventDefault();
+    const btn = document.querySelector('#formHorarios button[type="submit"]');
+    const txtOriginal = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    btn.disabled = true;
+
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        
+        // Salva a configuração inteira no formato JSON na coluna "horarios_config"
+        const { error } = await _supabase
+            .from('profiles')
+            .update({ horarios_config: configHorariosAtual })
+            .eq('id', user.id);
+        
+        if (error) throw error;
+        
+        if(typeof showToast === 'function') showToast("Horários atualizados com sucesso! ✨", "success");
+        else alert("Horários atualizados!");
+        
+        fecharModal('modalHorarios');
+        
+        // Se a doutora estiver na página da agenda, recarrega para aplicar as novas regras
+        if (typeof carregarAgendaDoDia === 'function' && document.getElementById('dataSelecionadaTexto')) {
+            const strData = document.getElementById('dataSelecionadaTexto').textContent;
+            if (strData && strData !== '-') {
+                const [dia, mes, ano] = strData.split('/');
+                carregarAgendaDoDia(new Date(ano, mes - 1, dia));
+            }
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao salvar: " + err.message);
+    } finally {
+        btn.innerHTML = txtOriginal;
+        btn.disabled = false;
+    }
+};

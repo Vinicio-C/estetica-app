@@ -282,6 +282,8 @@ async function carregarDadosIniciais() {
         appState.estoque = estoque.data || [];
         appState.agendamentos = agendamentos.data || [];
         appState.pagamentos = pagamentos.data || [];
+
+        await autoConcluirPassados();
         
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -675,42 +677,39 @@ async function abrirDetalhesCliente(clienteId) {
         boxEndereco.style.display = 'none';
     }
 
-    // 3. BUSCA AGENDAMENTOS FRESCOS NO BANCO (A Mágica acontece aqui)
-    // Isso garante que agendamentos feitos no site público apareçam na hora
+    // 3. BUSCA AGENDAMENTOS FRESCOS NO BANCO
     const containerHist = document.getElementById('detalhesHistorico');
     const containerFuturo = document.getElementById('detalhesAgendados');
     
-    // Mostra "Carregando..." enquanto busca
     containerFuturo.innerHTML = '<div style="padding:10px; color:#888;">Buscando agendamentos...</div>';
     
     try {
+        // 👇 A MÁGICA: Tiramos o .neq('status', 'cancelado') para ele puxar os estornos!
         const { data: agendamentosReais, error } = await _supabase
             .from('agendamentos')
             .select('*')
             .eq('cliente_id', clienteId)
-            .neq('status', 'cancelado') // Traz tudo que não foi cancelado
-            .order('data', { ascending: false }); // Do mais novo para o mais velho
+            .order('data', { ascending: false }); 
 
         if (error) throw error;
 
         // --- 4. SEPARAÇÃO E CÁLCULOS ---
-        const hoje = new Date().toISOString().split('T')[0]; // "2026-02-05"
+        const hoje = new Date().toISOString().split('T')[0]; 
 
-        // Histórico: Data anterior a hoje OU Status Concluído
-        const historicoList = agendamentosReais.filter(a => a.data < hoje || a.status === 'concluido');
+        // Histórico recebe: passados OU concluídos OU cancelados
+        const historicoList = agendamentosReais.filter(a => a.data < hoje || a.status === 'concluido' || a.status === 'cancelado');
         
-        // Futuros: Data igual ou maior que hoje E Status não concluído (Pendente/Agendado)
-        // AQUI ESTAVA O ERRO: Aceitamos 'pendente' (público) ou 'agendado' (admin)
-        const agendadosList = agendamentosReais.filter(a => a.data >= hoje && a.status !== 'concluido');
+        // Futuros recebe: hoje ou futuro E que não sejam concluídos nem cancelados
+        const agendadosList = agendamentosReais.filter(a => a.data >= hoje && a.status !== 'concluido' && a.status !== 'cancelado');
 
-        // Totais
+        // Totais (Protegemos para o cancelado/estornado não somar no ganho)
         const totalServicos = historicoList.filter(a => a.status === 'concluido').length;
         const valorTotal = historicoList
             .filter(a => a.status === 'concluido')
             .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
         
         const debitos = agendamentosReais
-            .filter(a => a.status_pagamento === 'devendo')
+            .filter(a => a.status_pagamento === 'devendo' && a.status !== 'cancelado')
             .reduce((sum, a) => sum + (Number(a.valor) || 0), 0);
 
         // Atualiza números na tela
@@ -722,41 +721,62 @@ async function abrirDetalhesCliente(clienteId) {
         if (historicoList.length === 0) {
             containerHist.innerHTML = '<div class="empty-state" style="padding:10px"><p>Sem histórico anterior</p></div>';
         } else {
-            containerHist.innerHTML = historicoList.map(a => `
-                <div class="agendamento-item" style="margin-bottom: 10px; padding: 12px; opacity: 0.8; border: 1px solid #333; border-radius: 8px;">
+            containerHist.innerHTML = historicoList.map(a => {
+                // Formatação Bonita do Status
+                const statusStr = a.status === 'concluido' ? 'Concluído' : (a.status === 'pendente' ? 'Pendente' : 'Cancelado');
+                const corStatus = a.status === 'concluido' ? '#4CAF50' : (a.status === 'pendente' ? '#FFA726' : '#ff4444');
+
+                return `
+                <div class="agendamento-item" onclick="fecharModal('modalDetalhesCliente'); abrirModalAgendamento('${a.id}')" style="margin-bottom: 10px; padding: 12px; opacity: 0.9; border: 1px solid #333; border-radius: 8px; cursor: pointer; transition: 0.3s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='#333'">
                     <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
                         <strong style="color:#fff">${a.servico_nome || a.evento_nome || 'Serviço'}</strong>
                         <span style="color:var(--gold)">${formatCurrency(a.valor)}</span>
                     </div>
-                    <div style="font-size:0.8rem; color:#888;">
-                        ${formatDate(a.data)} • <span class="status-badge ${a.status}">${a.status}</span>
+                    <div style="font-size:0.8rem; color:#888; display:flex; justify-content:space-between; align-items:center;">
+                        
+                        <span>${formatDate(a.data)} • <span style="color: ${corStatus}; font-weight: bold;">${statusStr}</span></span>
+                        
+                        <div style="display:flex; gap: 5px;">
+                            ${a.status === 'concluido' ? `
+                                <button onclick="event.stopPropagation(); reverterConclusao('${a.id}')" style="background:transparent; border:1px solid #ff4444; color:#ff4444; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 0.75rem;" title="Desfazer e devolver estoque">
+                                    <i class="fas fa-undo"></i> Estornar
+                                </button>
+                            ` : ''}
+                            
+                            ${a.status === 'pendente' ? `
+                                <button onclick="event.stopPropagation(); concluirAgendamento('${a.id}')" style="background:transparent; border:1px solid #4CAF50; color:#4CAF50; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 0.75rem;" title="Baixar Estoque">
+                                    <i class="fas fa-check"></i> Concluir
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
                 </div>
-            `).join('');
+                `
+            }).join('');
         }
 
         // --- 6. RENDERIZA LISTA: AGENDADOS (FUTURO) ---
         if (agendadosList.length === 0) {
             containerFuturo.innerHTML = '<div class="empty-state" style="padding:10px"><p>Nenhum agendamento futuro</p></div>';
         } else {
-            // Reordena futuros para o mais próximo ficar em cima
             agendadosList.sort((a, b) => new Date(a.data) - new Date(b.data));
 
             containerFuturo.innerHTML = agendadosList.map(a => `
-                <div class="agendamento-item" style="margin-bottom: 10px; padding: 12px; border-left: 3px solid var(--gold); background: rgba(212, 175, 55, 0.05); border-radius: 4px;">
+                <div class="agendamento-item" onclick="fecharModal('modalDetalhesCliente'); abrirModalAgendamento('${a.id}')" style="margin-bottom: 10px; padding: 12px; border-left: 3px solid var(--gold); background: rgba(212, 175, 55, 0.05); border-radius: 4px; cursor: pointer; transition: 0.3s;" onmouseover="this.style.background='rgba(212, 175, 55, 0.1)'" onmouseout="this.style.background='rgba(212, 175, 55, 0.05)'">
                     <div style="display:flex; justify-content:space-between; margin-bottom:5px;"> 
                         <strong style="color:#fff">${a.servico_nome || 'Agendamento Online'}</strong>
                         <span style="color:var(--gold)">${formatDate(a.data)}</span>
                     </div>
                     <div style="font-size:0.8rem; color:#ccc; display:flex; justify-content:space-between; align-items:center;">
-                        <span>Às ${formatTime(a.hora)} • <span style="text-transform:uppercase; font-size: 0.7rem; background:#333; padding:2px 5px; border-radius:4px;">${a.status}</span></span>
+                        <span>Às ${formatTime(a.hora)}</span>
                         
                         <div style="display:flex; gap: 10px;">
-                            <button class="icon-btn-small" style="background:transparent; border:1px solid #25D366; color: #25D366; cursor: pointer;" onclick="dispararWhatsAppManual('${cliente.telefone}', '${cliente.nome}', '${formatDate(a.data)} às ${formatTime(a.hora)}', '${a.servico_nome}')" title="Enviar WhatsApp">
-                                <i class="fab fa-whatsapp"></i>
+                            <button class="icon-btn-small" onclick="event.stopPropagation(); concluirAgendamento('${a.id}')" style="background:transparent; border:1px solid #4CAF50; color: #4CAF50; cursor: pointer;" title="Concluir e Baixar Estoque">
+                                <i class="fas fa-check"></i>
                             </button>
-                            <button class="icon-btn-small" onclick="fecharModal('modalDetalhesCliente'); abrirModalAgendamento('${a.id}')" style="background:transparent; border:1px solid #444; color: #fff; cursor: pointer;">
-                                <i class="fas fa-pencil-alt"></i>
+                            
+                            <button class="icon-btn-small" style="background:transparent; border:1px solid #25D366; color: #25D366; cursor: pointer;" onclick="event.stopPropagation(); dispararWhatsAppManual('${cliente.telefone}', '${cliente.nome}', '${formatDate(a.data)} às ${formatTime(a.hora)}', '${a.servico_nome}')" title="Enviar WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
                             </button>
                         </div>
                     </div>
@@ -910,42 +930,137 @@ function filtrarServicos(termo) {
     renderizarServicos(servicosFiltrados);
 }
 
-function abrirModalServico(id = null) {
+window.produtosServicoAtual = [];
+
+window.abrirModalServico = function(id = null) {
     const modal = document.getElementById('modalServico');
     const form = document.getElementById('formServico');
-    form.reset();
+    if (form) form.reset();
     
-    // Configura campo hidden de ID
     let hiddenInput = document.getElementById('servicoId');
-    if (!hiddenInput) { console.warn('Input servicoId não encontrado'); return; }
-    hiddenInput.value = '';
+    if (hiddenInput) hiddenInput.value = '';
+
+    // 1. Limpa a lista atual e preenche o dropdown com o que tem no estoque
+    produtosServicoAtual = [];
+    const selectProduto = document.getElementById('selectProdutoServico');
+    if (selectProduto) {
+        selectProduto.innerHTML = '<option value="">Selecione um produto do estoque...</option>' + 
+            appState.estoque.map(p => `<option value="${p.id}">${p.nome} (Estoque atual: ${p.quantidade})</option>`).join('');
+    }
 
     if (id) {
-        // Edição
+        // --- EDIÇÃO ---
         const servico = appState.servicos.find(s => s.id === id);
         if (servico) {
             document.getElementById('modalServicoTitle').textContent = 'Editar Serviço';
-            hiddenInput.value = servico.id;
-            document.getElementById('servicoNome').value = servico.nome;
-            document.getElementById('servicoValor').value = servico.valor;
-            document.getElementById('servicoDuracao').value = servico.duracao;
+            if (hiddenInput) hiddenInput.value = servico.id;
+            
+            document.getElementById('servicoNome').value = servico.nome || '';
+            
+            // Os campos extras caso você use
+            if(document.getElementById('servicoTipo')) document.getElementById('servicoTipo').value = servico.tipo || '';
+            if(document.getElementById('servicoDuracao')) document.getElementById('servicoDuracao').value = servico.duracao || '';
+            if(document.getElementById('servicoValor')) document.getElementById('servicoValor').value = servico.valor || '';
+            if(document.getElementById('servicoDescricao')) document.getElementById('servicoDescricao').value = servico.descricao || '';
+            
+            // Carrega os produtos vinculados que vieram do banco
+            if (servico.produtos_vinculados) {
+                produtosServicoAtual = JSON.parse(JSON.stringify(servico.produtos_vinculados));
+            }
         }
     } else {
+        // --- NOVO ---
         document.getElementById('modalServicoTitle').textContent = 'Novo Serviço';
     }
+    
+    // Desenha a lista na tela
+    renderizarProdutosVinculados();
     
     modal.classList.add('active');
     document.getElementById('overlay').classList.add('active');
 }
 
-async function salvarServico(e) {
+// LÓGICA DE MANIPULAÇÃO DA LISTINHA DENTRO DO MODAL
+window.adicionarProdutoAoServico = function() {
+    const select = document.getElementById('selectProdutoServico');
+    const qtdInput = document.getElementById('qtdProdutoServico');
+    
+    const produtoId = select.value;
+    const qtd = parseFloat(qtdInput.value);
+
+    if (!produtoId) return showToast("Selecione um produto do estoque.", "warning");
+    if (!qtd || qtd <= 0) return showToast("A quantidade deve ser maior que zero.", "warning");
+
+    const produtoInfo = appState.estoque.find(p => p.id === produtoId);
+    if (!produtoInfo) return;
+
+    // Verifica se já existe na listinha, se sim, só soma a qtd
+    const existeIndex = produtosServicoAtual.findIndex(p => p.estoque_id === produtoId);
+    if (existeIndex >= 0) {
+        produtosServicoAtual[existeIndex].quantidade += qtd;
+    } else {
+        produtosServicoAtual.push({
+            estoque_id: produtoId,
+            nome: produtoInfo.nome,
+            quantidade: qtd
+        });
+    }
+
+    // Reseta pro próximo
+    select.value = '';
+    qtdInput.value = '1';
+    
+    renderizarProdutosVinculados();
+}
+
+window.removerProdutoDoServico = function(index) {
+    produtosServicoAtual.splice(index, 1);
+    renderizarProdutosVinculados();
+}
+
+window.renderizarProdutosVinculados = function() {
+    const container = document.getElementById('listaProdutosVinculados');
+    if (!container) return;
+
+    if (produtosServicoAtual.length === 0) {
+        container.innerHTML = '<div style="color: #666; font-size: 0.85rem; text-align: center; padding: 10px;">Nenhum produto vinculado ainda.</div>';
+        return;
+    }
+
+    container.innerHTML = produtosServicoAtual.map((p, index) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 8px 12px; margin-bottom: 5px; border-radius: 4px; border: 1px solid #333;">
+            <span style="color: #fff; font-size: 0.9rem;"><i class="fas fa-box" style="color: #888; font-size: 0.8rem; margin-right: 5px;"></i> ${p.nome}</span>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="color: var(--gold); font-weight: bold; font-size: 0.9rem;">${p.quantidade} un.</span>
+                <button type="button" onclick="removerProdutoDoServico(${index})" style="background: transparent; border: none; color: #ff4444; cursor: pointer;" title="Remover Vínculo">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// SALVAR SERVIÇO COM OS PRODUTOS VINCULADOS
+window.salvarServico = async function(e) {
     e.preventDefault();
     const id = document.getElementById('servicoId').value;
+    
+    // Monta o objeto pra enviar pro Supabase
     const dados = {
         nome: document.getElementById('servicoNome').value,
         valor: parseFloat(document.getElementById('servicoValor').value),
-        duracao: parseInt(document.getElementById('servicoDuracao').value)
+        duracao: parseInt(document.getElementById('servicoDuracao').value),
+        produtos_vinculados: produtosServicoAtual // Envia nossa listinha como JSON
     };
+
+    // Pega dados opcionais caso você use na sua UI
+    if(document.getElementById('servicoTipo')) dados.tipo = document.getElementById('servicoTipo').value;
+    if(document.getElementById('servicoDescricao')) dados.descricao = document.getElementById('servicoDescricao').value;
+
+    const btn = e.target.querySelector('button[type="submit"]');
+    const txtOriginal = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    btn.disabled = true;
 
     try {
         if (id) {
@@ -955,27 +1070,20 @@ async function salvarServico(e) {
             const { error } = await _supabase.from('servicos').insert([dados]);
             if (error) throw error;
         }
+        
         showToast('Serviço salvo com sucesso!', 'success');
         fecharModal('modalServico');
-        await carregarServicos();
+        
+        // Recarrega tudo para atualizar o front
+        if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
+        if (typeof carregarServicos === 'function') carregarServicos();
+        
     } catch (err) {
         console.error(err);
         showToast('Erro ao salvar serviço.', 'error');
-    }
-}
-
-async function excluirServico(id) {
-    if (!id || id === 'undefined') return showToast('Erro: ID inválido', 'error');
-    if (!confirm('Tem certeza que deseja excluir este serviço?')) return;
-
-    try {
-        const { error } = await _supabase.from('servicos').delete().eq('id', id);
-        if (error) throw error;
-        showToast('Serviço excluído!', 'success');
-        await carregarServicos();
-    } catch (err) {
-        console.error(err);
-        showToast('Erro ao excluir.', 'error');
+    } finally {
+        btn.innerHTML = txtOriginal;
+        btn.disabled = false;
     }
 }
 
@@ -1846,86 +1954,6 @@ window.fazerLogout = async function(event) {
 // LÓGICA DO PERFIL
 // ==========================================
 
-// Função chamada ao clicar no menu "Meu Perfil"
-async function carregarDadosPerfil() {
-    console.log("Carregando perfil...");
-    
-    // 1. Verifica sessão
-    const { data: { user } } = await _supabase.auth.getUser();
-    if (!user) return;
-
-    // 2. Preenche dados fixos (Email e Link)
-    document.getElementById('displayEmail').textContent = user.email;
-    
-    // Gera o link público baseado no ID
-    const urlBase = window.location.origin + window.location.pathname.replace('index.html', '');
-    const linkPublico = `${urlBase}agendar.html?ref=${user.id}`;
-    document.getElementById('profLink').value = linkPublico;
-
-    // 3. Busca dados no banco (Tabela profiles)
-    try {
-        const { data: perfil, error } = await _supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-
-        if (error) throw error;
-
-        if (perfil) {
-            document.getElementById('profNome').value = perfil.nome || '';
-            document.getElementById('displayNome').textContent = perfil.nome || 'Doutora';
-            document.getElementById('profEspecialidade').value = perfil.especialidade || '';
-            document.getElementById('profTelefone').value = perfil.telefone || '';
-            atualizarAvatarNaTela(perfil.foto_url);
-        }
-    } catch (err) {
-        console.error("Erro ao carregar perfil:", err);
-    }
-}
-
-// Salvar Perfil
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('formPerfilInterno');
-    if (form) {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const btn = form.querySelector('button[type="submit"]');
-            const textoOriginal = btn.textContent;
-            btn.textContent = "Salvando...";
-            btn.disabled = true;
-
-            try {
-                const { data: { user } } = await _supabase.auth.getUser();
-                
-                const dados = {
-                    id: user.id, // Garante o ID
-                    nome: document.getElementById('profNome').value,
-                    especialidade: document.getElementById('profEspecialidade').value,
-                    telefone: document.getElementById('profTelefone').value
-                };
-
-                // Upsert: Cria ou Atualiza
-                const { error } = await _supabase
-                    .from('profiles')
-                    .upsert(dados);
-
-                if (error) throw error;
-
-                // Feedback visual
-                showToast("Perfil atualizado com sucesso!", "success");
-                document.getElementById('displayNome').textContent = dados.nome;
-                
-            } catch (err) {
-                showToast("Erro ao salvar: " + err.message, "error");
-            } finally {
-                btn.textContent = textoOriginal;
-                btn.disabled = false;
-            }
-        });
-    }
-});
 
 // Função auxiliar para copiar o link
 function copiarLinkPerfil() {
@@ -2013,65 +2041,65 @@ function atualizarAvatarNaTela(url) {
 
 // Exporta para garantir
 window.verificarStatusGoogle = verificarStatusGoogle;
+// Localize a linha 1040 do app.js e substitua a função por esta:
 window.carregarDadosPerfil = async function() {
-    console.log("🚀 Função Carregar Perfil foi chamada!"); 
+    console.log("🚀 Carregando Perfil Único e Link..."); 
 
-    // 1. Verifica login
-    const { data: { user } } = await _supabase.auth.getUser();
-    if (!user) {
-        alert("Usuário não logado!");
-        return;
-    }
-
-    console.log("Usuário encontrado:", user.email);
-
-    // 2. Preenche o e-mail no cabeçalho
-    const emailEl = document.getElementById('displayEmail');
-    if(emailEl) emailEl.textContent = user.email;
-
-    // 3. Busca dados no banco
-    const { data: perfil, error } = await _supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    if (perfil) {
-        console.log("Perfil encontrado:", perfil);
-        
-        // Preenche os campos com segurança (verifica se o elemento existe antes)
-        if(document.getElementById('profNome')) 
-            document.getElementById('profNome').value = perfil.nome || '';
-            
-        if(document.getElementById('displayNome')) 
-            document.getElementById('displayNome').textContent = perfil.nome || 'Doutora';
-            
-        if(document.getElementById('profEspecialidade')) 
-            document.getElementById('profEspecialidade').value = perfil.especialidade || '';
-            
-        if(document.getElementById('profTelefone')) 
-            document.getElementById('profTelefone').value = perfil.telefone || '';
-            
-        // Carrega foto se existir e a função de foto estiver disponível
-        if (perfil.foto_url && window.atualizarAvatarNaTela) {
-            window.atualizarAvatarNaTela(perfil.foto_url);
+    try {
+        // 1. Verifica login
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (!user) {
+            alert("Usuário não logado!");
+            return;
         }
-    } else {
-        console.log("Nenhum perfil criado ainda.");
-    }
 
-    // 4. TROCA DE TELA (Oculta todas e mostra a de perfil)
-    // Esconde todas as divs com classe 'page'
-    document.querySelectorAll('.page').forEach(page => {
-        page.style.display = 'none';
-    });
+        // 2. Preenche o e-mail no cabeçalho (usa o ID correto: headerEmail)
+        const emailEl = document.getElementById('headerEmail');
+        if(emailEl) emailEl.textContent = user.email;
 
-    // Mostra apenas a div de perfil
-    const divPerfil = document.getElementById('perfilPage');
-    if (divPerfil) {
-        divPerfil.style.display = 'block';
-    } else {
-        alert("ERRO CRÍTICO: Não encontrei a div com id='perfilPage' no seu HTML!");
+        // 3. Busca dados no banco
+        const { data: perfil, error } = await _supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (perfil) {
+            // Preenche os inputs (IDs corretos: profNome, profEspecialidade, profTelefone)
+            if(document.getElementById('profNome')) 
+                document.getElementById('profNome').value = perfil.nome || '';
+                
+            if(document.getElementById('headerNome')) 
+                document.getElementById('headerNome').textContent = perfil.nome || 'Doutora';
+                
+            if(document.getElementById('profEspecialidade')) 
+                document.getElementById('profEspecialidade').value = perfil.especialidade || '';
+                
+            if(document.getElementById('profTelefone')) 
+                document.getElementById('profTelefone').value = perfil.telefone || '';
+                
+            if (perfil.foto_url && window.atualizarAvatarNaTela) {
+                window.atualizarAvatarNaTela(perfil.foto_url);
+            }
+        }
+
+        // 4. GERAÇÃO DO LINK (O segredo está aqui!)
+        const urlBase = window.location.origin + window.location.pathname.replace('index.html', '');
+        const linkFinal = `${urlBase}agendar.html?ref=${user.id}`;
+        
+        const elLink = document.getElementById('profLink');
+        if (elLink) {
+            elLink.value = linkFinal;
+            console.log("✅ Link gerado:", linkFinal);
+        }
+
+        // 5. TROCA DE TELA
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+        const divPerfil = document.getElementById('perfilPage');
+        if (divPerfil) divPerfil.classList.add('active');
+
+    } catch (err) {
+        console.error("Erro crítico no perfil:", err);
     }
 };
 
@@ -2265,24 +2293,42 @@ window.inserirVariavel = function(variavel) {
 };
 
 // ==============================================================
-// 📱 DISPARO DE WHATSAPP MANUAL (USANDO O TEXTO PERSONALIZADO)
+// 📱 DISPARO DE WHATSAPP MANUAL (BLINDADO CONTRA ERROS)
 // ==============================================================
 window.dispararWhatsAppManual = async function(telefone, nome, dataHoraBr, procedimento) {
-    if (!telefone || telefone.trim() === '') {
+    // 1. Bloqueia se não tiver telefone (Evita abrir a conversa da própria doutora)
+    if (!telefone || telefone === 'undefined' || telefone === 'null' || String(telefone).trim() === '') {
         showToast('Este cliente não tem telefone cadastrado.', 'warning');
         return;
     }
 
-    const numLimpo = telefone.replace(/\D/g, '');
-    const numFinal = numLimpo.startsWith('55') ? numLimpo : `55${numLimpo}`;
-    
-    // Separa a data e a hora que vêm juntas na string "DD/MM/YYYY às HH:MM"
+    // 2. Limpa tudo que não for número (Tira parênteses, traços, espaços)
+    let numLimpo = String(telefone).replace(/\D/g, ''); 
+
+    // 3. Se a doutora digitou o DDD com zero (ex: 011999999999), tira o zero do começo
+    if (numLimpo.startsWith('0')) {
+        numLimpo = numLimpo.substring(1);
+    }
+
+    // 4. Se o número não começar com o DDI do Brasil (55), nós colocamos
+    if (!numLimpo.startsWith('55')) {
+        numLimpo = `55${numLimpo}`;
+    }
+
+    // 5. Verificação de segurança: Um número BR válido tem pelo menos 12 dígitos (55 + DDD + 8 dígitos)
+    if (numLimpo.length < 12 || numLimpo.length > 13) {
+        showToast('O telefone deste cliente está incompleto. Edite o cadastro.', 'error');
+        return;
+    }
+
+    // --- DAQUI PRA BAIXO É A MÁGICA DO TEXTO (Mantida) ---
     const partes = dataHoraBr.split(' às ');
     const dataApenas = partes[0] || '';
     const horaApenas = partes[1] || '';
 
-    // 1. Tenta buscar o texto personalizado no banco (para garantir que pegou o mais recente)
-    let textoBase = mensagemPadraoZap; // Cai pro padrão se der erro
+    // Texto de segurança caso o banco falhe
+    let textoBase = "Olá {nome}! ✨\n\nPassando para confirmar seu agendamento na *Estética Premium*.\n\n🗓 *Quando:* {data} às {hora}\n💆‍♀️ *Procedimento:* {servico}\n\nPodemos confirmar sua presença? 😘";
+
     try {
         const { data: { user } } = await _supabase.auth.getUser();
         const { data: perfil } = await _supabase.from('profiles').select('mensagem_whatsapp').eq('id', user.id).maybeSingle();
@@ -2291,15 +2337,15 @@ window.dispararWhatsAppManual = async function(telefone, nome, dataHoraBr, proce
         }
     } catch(e) { console.warn("Usando mensagem padrão local."); }
 
-    // 2. O Mágico "Replace": Troca as tags pelas informações reais do cliente
+    // Troca as variáveis
     let textoFinal = textoBase
-        .replace(/{nome}/g, nome.split(' ')[0]) // Pega só o primeiro nome pra ficar mais íntimo
+        .replace(/{nome}/g, (nome || 'Cliente').split(' ')[0])
         .replace(/{data}/g, dataApenas)
         .replace(/{hora}/g, horaApenas)
-        .replace(/{servico}/g, procedimento);
+        .replace(/{servico}/g, procedimento || 'Atendimento');
     
-    // Abre a aba do WhatsApp
-    window.open(`https://wa.me/${numFinal}?text=${encodeURIComponent(textoFinal)}`, '_blank');
+    // Abre a aba do WhatsApp com o número perfeitamente formatado
+    window.open(`https://api.whatsapp.com/send?phone=${numLimpo}&text=${encodeURIComponent(textoFinal)}`, '_blank');
 };
 
 // ==============================================================
@@ -2541,3 +2587,134 @@ window.filtrarServicosModal = function() {
 
     if (valorAtual) selServico.value = valorAtual;
 };
+
+// ==============================================================
+// 🎯 FINALIZAR / ESTORNAR ATENDIMENTOS EM TEMPO REAL
+// ==============================================================
+
+async function concluirAgendamento(agendamentoId) {
+    if (!confirm('Deseja finalizar este atendimento? Os produtos vinculados serão debitados do estoque.')) return;
+
+    const overlay = document.getElementById('loadingScreen');
+    if (overlay) { overlay.classList.remove('hidden'); overlay.querySelector('h2').textContent = "Baixando Estoque..."; }
+
+    try {
+        const agendamento = appState.agendamentos.find(a => a.id === agendamentoId);
+        if (!agendamento) throw new Error("Agendamento não encontrado.");
+
+        // 1. Muda para CANCELADO (Isso impede o robô de auto-concluir ele de novo)
+        await _supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', agendamentoId);
+
+        // 2. Baixa Estoque
+        if (agendamento.servico_id) {
+            const servico = appState.servicos.find(s => s.id === agendamento.servico_id);
+            if (servico && servico.produtos_vinculados) {
+                for (const prodUsado of servico.produtos_vinculados) {
+                    const itemEstoque = appState.estoque.find(e => e.id === prodUsado.estoque_id);
+                    if (itemEstoque) {
+                        let novaQtd = itemEstoque.quantidade - prodUsado.quantidade;
+                        if (novaQtd < 0) novaQtd = 0;
+                        await _supabase.from('estoque').update({ quantidade: novaQtd }).eq('id', itemEstoque.id);
+                    }
+                }
+            }
+        }
+
+        if(typeof showToast === 'function') showToast('Atendimento concluído! 📦', 'success');
+
+        // 3. RECARREGA TELA DO CLIENTE
+        if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
+        if (agendamento.cliente_id) abrirDetalhesCliente(agendamento.cliente_id); 
+        if (typeof carregarDashboard === 'function' && appState.currentPage === 'dashboard') carregarDashboard();
+
+    } catch (err) {
+        console.error('Erro:', err);
+        if(typeof showToast === 'function') showToast('Erro ao concluir.', 'error');
+    } finally {
+        if (overlay) { overlay.classList.add('hidden'); overlay.querySelector('h2').textContent = "Estética Premium"; }
+    }
+}
+
+// ==============================================================
+// 🔄 AUTO-CONCLUSÃO DE DIAS ANTERIORES E ESTORNO
+// ==============================================================
+
+async function autoConcluirPassados() {
+    const hojeStr = new Date().toISOString().split('T')[0];
+    
+    // Procura agendamentos que a data é menor que hoje e ainda estão pendentes
+    const passadosPendentes = appState.agendamentos.filter(a => a.data < hojeStr && a.status === 'pendente');
+
+    if (passadosPendentes.length === 0) return;
+    console.log(`⚡ Auto-concluindo ${passadosPendentes.length} agendamentos antigos...`);
+
+    for (const agenda of passadosPendentes) {
+        try {
+            await _supabase.from('agendamentos').update({ status: 'concluido' }).eq('id', agenda.id);
+
+            if (agenda.servico_id) {
+                const servico = appState.servicos.find(s => s.id === agenda.servico_id);
+                if (servico && servico.produtos_vinculados) {
+                    for (const prod of servico.produtos_vinculados) {
+                        const itemEstoque = appState.estoque.find(e => e.id === prod.estoque_id);
+                        if (itemEstoque) {
+                            let novaQtd = itemEstoque.quantidade - prod.quantidade;
+                            if (novaQtd < 0) novaQtd = 0;
+                            
+                            await _supabase.from('estoque').update({ quantidade: novaQtd }).eq('id', itemEstoque.id);
+                            itemEstoque.quantidade = novaQtd; 
+                        }
+                    }
+                }
+            }
+            agenda.status = 'concluido'; 
+        } catch(e) { console.error("Erro na auto-conclusão:", e); }
+    }
+}
+
+async function reverterConclusao(agendamentoId) {
+    if (!confirm('Deseja DESFAZER este atendimento?\nO status mudará para Cancelado/Falta e os produtos retornarão ao estoque.')) return;
+
+    const overlay = document.getElementById('loadingScreen');
+    if (overlay) { overlay.classList.remove('hidden'); overlay.querySelector('h2').textContent = "Estornando..."; }
+
+    try {
+        const agendamento = appState.agendamentos.find(a => a.id === agendamentoId);
+        if (!agendamento) return;
+
+        // 1. Muda para CANCELADO (Isso impede o robô de auto-concluir ele de novo)
+        await _supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', agendamentoId);
+
+        // 2. Devolve para o Estoque
+        if (agendamento.servico_id) {
+            const servico = appState.servicos.find(s => s.id === agendamento.servico_id);
+            if (servico && servico.produtos_vinculados) {
+                for (const prod of servico.produtos_vinculados) {
+                    const itemEstoque = appState.estoque.find(e => e.id === prod.estoque_id);
+                    if (itemEstoque) {
+                        let novaQtd = itemEstoque.quantidade + prod.quantidade; 
+                        await _supabase.from('estoque').update({ quantidade: novaQtd }).eq('id', itemEstoque.id);
+                    }
+                }
+            }
+        }
+
+        if(typeof showToast === 'function') showToast('Conclusão desfeita e estoque estornado!', 'info');
+        
+        // 3. RECARREGA TELA DO CLIENTE
+        if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
+        if (agendamento.cliente_id) abrirDetalhesCliente(agendamento.cliente_id);
+        if (typeof carregarDashboard === 'function' && appState.currentPage === 'dashboard') carregarDashboard();
+
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao reverter: " + err.message);
+    } finally {
+        if (overlay) { overlay.classList.add('hidden'); overlay.querySelector('h2').textContent = "Estética Premium"; }
+    }
+}
+
+// 🛡️ EXPORTAÇÃO GLOBAL BLINDADA (Isso garante que o HTML ache os botões)
+window.concluirAgendamento = concluirAgendamento;
+window.autoConcluirPassados = autoConcluirPassados;
+window.reverterConclusao = reverterConclusao;
