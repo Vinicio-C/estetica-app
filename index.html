@@ -21,14 +21,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="Estética Premium">
+    <meta name="apple-mobile-web-app-title" content="Agendamento Premium">
     <meta name="theme-color" content="#D4AF37">
     
-    <title>Estética Premium - Gestão Profissional</title>
+    <title>Agendamento Premium - Gestão Profissional</title>
     
     <!-- PWA Icons -->
-    <link rel="apple-touch-icon" href="icons/icon-180.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+   
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'><path fill='%23D4AF37' d='M288 288c-49.33 0-89.84-25.9-106.84-63.55-7.39-16.36-11.16-34.19-11.16-52.45 0-68.53 47.93-125.68 112.56-138.83C284.4 32.8 286.19 32 288 32s3.6.8 5.44 1.17C358.07 46.32 406 103.47 406 172c0 18.26-3.77 36.09-11.16 52.45C377.84 262.1 337.33 288 288 288z'/><path fill='%23D4AF37' d='M568.25 192c-29.04.13-135.01 6.16-213.84 83-33.12 29.63-53.36 63.3-66.41 94.86-13.05-31.56-33.29-65.23-66.41-94.86-78.83-76.84-184.8-82.87-213.84-83-4.41-.02-7.79 3.4-7.75 7.82.23 27.92 7.14 126.14 88.77 199.3C172.79 480.94 256 480 288 480s115.19.95 199.23-80.88c81.64-73.17 88.54-171.38 88.77-199.3.04-4.42-3.34-7.84-7.75-7.82zM288 352c-23.49 0-47.55-5.52-65.13-11.45-8.4-2.83-17.16 2.01-19.16 10.74-6.42 28.02 5.09 59.83 28.87 81.33C248.86 447.38 268.42 448 288 448s39.14-.62 55.42-15.38c23.78-21.5 35.29-53.31 28.87-81.33-2-8.73-10.76-13.57-19.16-10.74C335.55 346.48 311.49 352 288 352z'/></svg>">
     <link rel="manifest" href="manifest.json">
     
     <!-- Fonts -->
@@ -51,7 +51,7 @@
     <div id="loadingScreen" class="loading-screen">
         <div class="loading-content">
             <i class="fas fa-spa loading-icon"></i>
-            <h2>Estética Premium</h2>
+            <h2>Agendamento Premium</h2>
             <div class="loading-spinner"></div>
         </div>
     </div>
@@ -60,7 +60,7 @@
     <nav id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <i class="fas fa-spa"></i>
-            <h2>Estética Premium</h2>
+            <h2>Agendamento Premium</h2>
         </div>
         
         <ul class="sidebar-menu">
@@ -88,11 +88,11 @@
                 <i class="fas fa-chart-pie"></i>
                 <span>Relatórios</span>
             </li>
-            <li class="menu-item" data-page="automacoes" onclick="carregarAutomacoes()">
+            <li class="menu-item" data-page="automacoes">
                 <i class="fas fa-robot"></i>
                 <span>Automações</span>
             </li>
-            <li class="menu-item" data-page="perfil" onclick="carregarDadosPerfil()">
+            <li class="menu-item" data-page="perfil">
                 <i class="fas fa-user-circle"></i>
                 <span>Meu Perfil</span>
             </li>
@@ -449,7 +449,7 @@
 
                         <div class="form-group" style="margin-bottom: 15px;">
                             <label style="color: var(--gold);">Assunto do E-mail</label>
-                            <input type="text" id="textoAssuntoEmail" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 10px;" placeholder="Ex: Confirmação de Agendamento - Estética Premium">
+                            <input type="text" id="textoAssuntoEmail" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 10px;" placeholder="Ex: Confirmação de Agendamento - Agendamento Premium">
                         </div>
 
                         <div class="form-group">
@@ -745,7 +745,7 @@
             </div>
 
             <div class="anamnese-header-print only-print">
-                <h1>Estética Premium</h1>
+                <h1>Agendamento Premium</h1>
                 <p>Ficha de Avaliação e Anamnese</p>
             </div>
 
@@ -853,7 +853,7 @@
 
     <div id="fichaImpressao" class="print-only-container">
         <div class="print-header">
-            <h1>Estética Premium</h1>
+            <h1>Agendamento Premium</h1>
             <p>Ficha de Avaliação e Anamnese</p>
             <div class="print-meta">
                 <span><strong>Cliente:</strong> <span id="printNomeCliente"></span></span>
@@ -1136,8 +1136,8 @@
     <script src="js/app-relatorios.js?v=4.0"></script>
     <script src="js/popular-dados.js?v=4.0"></script>
     <script src="js/app-anamnese.js?v=4.0"></script>
-    <script src="js/perfil.js?v=4.0"></script>
-    <script src="js/app.js?v=8.0"></script>
+    <script src="js/perfil.js?v=99.0"></script>
+    <script src="js/app.js?v=99.0"></script>
 
     <script>
         console.log("🚨 SCRIPT GOOGLE SYNC V3 (AUTO-REPAIR) 🚨");
@@ -1258,6 +1258,7 @@
             }
         };
     </script>
+    
     
 </body>
 </html>

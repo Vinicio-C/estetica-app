@@ -1,7 +1,7 @@
 //api key resend = re_YTYgiHiT_g8bcov2XNGi5bZhheWjjtvwY
 
 // ========================================
-// Estética Premium - App JavaScript
+// Agendamento Premium - App JavaScript
 // ========================================
 
 // ==========================================
@@ -98,7 +98,7 @@ const appState = {
 // Inicialização
 // ========================================
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🌟 Inicializando Estética Premium...');
+    console.log('🌟 Inicializando Agendamento Premium...');
 
     // --- 🚨 TRAVA DE SEGURANÇA (WATCHDOG) ---
     // Se o banco travar ou a internet cair, isso garante que o app abre em 3 segundos
@@ -259,6 +259,7 @@ function navigateTo(page) {
         case 'servicos': if(typeof carregarServicos === 'function') carregarServicos(); break;
         case 'estoque': if(typeof carregarEstoque === 'function') carregarEstoque(); break;
         case 'relatorios': if(typeof carregarRelatorios === 'function') carregarRelatorios(); break;
+        case 'automacoes': if(typeof carregarAutomacoes === 'function') carregarAutomacoes(); break;
     }
     
     // Fechar sidebar mobile
@@ -2189,161 +2190,57 @@ window.sincronizarPendentesGoogle = async function() {
 };
 
 // ==============================================================
-// 🤖 ABA DE AUTOMAÇÕES E MENSAGENS
+// 🤖 ABA DE AUTOMAÇÕES, WHATSAPP E E-MAIL (UNIFICADA)
 // ==============================================================
 
-// Variável global para guardar a mensagem na memória
-let mensagemPadraoZap = `Olá {nome}! ✨\n\nPassando para confirmar seu agendamento na *Estética Premium*.\n\n🗓 *Quando:* {data} às {hora}\n💆‍♀️ *Procedimento:* {servico}\n\nPodemos confirmar sua presença? 😘`;
+const MENSAGEM_PADRAO_ZAP = `Olá {nome}! ✨\n\nPassando para confirmar o seu horário conosco.\n\n🗓 *Quando:* {data} às {hora}\n📌 *Procedimento:* {servico}\n\nPodemos confirmar sua presença? ✅`;
+const EMAIL_PADRAO_ASSUNTO = "Seu agendamento está confirmado! ✨";
+const EMAIL_PADRAO_CORPO = "Olá {nome},\n\nSeu agendamento para o procedimento {servico} foi confirmado com sucesso!\n\nTe esperamos no dia {data} às {hora}.\n\nAtenciosamente,\nEquipe Agendamento Premium";
 
-// Carrega os dados quando a doutora clica na aba
 window.carregarAutomacoes = async function() {
-    console.log("Carregando automações...");
-    const { data: { user } } = await _supabase.auth.getUser();
-    if (!user) return;
-
+    console.log("⚙️ Carregando Automações...");
     try {
-        const { data: perfil } = await _supabase.from('profiles').select('mensagem_whatsapp').eq('id', user.id).maybeSingle();
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
         
-        const textarea = document.getElementById('textoAutomacaoZap');
-        if (textarea) {
-            // Se tiver salvo no banco, usa. Se não, usa a padrão.
-            textarea.value = (perfil && perfil.mensagem_whatsapp) ? perfil.mensagem_whatsapp : mensagemPadraoZap;
-        }
+        // 1. WhatsApp
+        const elZap = document.getElementById('textoAutomacaoZap');
+        if (elZap) elZap.value = (perfil && perfil.mensagem_whatsapp) ? perfil.mensagem_whatsapp : MENSAGEM_PADRAO_ZAP;
+
+        // 2. E-mail
+        const elAssunto = document.getElementById('textoAssuntoEmail');
+        if (elAssunto) elAssunto.value = (perfil && perfil.email_assunto) ? perfil.email_assunto : EMAIL_PADRAO_ASSUNTO;
+
+        const elCorpo = document.getElementById('textoCorpoEmail');
+        if (elCorpo) elCorpo.value = (perfil && perfil.email_corpo) ? perfil.email_corpo : EMAIL_PADRAO_CORPO;
+
+        const elToggle = document.getElementById('emailAtivoToggle');
+        if (elToggle) elToggle.checked = (perfil && perfil.email_ativo === true);
+        
     } catch (err) {
         console.error("Erro ao carregar automações:", err);
     }
 };
 
-// Salva o texto novo no banco de dados
 window.salvarAutomacoes = async function(btnElement) {
     const textoNovo = document.getElementById('textoAutomacaoZap').value;
     const textoBotaoOriginal = btnElement.innerHTML;
-    
     btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
     btnElement.disabled = true;
 
     try {
         const { data: { user } } = await _supabase.auth.getUser();
-        
-        // Salva na tabela profiles
-        const { error } = await _supabase.from('profiles').upsert({ 
-            id: user.id, 
-            mensagem_whatsapp: textoNovo 
-        });
-
+        const { error } = await _supabase.from('profiles').upsert({ id: user.id, mensagem_whatsapp: textoNovo });
         if (error) throw error;
-
-        // Atualiza a memória local
-        mensagemPadraoZap = textoNovo;
-        showToast("Mensagem atualizada com sucesso!", "success");
-
+        if(typeof showToast === 'function') showToast("Mensagem do WhatsApp salva!", "success");
     } catch (err) {
         console.error(err);
-        showToast("Erro ao salvar mensagem.", "error");
+        alert("Erro ao salvar mensagem.");
     } finally {
         btnElement.innerHTML = textoBotaoOriginal;
         btnElement.disabled = false;
-    }
-};
-
-// Facilita a vida da doutora inserindo a tag onde o cursor estiver
-window.inserirVariavel = function(variavel) {
-    const textarea = document.getElementById('textoAutomacaoZap');
-    const inicio = textarea.selectionStart;
-    const fim = textarea.selectionEnd;
-    const texto = textarea.value;
-    
-    textarea.value = texto.substring(0, inicio) + variavel + texto.substring(fim);
-    textarea.focus();
-    // Coloca o cursor logo após a variável inserida
-    textarea.selectionEnd = inicio + variavel.length; 
-};
-
-// ==============================================================
-// 📱 DISPARO DE WHATSAPP MANUAL (BLINDADO CONTRA ERROS)
-// ==============================================================
-window.dispararWhatsAppManual = async function(telefone, nome, dataHoraBr, procedimento) {
-    // 1. Bloqueia se não tiver telefone (Evita abrir a conversa da própria doutora)
-    if (!telefone || telefone === 'undefined' || telefone === 'null' || String(telefone).trim() === '') {
-        showToast('Este cliente não tem telefone cadastrado.', 'warning');
-        return;
-    }
-
-    // 2. Limpa tudo que não for número (Tira parênteses, traços, espaços)
-    let numLimpo = String(telefone).replace(/\D/g, ''); 
-
-    // 3. Se a doutora digitou o DDD com zero (ex: 011999999999), tira o zero do começo
-    if (numLimpo.startsWith('0')) {
-        numLimpo = numLimpo.substring(1);
-    }
-
-    // 4. Se o número não começar com o DDI do Brasil (55), nós colocamos
-    if (!numLimpo.startsWith('55')) {
-        numLimpo = `55${numLimpo}`;
-    }
-
-    // 5. Verificação de segurança: Um número BR válido tem pelo menos 12 dígitos (55 + DDD + 8 dígitos)
-    if (numLimpo.length < 12 || numLimpo.length > 13) {
-        showToast('O telefone deste cliente está incompleto. Edite o cadastro.', 'error');
-        return;
-    }
-
-    // --- DAQUI PRA BAIXO É A MÁGICA DO TEXTO (Mantida) ---
-    const partes = dataHoraBr.split(' às ');
-    const dataApenas = partes[0] || '';
-    const horaApenas = partes[1] || '';
-
-    // Texto de segurança caso o banco falhe
-    let textoBase = "Olá {nome}! ✨\n\nPassando para confirmar seu agendamento na *Estética Premium*.\n\n🗓 *Quando:* {data} às {hora}\n💆‍♀️ *Procedimento:* {servico}\n\nPodemos confirmar sua presença? 😘";
-
-    try {
-        const { data: { user } } = await _supabase.auth.getUser();
-        const { data: perfil } = await _supabase.from('profiles').select('mensagem_whatsapp').eq('id', user.id).maybeSingle();
-        if (perfil && perfil.mensagem_whatsapp) {
-            textoBase = perfil.mensagem_whatsapp;
-        }
-    } catch(e) { console.warn("Usando mensagem padrão local."); }
-
-    // Troca as variáveis
-    let textoFinal = textoBase
-        .replace(/{nome}/g, (nome || 'Cliente').split(' ')[0])
-        .replace(/{data}/g, dataApenas)
-        .replace(/{hora}/g, horaApenas)
-        .replace(/{servico}/g, procedimento || 'Atendimento');
-    
-    // Abre a aba do WhatsApp com o número perfeitamente formatado
-    window.open(`https://api.whatsapp.com/send?phone=${numLimpo}&text=${encodeURIComponent(textoFinal)}`, '_blank');
-};
-
-// ==============================================================
-// ✉️ LÓGICA DO E-MAIL AUTOMÁTICO
-// ==============================================================
-
-const EMAIL_PADRAO_ASSUNTO = "Seu agendamento está confirmado! ✨";
-const EMAIL_PADRAO_CORPO = "Olá {nome},\n\nSeu agendamento para o procedimento {servico} foi confirmado com sucesso!\n\nTe esperamos no dia {data} às {hora}.\n\nAtenciosamente,\nEquipe Estética Premium";
-
-// Atualize a função carregarAutomacoes que já existe para incluir os e-mails:
-window.carregarAutomacoes = async function() {
-    console.log("Carregando automações...");
-    const { data: { user } } = await _supabase.auth.getUser();
-    if (!user) return;
-
-    try {
-        const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        
-        // Carrega WhatsApp
-        if (document.getElementById('textoAutomacaoZap')) {
-            document.getElementById('textoAutomacaoZap').value = (perfil && perfil.mensagem_whatsapp) ? perfil.mensagem_whatsapp : mensagemPadraoZap;
-        }
-
-        // Carrega E-mail
-        if (document.getElementById('textoAssuntoEmail')) {
-            document.getElementById('textoAssuntoEmail').value = (perfil && perfil.email_assunto) ? perfil.email_assunto : EMAIL_PADRAO_ASSUNTO;
-            document.getElementById('textoCorpoEmail').value = (perfil && perfil.email_corpo) ? perfil.email_corpo : EMAIL_PADRAO_CORPO;
-            document.getElementById('emailAtivoToggle').checked = (perfil && perfil.email_ativo === true);
-        }
-    } catch (err) {
-        console.error("Erro ao carregar automações:", err);
     }
 };
 
@@ -2358,75 +2255,182 @@ window.salvarAutomacoesEmail = async function(btnElement) {
 
     try {
         const { data: { user } } = await _supabase.auth.getUser();
-        
         const { error } = await _supabase.from('profiles').upsert({ 
             id: user.id, 
             email_assunto: assunto,
             email_corpo: corpo,
             email_ativo: ativo
         });
-
         if (error) throw error;
-        showToast("Configurações de e-mail atualizadas!", "success");
-
+        if(typeof showToast === 'function') showToast("Configurações de e-mail atualizadas!", "success");
     } catch (err) {
         console.error(err);
-        showToast("Erro ao salvar e-mail.", "error");
+        alert("Erro ao salvar e-mail.");
     } finally {
         btnElement.innerHTML = textoBotaoOriginal;
         btnElement.disabled = false;
     }
 };
 
+window.inserirVariavel = function(variavel) {
+    const textarea = document.getElementById('textoAutomacaoZap');
+    if (!textarea) return;
+    const inicio = textarea.selectionStart;
+    const fim = textarea.selectionEnd;
+    const texto = textarea.value;
+    textarea.value = texto.substring(0, inicio) + variavel + texto.substring(fim);
+    textarea.focus();
+    textarea.selectionEnd = inicio + variavel.length; 
+};
+
 // ==============================================================
-// ✉️ DISPARO DE E-MAIL (VIA SUPABASE EDGE FUNCTIONS)
+// ✉️ LÓGICA DO E-MAIL AUTOMÁTICO
 // ==============================================================
-window.dispararEmailAutomatico = async function(emailCliente, nomeCliente, dataHoraBr, procedimento) {
-    if (!emailCliente || !emailCliente.includes('@')) return;
+
+async function carregarAutomacoes() {
+    console.log("⚙️ Carregando Automações...");
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        
+        // 🛡️ Textos Padrões (Guardados DENTRO da função para nunca dar erro)
+        const padraoZap = `Olá {nome}! ✨\n\nVocê tem um agendamento marcado com a Dra. Joyce Corrêa.\n\n🗓 *Quando:* {data} às {hora}\n💆‍♀️ *Procedimento:* {servico}\n\nPodemos confirmar sua presença? 😘`;
+        const padraoAssunto = "Seu agendamento está confirmado! ✨";
+        const padraoCorpo = "Olá {nome},\n\nSeu agendamento para o procedimento {servico} foi confirmado com sucesso!\n\nTe esperamos no dia {data} às {hora}.\n\nAtenciosamente,\nEquipe Agendamento Premium";
+
+        // Carrega WhatsApp
+        const elZap = document.getElementById('textoAutomacaoZap');
+        if (elZap) elZap.value = (perfil && perfil.mensagem_whatsapp) ? perfil.mensagem_whatsapp : padraoZap;
+
+        // Carrega E-mail
+        const elAssunto = document.getElementById('textoAssuntoEmail');
+        if (elAssunto) elAssunto.value = (perfil && perfil.email_assunto) ? perfil.email_assunto : padraoAssunto;
+
+        const elCorpo = document.getElementById('textoCorpoEmail');
+        if (elCorpo) elCorpo.value = (perfil && perfil.email_corpo) ? perfil.email_corpo : padraoCorpo;
+
+        const elToggle = document.getElementById('emailAtivoToggle');
+        if (elToggle) elToggle.checked = (perfil && perfil.email_ativo === true);
+        
+    } catch (err) { console.error("Erro ao carregar automações:", err); }
+}
+
+async function salvarAutomacoes(btnElement) {
+    const textoNovo = document.getElementById('textoAutomacaoZap').value;
+    const textoBotaoOriginal = btnElement.innerHTML;
+    btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    btnElement.disabled = true;
 
     try {
         const { data: { user } } = await _supabase.auth.getUser();
-        const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        const { error } = await _supabase.from('profiles').upsert({ id: user.id, mensagem_whatsapp: textoNovo });
+        if (error) throw error;
+        if(typeof showToast === 'function') showToast("Mensagem do WhatsApp salva!", "success");
+    } catch (err) { alert("Erro ao salvar mensagem."); } 
+    finally { btnElement.innerHTML = textoBotaoOriginal; btnElement.disabled = false; }
+}
 
-        // Checagem de segurança
+async function salvarAutomacoesEmail(btnElement) {
+    const assunto = document.getElementById('textoAssuntoEmail').value;
+    const corpo = document.getElementById('textoCorpoEmail').value;
+    const ativo = document.getElementById('emailAtivoToggle').checked;
+    
+    const textoBotaoOriginal = btnElement.innerHTML;
+    btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    btnElement.disabled = true;
+
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        const { error } = await _supabase.from('profiles').upsert({ 
+            id: user.id, email_assunto: assunto, email_corpo: corpo, email_ativo: ativo 
+        });
+        if (error) throw error;
+        if(typeof showToast === 'function') showToast("Configurações de e-mail atualizadas!", "success");
+    } catch (err) { alert("Erro ao salvar e-mail."); } 
+    finally { btnElement.innerHTML = textoBotaoOriginal; btnElement.disabled = false; }
+}
+
+function inserirVariavel(variavel) {
+    const textarea = document.getElementById('textoAutomacaoZap');
+    if (!textarea) return;
+    const inicio = textarea.selectionStart;
+    const fim = textarea.selectionEnd;
+    const texto = textarea.value;
+    textarea.value = texto.substring(0, inicio) + variavel + texto.substring(fim);
+    textarea.focus();
+    textarea.selectionEnd = inicio + variavel.length; 
+}
+
+window.dispararWhatsAppManual = async function(telefone, nome, dataHoraBr, procedimento) {
+    if (!telefone || String(telefone).trim() === '') return alert('Cliente sem telefone cadastrado.');
+    let numLimpo = String(telefone).replace(/\D/g, ''); 
+    if (numLimpo.startsWith('0')) numLimpo = numLimpo.substring(1);
+    if (!numLimpo.startsWith('55')) numLimpo = `55${numLimpo}`;
+    if (numLimpo.length < 12 || numLimpo.length > 13) return alert('O telefone deste cliente está incorreto.');
+
+    const partes = dataHoraBr.split(' às ');
+    const dataApenas = partes[0] || '';
+    const horaApenas = partes[1] || '';
+
+    let textoBase = `Olá {nome}! ✨\n\nVocê tem um agendamento marcado com a Dra. Joyce Corrêa.\n\n🗓 *Quando:* {data} às {hora}\n💆‍♀️ *Procedimento:* {servico}\n\nPodemos confirmar sua presença? 😘`;
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        const { data: perfil } = await _supabase.from('profiles').select('mensagem_whatsapp').eq('id', user.id).maybeSingle();
+        if (perfil && perfil.mensagem_whatsapp) textoBase = perfil.mensagem_whatsapp;
+    } catch(e) { console.warn("Usando mensagem padrão."); }
+
+    let textoFinal = textoBase
+        .replace(/{nome}/g, (nome || 'Cliente').split(' ')[0])
+        .replace(/{data}/g, dataApenas)
+        .replace(/{hora}/g, horaApenas)
+        .replace(/{servico}/g, procedimento || 'Atendimento');
+    
+    window.open(`https://api.whatsapp.com/send?phone=${numLimpo}&text=${encodeURIComponent(textoFinal)}`, '_blank');
+};
+
+window.dispararEmailAutomatico = async function(emailCliente, nomeCliente, dataHoraBr, procedimento) {
+    if (!emailCliente || !emailCliente.includes('@')) return;
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
         if (!perfil || perfil.email_ativo !== true) return;
 
         const partes = dataHoraBr.split(' às ');
         const dataApenas = partes[0] || '';
         const horaApenas = partes[1] || '';
 
-        let assuntoFinal = (perfil.email_assunto || "Seu agendamento está confirmado! ✨")
+        const padraoAssunto = "Seu agendamento está confirmado! ✨";
+        const padraoCorpo = "Olá {nome},\n\nSeu agendamento para o procedimento {servico} foi confirmado com sucesso!\n\nTe esperamos no dia {data} às {hora}.\n\nAtenciosamente,\nEquipe Agendamento Premium";
+
+        let assuntoFinal = (perfil.email_assunto || padraoAssunto)
             .replace(/{nome}/g, nomeCliente.split(' ')[0])
             .replace(/{data}/g, dataApenas)
             .replace(/{hora}/g, horaApenas)
             .replace(/{servico}/g, procedimento);
 
-        let corpoFinal = (perfil.email_corpo || "Olá {nome},\n\nSeu agendamento para {servico} foi confirmado!\nData: {data} às {hora}.\n\nAtenciosamente,\nEquipe Estética Premium")
+        let corpoFinal = (perfil.email_corpo || padraoCorpo)
             .replace(/{nome}/g, nomeCliente.split(' ')[0])
             .replace(/{data}/g, dataApenas)
             .replace(/{hora}/g, horaApenas)
             .replace(/{servico}/g, procedimento);
 
-        // A MÁGICA AQUI: Chama a Edge Function do Supabase!
         const { data, error } = await _supabase.functions.invoke('enviar-email', {
-            body: {
-                para: emailCliente,
-                reply_to: user.email,
-                assunto: assuntoFinal,
-                corpo: corpoFinal
-            }
+            body: { para: emailCliente, reply_to: user.email, assunto: assuntoFinal, corpo: corpoFinal }
         });
 
-        if (error) {
-            console.error("Erro ao chamar Edge Function:", error);
-        } else {
-            showToast("✅ Cliente avisada por e-mail com sucesso!", "success");
-        }
+        if (error) console.error("Erro ao chamar Edge Function:", error);
+        else console.log("✅ E-mail enviado com sucesso!");
 
-    } catch (error) {
-        console.error("Erro interno no e-mail:", error);
-    }
+    } catch (error) { console.error("Erro interno no e-mail:", error); }
 };
+
+// OBRIGATÓRIO: Conecta as funções seguras ao navegador
+window.carregarAutomacoes = carregarAutomacoes;
+window.salvarAutomacoes = salvarAutomacoes;
+window.salvarAutomacoesEmail = salvarAutomacoesEmail;
+window.inserirVariavel = inserirVariavel;
 
 // ==============================================================
 // 🔍 AUTOCOMPLETE INTELIGENTE (CORRIGIDO)
@@ -2598,7 +2602,7 @@ async function concluirAgendamento(agendamentoId) {
         console.error('Erro:', err);
         if(typeof showToast === 'function') showToast('Erro ao concluir.', 'error');
     } finally {
-        if (overlay) { overlay.classList.add('hidden'); overlay.querySelector('h2').textContent = "Estética Premium"; }
+        if (overlay) { overlay.classList.add('hidden'); overlay.querySelector('h2').textContent = "Agendamento Premium"; }
     }
 }
 
@@ -2677,7 +2681,7 @@ async function reverterConclusao(agendamentoId) {
         console.error(err);
         alert("Erro ao reverter: " + err.message);
     } finally {
-        if (overlay) { overlay.classList.add('hidden'); overlay.querySelector('h2').textContent = "Estética Premium"; }
+        if (overlay) { overlay.classList.add('hidden'); overlay.querySelector('h2').textContent = "Agendamento Premium"; }
     }
 }
 

@@ -2280,3 +2280,30 @@ canvas {
     z-index: 9999 !important; /* Força ficar na frente de tudo */
     box-shadow: 0 8px 16px rgba(0,0,0,0.8);
 }
+
+/* =======================================================
+   OVERLAY DO MENU LATERAL (FECHA AO CLICAR FORA)
+   ======================================================= */
+.overlay {
+    position: fixed;
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6); /* Fundo escuro transparente */
+    backdrop-filter: blur(3px); /* Deixa o fundo levemente embaçado (Premium) */
+    
+    /* Z-index 2000 fica exatamente ABAIXO do menu (2001) e ACIMA do cabeçalho (100) */
+    z-index: 2000; 
+    
+    /* Escondido por padrão, com animação suave */
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+/* Quando o menu é aberto, o JS adiciona a classe .active no overlay */
+.overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
