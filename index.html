@@ -1137,7 +1137,7 @@
     <script src="js/popular-dados.js?v=4.0"></script>
     <script src="js/app-anamnese.js?v=4.0"></script>
     <script src="js/perfil.js?v=4.0"></script>
-    <script src="js/app.js?v=7.0"></script>
+    <script src="js/app.js?v=8.0"></script>
 
     <script>
         console.log("🚨 SCRIPT GOOGLE SYNC V3 (AUTO-REPAIR) 🚨");
@@ -1225,6 +1225,36 @@
                 alert("Erro: " + erro.message + "\n(Verifique se colou a API KEY no script)");
             } finally {
                 if(btn) { btn.innerHTML = originalIcon; btn.disabled = false; }
+            }
+        };
+    </script>
+    <script>
+        window.fazerLogout = async function(event) {
+            // Evita o recarregamento fantasma
+            if (event) event.preventDefault();
+
+            if (!confirm("Deseja realmente desconectar e sair do sistema?")) return;
+
+            try {
+                // Feedback visual no botão
+                const btn = document.querySelector('.btn-logout');
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saindo...';
+                    btn.style.opacity = '0.7';
+                    btn.disabled = true;
+                }
+
+                // Desloga usando o cliente global do Supabase
+                const { error } = await window._supabase.auth.signOut();
+                if (error) throw error;
+                
+                // Força o envio para a tela de login
+                window.location.replace('login.html');
+                
+            } catch (err) {
+                console.error("Erro ao sair:", err);
+                alert("Erro ao sair: " + err.message);
+                window.location.reload(); // Limpa a tela em caso de falha
             }
         };
     </script>
