@@ -5,34 +5,33 @@
 // ========================================
 
 // ==========================================
-// 🔌 INICIALIZAÇÃO DO GOOGLE (Obrigatório)
+// 🔌 INICIALIZAÇÃO DO GOOGLE (ATUALIZADA)
 // ==========================================
-const CLIENT_ID = '202923629512-v63i5nl8et7rrmhhbah3brdqr510lgp4.apps.googleusercontent.com'; // <--- CONFIRA SE ESTÁ AQUI
-const API_KEY = 'AIzaSyDnpUtzu2QnkWSPvl2c-7tvy95BPioBB_g'; // <--- CONFIRA SE ESTÁ AQUI
+const API_KEY = 'AIzaSyDnpUtzu2QnkWSPvl2c-7tvy95BPioBB_g'; // Apenas a API Key é necessária
 
-// Carrega a biblioteca gapi
 function handleClientLoad() {
-    gapi.load('client:auth2', initClient);
+    // Carrega APENAS o 'client', sem o 'auth2' que foi bloqueado pelo Google
+    gapi.load('client', initClient);
 }
 
-// Configura a biblioteca com suas chaves
 function initClient() {
     gapi.client.init({
         apiKey: API_KEY,
-        clientId: CLIENT_ID,
-        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
-        scope: "https://www.googleapis.com/auth/calendar.events"
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"]
+        // Removemos o clientId daqui para o Supabase assumir o controle!
     }).then(function () {
         console.log("✅ Google API Inicializada com Sucesso!");
-        
-        // Verifica se já estava logado antes
-        if (gapi.auth2.getAuthInstance().isSignedIn.get()) {
-            console.log("🔓 Usuário já estava logado no Google.");
-            // Atualiza ícone do botão se quiser
-        }
-    }, function(error) {
+    }).catch(function(error) {
         console.error("Erro ao inicializar Google API:", error);
     });
+}
+
+if (typeof gapi !== 'undefined') {
+    handleClientLoad();
+} else {
+    window.onload = function() {
+        if (typeof gapi !== 'undefined') handleClientLoad();
+    }
 }
 
 // Inicia o carregamento assim que o script roda
@@ -2076,87 +2075,67 @@ if (typeof uploadFotoPerfil !== 'undefined') {
     window.uploadFotoPerfil = uploadFotoPerfil;
 }
 
-
-// Monitora a conexão do Google
-// Assim que conectar, ele roda a sincronização
-function iniciarVigilanteGoogle() {
-    // Tenta rodar a cada 5 segundos para garantir que o gapi carregou
-    const checkGapi = setInterval(() => {
-        if (typeof gapi !== 'undefined' && gapi.auth2 && gapi.auth2.getAuthInstance().isSignedIn.get()) {
-            clearInterval(checkGapi); // Parar de checar
-            console.log("🔗 Conexão Google detectada! Iniciando Sincronização...");
-            window.sincronizarPendentesGoogle();
-        }
-    }, 3000);
-}
-
-// Inicia o vigilante quando a página carrega
-document.addEventListener('DOMContentLoaded', iniciarVigilanteGoogle);
-
 window.copiarLinkPerfil = copiarLinkPerfil; // Se tiver criado essa também
 
 // ==============================================================
-// 🔄 SINCRONIZADOR GOOGLE (GLOBAL & FORÇADO)
+// 🔄 SINCRONIZADOR GOOGLE (INTEGRADO COM SUPABASE OAUTH)
 // ==============================================================
 window.sincronizarPendentesGoogle = async function() {
     console.log("🔄 Tentando sincronizar com Google...");
     
-    // 1. Verifica se a biblioteca do Google (GAPI) carregou
     if (typeof gapi === 'undefined' || !gapi.client) {
-        alert("⚠️ O 'Google API' ainda não carregou. Aguarde alguns segundos ou recarregue a página.");
+        alert("⚠️ O 'Google API' ainda não carregou. Aguarde alguns segundos.");
         return;
     }
 
-    // 2. Verifica se está logado
-    const auth = gapi.auth2 ? gapi.auth2.getAuthInstance() : null;
-    if (!auth || !auth.isSignedIn.get()) {
-        alert("🔒 Você não está conectado ao Google.\nClique no botão 'Conectar' (G) primeiro.");
-        return;
-    }
-
-    // Feedback visual no botão (se existir)
-    // Procura o botão pelo ícone ou pela função onclick
     const btn = document.querySelector('button[onclick*="sincronizarPendentesGoogle"]');
     const iconeOriginal = btn ? btn.innerHTML : '';
-    
-    if(btn) {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // Gira o ícone
-        btn.disabled = true;
-    }
+    if(btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true; }
 
     try {
+        // 1. Pega o Token Seguro gerado pelo Supabase
+        const { data: { session } } = await window._supabase.auth.getSession();
+        const token = session?.provider_token;
+
+        if (!token) {
+            alert("🔒 Você não está conectado ao Google.\nClique no botão 'Conectar' (G) primeiro.");
+            return;
+        }
+
+        // 2. Injeta o Token diretamente na API do Google
+        gapi.client.setToken({ access_token: token });
+
         const hoje = new Date().toISOString().split('T')[0];
 
-        // 3. Busca no Supabase: Agendamentos de Hoje em diante SEM ID do Google
-        const { data: pendentes, error } = await _supabase
+        // 3. Busca Pendentes no Banco de Dados
+        const { data: pendentes, error } = await window._supabase
             .from('agendamentos')
             .select('*, clientes(nome)')
             .gte('data', hoje)
-            .is('google_event_id', null);
+            .is('google_event_id', null)
+            .neq('status', 'cancelado');
 
         if (error) throw error;
 
         if (!pendentes || pendentes.length === 0) {
             alert("✅ Tudo atualizado! Nenhum agendamento pendente para enviar.");
         } else {
-            // 4. Envia cada um para o Google
             let enviados = 0;
             for (const agenda of pendentes) {
                 try {
-                    // Formata Data/Hora
                     const inicio = `${agenda.data}T${agenda.hora}:00`;
                     const dataInicio = new Date(inicio);
-                    const dataFim = new Date(dataInicio.getTime() + 60*60*1000); // +1 hora
+                    const dataFim = new Date(dataInicio.getTime() + 60*60*1000); // Duração: 1 hora
                     const fim = dataFim.toISOString().split('.')[0];
 
                     const nomeCliente = agenda.clientes?.nome || 'Cliente Site';
 
                     const evento = {
-                        'summary': `💆‍♀️ ${agenda.servico} - ${nomeCliente}`,
-                        'description': `Agendamento via Site. Obs: ${agenda.observacoes || '-'}`,
+                        'summary': `💆‍♀️ ${agenda.servico_nome || 'Serviço'} - ${nomeCliente}`,
+                        'description': `Agendamento via App. Obs: ${agenda.observacoes || '-'}`,
                         'start': { 'dateTime': inicio, 'timeZone': 'America/Sao_Paulo' },
                         'end':   { 'dateTime': fim, 'timeZone': 'America/Sao_Paulo' },
-                        'colorId': '5' // Amarelo
+                        'colorId': '5' // Cor Amarela no Calendário
                     };
 
                     const response = await gapi.client.calendar.events.insert({
@@ -2164,9 +2143,9 @@ window.sincronizarPendentesGoogle = async function() {
                         'resource': evento
                     });
 
-                    // Salva o ID de volta no Supabase
+                    // Salva o ID do Google de volta no nosso banco
                     if (response.result?.id) {
-                        await _supabase.from('agendamentos')
+                        await window._supabase.from('agendamentos')
                             .update({ google_event_id: response.result.id })
                             .eq('id', agenda.id);
                         enviados++;
@@ -2177,15 +2156,11 @@ window.sincronizarPendentesGoogle = async function() {
             }
             alert(`🎉 Sucesso! ${enviados} agendamentos foram enviados para o Google.`);
         }
-
     } catch (erro) {
         console.error("Erro Sync:", erro);
-        alert("Erro na sincronização: " + erro.message);
+        alert("Erro na sincronização: Você precisa estar logado na conta Google que tem permissão da agenda.");
     } finally {
-        if(btn) {
-            btn.innerHTML = iconeOriginal;
-            btn.disabled = false;
-        }
+        if(btn) { btn.innerHTML = iconeOriginal; btn.disabled = false; }
     }
 };
 
