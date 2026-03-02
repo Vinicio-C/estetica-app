@@ -9,31 +9,6 @@
 // ==========================================
 const API_KEY = 'AIzaSyDnpUtzu2QnkWSPvl2c-7tvy95BPioBB_g'; // Apenas a API Key é necessária
 
-function handleClientLoad() {
-    // Carrega APENAS o 'client', sem o 'auth2' que foi bloqueado pelo Google
-    gapi.load('client', initClient);
-}
-
-function initClient() {
-    gapi.client.init({
-        apiKey: API_KEY,
-        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"]
-        // Removemos o clientId daqui para o Supabase assumir o controle!
-    }).then(function () {
-        console.log("✅ Google API Inicializada com Sucesso!");
-    }).catch(function(error) {
-        console.error("Erro ao inicializar Google API:", error);
-    });
-}
-
-if (typeof gapi !== 'undefined') {
-    handleClientLoad();
-} else {
-    window.onload = function() {
-        if (typeof gapi !== 'undefined') handleClientLoad();
-    }
-}
-
 // Inicia o carregamento assim que o script roda
 // Se o gapi já estiver na página (pelo script do HTML), ele carrega.
 if (typeof gapi !== 'undefined') {
@@ -2078,36 +2053,28 @@ if (typeof uploadFotoPerfil !== 'undefined') {
 window.copiarLinkPerfil = copiarLinkPerfil; // Se tiver criado essa também
 
 // ==============================================================
-// 🔄 SINCRONIZADOR GOOGLE (INTEGRADO COM SUPABASE OAUTH)
+// 🔄 SINCRONIZADOR GOOGLE NATIVO (100% SUPABASE + FETCH)
 // ==============================================================
 window.sincronizarPendentesGoogle = async function() {
-    console.log("🔄 Tentando sincronizar com Google...");
-    
-    if (typeof gapi === 'undefined' || !gapi.client) {
-        alert("⚠️ O 'Google API' ainda não carregou. Aguarde alguns segundos.");
-        return;
-    }
+    console.log("🔄 Sincronizando com Google via API Nativa...");
 
     const btn = document.querySelector('button[onclick*="sincronizarPendentesGoogle"]');
     const iconeOriginal = btn ? btn.innerHTML : '';
     if(btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true; }
 
     try {
-        // 1. Pega o Token Seguro gerado pelo Supabase
+        // 1. Pega o Token Seguro diretamente do Supabase
         const { data: { session } } = await window._supabase.auth.getSession();
         const token = session?.provider_token;
 
         if (!token) {
-            alert("🔒 Você não está conectado ao Google.\nClique no botão 'Conectar' (G) primeiro.");
+            alert("🔒 Você não está conectado ao Google.\nPor favor, faça login novamente com o Google para gerar uma chave de acesso nova.");
             return;
         }
 
-        // 2. Injeta o Token diretamente na API do Google
-        gapi.client.setToken({ access_token: token });
-
         const hoje = new Date().toISOString().split('T')[0];
 
-        // 3. Busca Pendentes no Banco de Dados
+        // 2. Busca Pendentes no Banco de Dados
         const { data: pendentes, error } = await window._supabase
             .from('agendamentos')
             .select('*, clientes(nome)')
@@ -2119,46 +2086,62 @@ window.sincronizarPendentesGoogle = async function() {
 
         if (!pendentes || pendentes.length === 0) {
             alert("✅ Tudo atualizado! Nenhum agendamento pendente para enviar.");
-        } else {
-            let enviados = 0;
-            for (const agenda of pendentes) {
-                try {
-                    const inicio = `${agenda.data}T${agenda.hora}:00`;
-                    const dataInicio = new Date(inicio);
-                    const dataFim = new Date(dataInicio.getTime() + 60*60*1000); // Duração: 1 hora
-                    const fim = dataFim.toISOString().split('.')[0];
+            return;
+        }
 
-                    const nomeCliente = agenda.clientes?.nome || 'Cliente Site';
+        let enviados = 0;
+        for (const agenda of pendentes) {
+            try {
+                const inicio = `${agenda.data}T${agenda.hora}:00`;
+                const dataInicio = new Date(inicio);
+                const dataFim = new Date(dataInicio.getTime() + 60*60*1000); // Duração: 1 hora
+                const fim = dataFim.toISOString().split('.')[0];
 
-                    const evento = {
-                        'summary': `💆‍♀️ ${agenda.servico_nome || 'Serviço'} - ${nomeCliente}`,
-                        'description': `Agendamento via App. Obs: ${agenda.observacoes || '-'}`,
-                        'start': { 'dateTime': inicio, 'timeZone': 'America/Sao_Paulo' },
-                        'end':   { 'dateTime': fim, 'timeZone': 'America/Sao_Paulo' },
-                        'colorId': '5' // Cor Amarela no Calendário
-                    };
+                const nomeCliente = agenda.clientes?.nome || 'Cliente Site';
 
-                    const response = await gapi.client.calendar.events.insert({
-                        'calendarId': 'primary',
-                        'resource': evento
-                    });
+                const evento = {
+                    'summary': `💆‍♀️ ${agenda.servico_nome || 'Serviço'} - ${nomeCliente}`,
+                    'description': `Agendamento via App. Obs: ${agenda.observacoes || '-'}`,
+                    'start': { 'dateTime': inicio, 'timeZone': 'America/Sao_Paulo' },
+                    'end':   { 'dateTime': fim, 'timeZone': 'America/Sao_Paulo' },
+                    'colorId': '5' // Cor Amarela
+                };
 
-                    // Salva o ID do Google de volta no nosso banco
-                    if (response.result?.id) {
-                        await window._supabase.from('agendamentos')
-                            .update({ google_event_id: response.result.id })
-                            .eq('id', agenda.id);
-                        enviados++;
-                    }
-                } catch (errEnvio) {
-                    console.error("Erro ao enviar item:", errEnvio);
+                // 3. Comunica com o Google diretamente, sem usar o 'gapi'!
+                const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(evento)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    console.error("Erro retornado pelo Google:", result);
+                    throw new Error(result.error?.message || "Erro ao conectar com a Agenda.");
                 }
+
+                // 4. Salva o ID do Google de volta no nosso banco
+                if (result.id) {
+                    await window._supabase.from('agendamentos')
+                        .update({ google_event_id: result.id })
+                        .eq('id', agenda.id);
+                    enviados++;
+                }
+            } catch (errEnvio) {
+                console.error("Erro ao enviar item específico:", errEnvio);
             }
+        }
+        
+        if (enviados > 0) {
             alert(`🎉 Sucesso! ${enviados} agendamentos foram enviados para o Google.`);
         }
     } catch (erro) {
         console.error("Erro Sync:", erro);
-        alert("Erro na sincronização: Você precisa estar logado na conta Google que tem permissão da agenda.");
+        alert("Erro na sincronização. Certifique-se de estar logado na conta correta.");
     } finally {
         if(btn) { btn.innerHTML = iconeOriginal; btn.disabled = false; }
     }
