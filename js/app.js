@@ -2433,13 +2433,13 @@ window.salvarAutomacoesEmail = salvarAutomacoesEmail;
 window.inserirVariavel = inserirVariavel;
 
 // ==============================================================
-// 🔍 AUTOCOMPLETE INTELIGENTE (CORRIGIDO)
+// 🔍 AUTOCOMPLETE INTELIGENTE (CLIENTES E SERVIÇOS)
 // ==============================================================
 
 window.abrirDropdownCliente = function() {
     const dropdown = document.getElementById('dropdownClientes');
     if(dropdown) dropdown.style.display = 'block';
-    filtrarClientesDropdown();
+    window.filtrarClientesDropdown();
 }
 
 window.filtrarClientesDropdown = function() {
@@ -2448,11 +2448,9 @@ window.filtrarClientesDropdown = function() {
     if (!input || !dropdown) return;
 
     const termo = input.value.toLowerCase();
-    
-    // Força a exibição enquanto digita
     dropdown.style.display = 'block';
     
-    // Puxa do estado global e ordena de A a Z
+    // Puxa os clientes do estado global e ordena de A a Z
     let filtrados = [...appState.clientes].sort((a, b) => a.nome.localeCompare(b.nome));
     
     if (termo) {
@@ -2464,7 +2462,6 @@ window.filtrarClientesDropdown = function() {
         return;
     }
 
-    // Monta a lista
     dropdown.innerHTML = filtrados.map(c => `
         <div style="padding: 12px 15px; border-bottom: 1px solid #444; cursor: pointer; color: #fff; background: #2A2A2A;" 
              onclick="selecionarCliente('${c.id}', '${c.nome.replace(/'/g, "\\'")}')"
@@ -2485,7 +2482,7 @@ window.selecionarCliente = function(id, nome) {
 window.abrirDropdownServico = function() {
     const dropdown = document.getElementById('dropdownServicos');
     if(dropdown) dropdown.style.display = 'block';
-    filtrarServicosDropdown();
+    window.filtrarServicosDropdown();
 }
 
 window.filtrarServicosDropdown = function() {
@@ -2494,11 +2491,10 @@ window.filtrarServicosDropdown = function() {
     if (!input || !dropdown) return;
 
     const termo = input.value.toLowerCase();
-    
-    // Força a exibição
     dropdown.style.display = 'block';
     
     let filtrados = [...appState.servicos].sort((a, b) => a.nome.localeCompare(b.nome));
+    
     if (termo) {
         filtrados = filtrados.filter(s => s.nome.toLowerCase().includes(termo));
     }
@@ -2522,11 +2518,17 @@ window.filtrarServicosDropdown = function() {
 window.selecionarServico = function(id, nome, valor) {
     document.getElementById('agendamentoServico').value = id;
     document.getElementById('inputBuscaServico').value = nome;
-    document.getElementById('agendamentoValor').value = parseFloat(valor).toFixed(2);
+    
+    // Atualiza o input de valor visualmente
+    const inputValor = document.getElementById('agendamentoValor');
+    if (inputValor) {
+        inputValor.value = parseFloat(valor).toFixed(2);
+    }
+    
     document.getElementById('dropdownServicos').style.display = 'none';
 }
 
-// Fechar ao clicar fora
+// Fecha a lista se a doutora clicar fora dela
 document.addEventListener('click', function(e) {
     const boxClientes = document.getElementById('dropdownClientes');
     const boxServicos = document.getElementById('dropdownServicos');
@@ -2722,3 +2724,22 @@ window.fazerLogout = async function(event) {
         window.location.reload();
     }
 };
+
+// ========================================
+// 🗑️ FUNÇÃO QUE FALTAVA (EXCLUIR SERVIÇO)
+// ========================================
+async function excluirServico(id) {
+    if (!id || id === 'undefined') return;
+    if (!confirm('Tem certeza que deseja excluir este serviço permanentemente?')) return;
+
+    try {
+        const { error } = await _supabase.from('servicos').delete().eq('id', id);
+        if (error) throw error;
+        
+        if(typeof showToast === 'function') showToast('Serviço excluído com sucesso!', 'success');
+        if(typeof carregarServicos === 'function') carregarServicos();
+    } catch (err) {
+        console.error(err);
+        if(typeof showToast === 'function') showToast('Erro ao excluir serviço.', 'error');
+    }
+}
