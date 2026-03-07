@@ -2307,3 +2307,41 @@ canvas {
     opacity: 1;
     visibility: visible;
 }
+
+/* ==========================================
+   📱 CORREÇÕES DEFINITIVAS MOBILE (RESPONSIVIDADE)
+   ========================================== */
+@media (max-width: 768px) {
+    /* 1. Desce a logo do menu lateral para não ser engolida pelo topo */
+    .sidebar-header {
+        padding-top: 80px !important; /* Empurra a florzinha pra baixo da barra do topo */
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    /* Força a florzinha a aparecer completa e centralizada */
+    .sidebar-header i {
+        display: block !important;
+        font-size: 38px !important;
+        margin-bottom: 15px !important;
+        color: #D4AF37 !important; /* Nosso Dourado */
+    }
+
+    /* 2. Destrava o menu lateral para permitir rolagem com o dedo */
+    .sidebar {
+        overflow-y: auto !important; /* Libera o scroll vertical */
+        padding-bottom: 80px !important; /* Dá um respiro no final para o 'Meu Perfil' não colar no chão */
+        -webkit-overflow-scrolling: touch !important; /* Deixa a rolagem suave no iPhone */
+    }
+
+    /* 3. Ajusta o botão de sanduíche na barra do topo para não ficar jogado */
+    .menu-toggle, #menu-toggle, .mobile-menu-btn { 
+        position: absolute !important;
+        left: 15px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        margin: 0 !important;
+    }
+}
