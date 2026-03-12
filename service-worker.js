@@ -1,14 +1,21 @@
-const CACHE_NAME = 'estetica-premium-v2'; // Mudei para v2 para forçar atualização
+const CACHE_NAME = 'estetica-premium-v4';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './css/style.css',
-    './js/app.js',
-    './js/app-agenda.js',
     './js/supabase-client.js',
-    './js/popular-dados.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
-    'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap'
+    './js/app-core.js',
+    './js/app-dashboard.js',
+    './js/app-clientes.js',
+    './js/app-servicos.js',
+    './js/app-estoque.js',
+    './js/app-agendamentos.js',
+    './js/app-automacoes.js',
+    './js/app-agenda.js',
+    './js/app-relatorios.js',
+    './js/app-anamnese.js',
+    'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css',
+    'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap'
 ];
 
 // 1. Instalação: Cache dos arquivos estáticos
