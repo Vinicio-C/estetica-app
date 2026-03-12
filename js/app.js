@@ -1,59 +1,27 @@
-//api key resend = re_YTYgiHiT_g8bcov2XNGi5bZhheWjjtvwY
-
 // ========================================
 // Agendamento Premium - App JavaScript
 // ========================================
 
-// ==========================================
-// 🔌 INICIALIZAÇÃO DO GOOGLE (ATUALIZADA)
-// ==========================================
-const API_KEY = 'AIzaSyDnpUtzu2QnkWSPvl2c-7tvy95BPioBB_g'; // Apenas a API Key é necessária
-
-// Inicia o carregamento assim que o script roda
-// Se o gapi já estiver na página (pelo script do HTML), ele carrega.
-if (typeof gapi !== 'undefined') {
-    handleClientLoad();
-} else {
-    // Se ainda não carregou, espera a janela carregar
-    window.onload = function() {
-        if (typeof gapi !== 'undefined') handleClientLoad();
-    }
-}
-
 // =========================================================
-// 🚨 FISCAL DE RECUPERAÇÃO DE SENHA (Coloque no TOPO do app.js)
+// FISCAL DE RECUPERAÇÃO DE SENHA (listener único)
 // =========================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Verifica se o Supabase já carregou
     const supabaseCheck = setInterval(() => {
         if (window._supabase) {
             clearInterval(supabaseCheck);
-            
-            // Ouve as mudanças de estado (Login, Logout, Recuperação)
+
             window._supabase.auth.onAuthStateChange((event, session) => {
                 console.log("🔔 Evento de Auth Detectado:", event);
 
-                // O GRANDE SEGREDO: Se o evento for 'PASSWORD_RECOVERY'
                 if (event === 'PASSWORD_RECOVERY') {
                     console.log("🛑 É recuperação de senha! Redirecionando...");
-                    // Impede o app de carregar o dashboard normal
                     document.body.innerHTML = '<div style="color:white; text-align:center; padding:50px;">Redirecionando para troca de senha...</div>';
-                    // Manda para a página certa
-                    window.location.href = 'nova-senha.html'; 
+                    window.location.href = 'nova-senha.html';
                 }
             });
         }
-    }, 100); // Checa a cada 100ms se o Supabase carregou
+    }, 100);
 });
-
-if (window._supabase) {
-    window._supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'PASSWORD_RECOVERY') {
-            console.log("🔄 Recuperação de senha detectada! Redirecionando...");
-            window.location.href = 'nova-senha.html';
-        }
-    });
-}
 
 // Estado global da aplicação
 const appState = {
@@ -65,8 +33,12 @@ const appState = {
     servicos: [],
     estoque: [],
     agendamentos: [],
-    pagamentos: []
+    pagamentos: [],
+    _lastFetch: 0 // timestamp do último carregamento completo
 };
+
+// Tempo mínimo (ms) entre recarregamentos completos do banco
+const CACHE_TTL = 15000; // 15 segundos
 
 // ========================================
 // Inicialização
@@ -242,7 +214,13 @@ function navigateTo(page) {
     if (overlay) overlay.classList.remove('active');
 }
 
-async function carregarDadosIniciais() {
+async function carregarDadosIniciais(forcar = false) {
+    // Evita recarregar tudo se os dados ainda são recentes
+    const agora = Date.now();
+    if (!forcar && appState._lastFetch && (agora - appState._lastFetch < CACHE_TTL)) {
+        return; // Dados ainda frescos, pula as 5 queries
+    }
+
     try {
         const [clientes, servicos, estoque, agendamentos, pagamentos] = await Promise.all([
             fetchAPI('tables/clientes?limit=1000'),
@@ -251,15 +229,16 @@ async function carregarDadosIniciais() {
             fetchAPI('tables/agendamentos?limit=1000'),
             fetchAPI('tables/pagamentos?limit=1000')
         ]);
-        
+
         appState.clientes = clientes.data || [];
         appState.servicos = servicos.data || [];
         appState.estoque = estoque.data || [];
         appState.agendamentos = agendamentos.data || [];
         appState.pagamentos = pagamentos.data || [];
+        appState._lastFetch = agora;
 
         await autoConcluirPassados();
-        
+
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
     }
@@ -617,6 +596,7 @@ async function salvarCliente(e) {
         }
         
         fecharModal('modalCliente');
+        appState._lastFetch = 0; // Invalida cache
         await carregarClientes();
     } catch (error) {
         console.error('Erro ao salvar:', error);
@@ -839,8 +819,8 @@ async function excluirCliente(id) {
             document.getElementById('overlay')?.classList.remove('active');
         }
         
-        // Atualizar telas
-        if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
+        // Atualizar telas (forçar reload pois dados mudaram)
+        if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais(true);
         if (typeof carregarDashboard === 'function') await carregarDashboard();
         if (appState.currentPage === 'clientes') carregarClientes();
 
@@ -1049,8 +1029,8 @@ window.salvarServico = async function(e) {
         showToast('Serviço salvo com sucesso!', 'success');
         fecharModal('modalServico');
         
-        // Recarrega tudo para atualizar o front
-        if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
+        // Recarrega tudo para atualizar o front (forçar pois dados mudaram)
+        if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais(true);
         if (typeof carregarServicos === 'function') carregarServicos();
         
     } catch (err) {
@@ -1167,6 +1147,7 @@ async function salvarEstoque(e) {
         }
         showToast('Produto salvo com sucesso!', 'success');
         fecharModal('modalEstoque');
+        appState._lastFetch = 0; // Invalida cache
         await carregarEstoque();
     } catch (err) {
         console.error(err);
@@ -1182,6 +1163,7 @@ async function excluirProduto(id) {
         const { error } = await _supabase.from('estoque').delete().eq('id', id);
         if (error) throw error;
         showToast('Produto excluído!', 'success');
+        appState._lastFetch = 0; // Invalida cache
         await carregarEstoque();
         if (typeof atualizarNotificacoes === 'function') atualizarNotificacoes();
     } catch (err) {
@@ -1599,7 +1581,8 @@ async function salvarAgendamento(e) {
 
         showToast('Agendamento salvo com sucesso!', 'success');
         fecharModal('modalAgendamento');
-        
+        appState._lastFetch = 0; // Invalida cache
+
         // Refresh Screens
         if(typeof carregarDashboard === 'function') carregarDashboard();
         
@@ -2553,9 +2536,9 @@ async function concluirAgendamento(agendamentoId) {
 
         if(typeof showToast === 'function') showToast('Atendimento concluído! 📦', 'success');
 
-        // 3. RECARREGA TELA DO CLIENTE
-        if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
-        if (agendamento.cliente_id) abrirDetalhesCliente(agendamento.cliente_id); 
+        // 3. RECARREGA TELA DO CLIENTE (forçar pois dados mudaram)
+        if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais(true);
+        if (agendamento.cliente_id) abrirDetalhesCliente(agendamento.cliente_id);
         if (typeof carregarDashboard === 'function' && appState.currentPage === 'dashboard') carregarDashboard();
 
     } catch (err) {
@@ -2632,8 +2615,8 @@ async function reverterConclusao(agendamentoId) {
 
         if(typeof showToast === 'function') showToast('Conclusão desfeita e estoque estornado!', 'info');
         
-        // 3. RECARREGA TELA DO CLIENTE
-        if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
+        // 3. RECARREGA TELA DO CLIENTE (forçar pois dados mudaram)
+        if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais(true);
         if (agendamento.cliente_id) abrirDetalhesCliente(agendamento.cliente_id);
         if (typeof carregarDashboard === 'function' && appState.currentPage === 'dashboard') carregarDashboard();
 

@@ -1129,45 +1129,25 @@
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    
-    <script src="js/supabase-client.js?v=4.0"></script>
-    <script src="js/app-agenda.js?v=4.0"></script>
-    <script src="js/app-relatorios.js?v=4.0"></script>
-    <script src="js/popular-dados.js?v=4.0"></script>
-    <script src="js/app-anamnese.js?v=4.0"></script>
-    <script src="js/perfil.js?v=99.0"></script>
-    <script src="js/app.js?v=12.0"></script>
-    <script>
-        window.fazerLogout = async function(event) {
-            // Evita o recarregamento fantasma
-            if (event) event.preventDefault();
 
-            if (!confirm("Deseja realmente desconectar e sair do sistema?")) return;
+    <!-- 1. Supabase Client (deve carregar primeiro) -->
+    <script src="js/supabase-client.js?v=5.0"></script>
 
-            try {
-                // Feedback visual no botão
-                const btn = document.querySelector('.btn-logout');
-                if (btn) {
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saindo...';
-                    btn.style.opacity = '0.7';
-                    btn.disabled = true;
-                }
+    <!-- 2. Core: estado, helpers, init, nav, auth, notificações, Google, perfil -->
+    <script src="js/app-core.js?v=1.0"></script>
 
-                // Desloga usando o cliente global do Supabase
-                const { error } = await window._supabase.auth.signOut();
-                if (error) throw error;
-                
-                // Força o envio para a tela de login
-                window.location.replace('login.html');
-                
-            } catch (err) {
-                console.error("Erro ao sair:", err);
-                alert("Erro ao sair: " + err.message);
-                window.location.reload(); // Limpa a tela em caso de falha
-            }
-        };
-    </script>
-    
-    
+    <!-- 3. Módulos de feature (dependem do core) -->
+    <script src="js/app-dashboard.js?v=1.0"></script>
+    <script src="js/app-clientes.js?v=1.0"></script>
+    <script src="js/app-servicos.js?v=1.0"></script>
+    <script src="js/app-estoque.js?v=1.0"></script>
+    <script src="js/app-agendamentos.js?v=1.0"></script>
+    <script src="js/app-automacoes.js?v=1.0"></script>
+
+    <!-- 4. Módulos já separados anteriormente -->
+    <script src="js/app-agenda.js?v=5.0"></script>
+    <script src="js/app-relatorios.js?v=5.0"></script>
+    <script src="js/app-anamnese.js?v=5.0"></script>
+
 </body>
 </html>
