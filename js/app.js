@@ -578,7 +578,7 @@ async function salvarCliente(e) {
     // Objeto com TODOS os dados novos
     const data = {
         nome: document.getElementById('clienteNome').value,
-        telefone: document.getElementById('clienteTelefone').value,
+        telefone: document.getElementById('clienteTelefone').value.replace(/\D/g, ''),
         email: document.getElementById('clienteEmail').value,
         // Novos campos (com proteção para vazios)
         cpf: document.getElementById('clienteCpf').value || null,

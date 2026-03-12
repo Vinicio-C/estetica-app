@@ -192,7 +192,7 @@ async function carregarAgendaDoDia(dataObj) {
             if (item.status_pagamento === 'pago') statusClass = 'status-concluido';
             
             // --- PEGA O TELEFONE DO CLIENTE NO ESTADO GLOBAL ---
-            const clienteRef = appState.clientes.find(c => c.id === item.cliente_id);
+            const clienteRef = appState.clientes.find(c => String(c.id) === String(item.cliente_id));
             const telefoneParaZap = clienteRef ? clienteRef.telefone : '';
             const dataHoraParaZap = `${dataFormatadaBr} às ${horaFormatada}`;
             
