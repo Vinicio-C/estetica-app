@@ -2337,11 +2337,262 @@ canvas {
     }
 
     /* 3. Ajusta o botão de sanduíche na barra do topo para não ficar jogado */
-    .menu-toggle, #menu-toggle, .mobile-menu-btn { 
+    .menu-toggle, #menu-toggle, .mobile-menu-btn {
         position: absolute !important;
         left: 15px !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
         margin: 0 !important;
+    }
+}
+
+/* =======================================================
+   MELHORIAS MOBILE ADICIONAIS
+   ======================================================= */
+
+/* Padding reduzido no mobile */
+@media (max-width: 768px) {
+    .page-container {
+        padding: 1rem !important;
+    }
+
+    /* Formulários: 2 colunas → 1 coluna no mobile */
+    .form-grid,
+    .grid-cep,
+    .grid-numero,
+    .grid-cidade {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Stats do cliente: 3 col → scroll ou 1 col */
+    .client-stats-row {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    /* Info grid: 2 col → 1 col */
+    .info-grid-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Modal footer: 2 col → 1 col */
+    .modal-footer-actions {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Modal: padding menor, tela quase cheia */
+    .modal-content {
+        padding: 1.5rem !important;
+        max-height: 95vh !important;
+        border-radius: 12px 12px 0 0 !important;
+    }
+
+    /* Modal na parte inferior no mobile (sheet-style) */
+    .modal {
+        align-items: flex-end !important;
+        padding: 0 !important;
+    }
+
+    /* Gráficos: 1 coluna no mobile */
+    .charts-row {
+        grid-template-columns: 1fr !important;
+    }
+    .chart-card {
+        height: 300px !important;
+    }
+
+    /* Métricas: 1 coluna no mobile */
+    .metrics-row {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    /* Stats do dashboard: 2 col no mobile */
+    .stats-row {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 12px !important;
+    }
+    .stat-card {
+        padding: 1rem !important;
+    }
+    .stat-info h3 {
+        font-size: 1.4rem !important;
+    }
+
+    /* Header controls em coluna no mobile */
+    .header-controls {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .header-controls .search-bar {
+        max-width: 100% !important;
+    }
+    .header-controls .btn-primary,
+    .header-controls .btn-new {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    /* Agenda card mais compacto no mobile */
+    .agenda-card {
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+    }
+    .time-column {
+        padding-right: 10px !important;
+        min-width: 60px !important;
+    }
+    .action-column {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        border-top: 1px solid #333 !important;
+        padding-top: 8px !important;
+    }
+
+    /* Toast no mobile: ocupa mais espaço */
+    .toast-container {
+        left: 10px !important;
+        right: 10px !important;
+        top: auto !important;
+        bottom: 20px !important;
+    }
+    .toast {
+        width: 100% !important;
+    }
+
+    /* Botões de ação nos cards: tamanho mínimo de toque */
+    .action-btn,
+    .btn-primary,
+    .btn-secondary,
+    .btn-action {
+        min-height: 44px !important;
+    }
+
+    /* Ícones de ação: tamanho mínimo de toque */
+    .icon-btn-small {
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    /* Modal de detalhes de cliente: scroll melhor */
+    .scroll-list {
+        max-height: 200px !important;
+    }
+
+    /* Relatorios: filtros em coluna */
+    #relatoriosContent .metrics-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Calendário compacto */
+    .modern-calendar-wrapper {
+        padding: 12px !important;
+    }
+    .cal-day {
+        font-size: 0.85rem !important;
+        border-radius: 6px !important;
+    }
+    .calendar-grid {
+        gap: 4px !important;
+    }
+
+    /* Estoque e Serviços em coluna única no mobile */
+    .estoque-grid,
+    .servicos-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* =======================================================
+   SKELETON LOADER (LOADING STATES)
+   ======================================================= */
+.loading-skeleton {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    grid-column: 1 / -1;
+}
+
+.skeleton-card {
+    height: 160px;
+    background: linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 12px;
+    border: 1px solid #333;
+}
+
+@keyframes shimmer {
+    0%   { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
+/* =======================================================
+   PAGINAÇÃO DE CLIENTES
+   ======================================================= */
+.paginacao-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 20px 0;
+}
+
+.pag-btn {
+    background: var(--bg-card);
+    border: 1px solid #444;
+    color: var(--text-secondary);
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+    font-family: var(--font-body);
+}
+
+.pag-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+.pag-btn.active {
+    background: var(--gold);
+    color: #000;
+    border-color: var(--gold);
+    font-weight: 700;
+}
+
+.pag-info {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-left: 10px;
+}
+
+@media (max-width: 480px) {
+    .pag-btn { width: 34px; height: 34px; font-size: 0.8rem; }
+    .pag-info { display: none; }
+}
+
+/* =======================================================
+   MELHORIAS ESPECÍFICAS iOS / SAFARI
+   ======================================================= */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .main-content {
+        padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+    .sidebar {
+        padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+    }
+}
+
+/* Input type=date e select no iOS: evita zoom */
+@media (max-width: 768px) {
+    input, select, textarea {
+        font-size: 16px !important; /* >= 16px evita zoom automático no iOS */
     }
 }

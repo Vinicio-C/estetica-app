@@ -1,5 +1,3 @@
-//api key resend = re_YTYgiHiT_g8bcov2XNGi5bZhheWjjtvwY
-
 // ========================================
 // Agendamento Premium - App JavaScript
 // ========================================
@@ -85,16 +83,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 3000); // 3000ms = 3 segundos
     
     // Registrar Service Worker para PWA
-    /* <-- COMENTE AQUI (Abra o comentário)
     if ('serviceWorker' in navigator) {
         try {
-            await navigator.serviceWorker.register('/service-worker.js');
+            await navigator.serviceWorker.register('./service-worker.js');
             console.log('✅ Service Worker registrado');
         } catch (err) {
             console.log('⚠️ Service Worker não registrado:', err);
         }
     }
-    */
     
     try {
 
@@ -234,6 +230,7 @@ function navigateTo(page) {
         case 'estoque': if(typeof carregarEstoque === 'function') carregarEstoque(); break;
         case 'relatorios': if(typeof carregarRelatorios === 'function') carregarRelatorios(); break;
         case 'automacoes': if(typeof carregarAutomacoes === 'function') carregarAutomacoes(); break;
+        case 'perfil': if(typeof carregarDadosPerfil === 'function') carregarDadosPerfil(); break;
     }
     
     // Fechar sidebar mobile
@@ -433,13 +430,26 @@ function renderizarListasDashboard() {
 // CLIENTES
 // ========================================
 async function carregarClientes() {
+    const container = document.getElementById('clientesGrid');
+    if (container) container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>';
     await carregarDadosIniciais();
     renderizarClientes(appState.clientes);
 }
 
+const CLIENTES_POR_PAGINA = 12;
+let paginaAtualClientes = 1;
+let clientesFiltradosGlobal = [];
+
 function renderizarClientes(clientes) {
+    clientesFiltradosGlobal = clientes;
+    paginaAtualClientes = 1;
+    renderizarPaginaClientes();
+}
+
+function renderizarPaginaClientes() {
     const container = document.getElementById('clientesGrid');
-    
+    const clientes = clientesFiltradosGlobal;
+
     if (clientes.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="grid-column: 1/-1;">
@@ -447,10 +457,18 @@ function renderizarClientes(clientes) {
                 <p>Nenhum cliente cadastrado</p>
             </div>
         `;
+        const pag = document.getElementById('clientesPaginacao');
+        if (pag) pag.innerHTML = '';
         return;
     }
-    
-    container.innerHTML = clientes.map(cliente => {
+
+    const total = clientes.length;
+    const totalPaginas = Math.ceil(total / CLIENTES_POR_PAGINA);
+    const inicio = (paginaAtualClientes - 1) * CLIENTES_POR_PAGINA;
+    const fim = inicio + CLIENTES_POR_PAGINA;
+    const clientesPagina = clientes.slice(inicio, fim);
+
+    container.innerHTML = clientesPagina.map(cliente => {
         // Calcular estatísticas do cliente
         const servicosCliente = appState.agendamentos.filter(a => 
             a.cliente_id === cliente.id && a.status === 'concluido'
@@ -493,7 +511,27 @@ function renderizarClientes(clientes) {
             </div>
         `;
     }).join('');
+
+    // Renderizar paginação
+    const pag = document.getElementById('clientesPaginacao');
+    if (pag && totalPaginas > 1) {
+        let btns = '';
+        if (paginaAtualClientes > 1) btns += `<button class="pag-btn" onclick="mudarPaginaClientes(${paginaAtualClientes - 1})"><i class="fas fa-chevron-left"></i></button>`;
+        for (let i = 1; i <= totalPaginas; i++) {
+            btns += `<button class="pag-btn ${i === paginaAtualClientes ? 'active' : ''}" onclick="mudarPaginaClientes(${i})">${i}</button>`;
+        }
+        if (paginaAtualClientes < totalPaginas) btns += `<button class="pag-btn" onclick="mudarPaginaClientes(${paginaAtualClientes + 1})"><i class="fas fa-chevron-right"></i></button>`;
+        pag.innerHTML = `<div class="paginacao-container">${btns}<span class="pag-info">${total} clientes • Página ${paginaAtualClientes} de ${totalPaginas}</span></div>`;
+    } else if (pag) {
+        pag.innerHTML = total > 0 ? `<div class="paginacao-container"><span class="pag-info">${total} cliente${total !== 1 ? 's' : ''}</span></div>` : '';
+    }
 }
+
+window.mudarPaginaClientes = function(pagina) {
+    paginaAtualClientes = pagina;
+    renderizarPaginaClientes();
+    document.getElementById('clientesPage')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
 
 function filtrarClientes(termo) {
     const clientesFiltrados = appState.clientes.filter(c => 
@@ -560,7 +598,7 @@ async function buscarCep() {
                 document.getElementById('clienteEstado').value = data.uf;
                 document.getElementById('clienteNumero').focus(); // Pula pro número
             } else {
-                alert('CEP não encontrado.');
+                showToast('CEP não encontrado.', 'warning');
                 campoEndereco.value = '';
             }
         } catch (error) {
@@ -795,7 +833,7 @@ async function excluirCliente(id) {
     }
 
     if (!idParaExcluir || idParaExcluir === 'undefined') {
-        alert('Erro: ID do cliente não encontrado.');
+        showToast('Erro: ID do cliente não encontrado.', 'error');
         return;
     }
 
@@ -860,7 +898,8 @@ async function excluirCliente(id) {
 // =======================================================
 
 async function carregarServicos() {
-    // Garante dados frescos
+    const container = document.getElementById('servicosGrid');
+    if (container) container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>';
     if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
     renderizarServicos(appState.servicos);
 }
@@ -1067,6 +1106,8 @@ window.salvarServico = async function(e) {
 // =======================================================
 
 async function carregarEstoque() {
+    const container = document.getElementById('estoqueGrid');
+    if (container) container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>';
     if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
     renderizarEstoque(appState.estoque);
 }
@@ -1338,7 +1379,7 @@ async function limparAgendaGoogleDoDia(dataString) {
 
     const { data: { session } } = await _supabase.auth.getSession();
     const token = session?.provider_token;
-    if (!token) return alert('Conecte a agenda primeiro!');
+    if (!token) { showToast('Conecte a agenda Google primeiro!', 'warning'); return; }
 
     // 1. Listar eventos do dia
     const resp = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${start.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true`, {
@@ -1346,7 +1387,7 @@ async function limparAgendaGoogleDoDia(dataString) {
     });
     const lista = await resp.json();
     
-    if (!lista.items || lista.items.length === 0) return alert('Nenhum evento encontrado neste dia.');
+    if (!lista.items || lista.items.length === 0) { showToast('Nenhum evento encontrado neste dia.', 'info'); return; }
 
     if (!confirm(`Encontrei ${lista.items.length} eventos no dia ${dataString}. Apagar TODOS do Google?`)) return;
 
@@ -1360,7 +1401,7 @@ async function limparAgendaGoogleDoDia(dataString) {
         apagados++;
         console.log('🗑️ Apagado:', item.summary);
     }
-    alert(`Faxina concluída! ${apagados} eventos apagados.`);
+    showToast(`Faxina concluída! ${apagados} eventos apagados.`, 'success');
 }
 
 // ========================================
@@ -1745,7 +1786,7 @@ window.copiarLinkAgendamento = async function() {
     const { data: { session } } = await _supabase.auth.getSession();
     
     if (!session) {
-        alert("Erro: Você precisa estar logada para gerar o link.");
+        showToast('Você precisa estar logada para gerar o link.', 'error');
         return;
     }
 
@@ -1758,7 +1799,7 @@ window.copiarLinkAgendamento = async function() {
     // 3. Copia
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(linkFinal).then(() => {
-            alert('Link copiado! Envie para seu cliente:\n' + linkFinal);
+            showToast('Link copiado! Envie para sua cliente.', 'success');
         }).catch(err => {
             prompt("Copie o link manualmente:", linkFinal);
         });
@@ -1915,7 +1956,7 @@ async function uploadFotoPerfil(event) {
 
     // 1. Validação básica (ex: max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-        alert("A imagem é muito grande! Use uma foto com menos de 2MB.");
+        showToast('A imagem é muito grande! Use uma foto com menos de 2MB.', 'warning');
         return;
     }
 
@@ -1957,11 +1998,11 @@ async function uploadFotoPerfil(event) {
 
         // 6. Atualiza a tela imediatamente
         atualizarAvatarNaTela(publicUrl);
-        alert("Foto atualizada com sucesso! ✨");
+        showToast('Foto atualizada com sucesso!', 'success');
 
     } catch (error) {
         console.error("Erro no upload:", error);
-        alert("Erro ao enviar foto: " + error.message);
+        showToast('Erro ao enviar foto: ' + error.message, 'error');
         iconDiv.innerHTML = '<i class="fas fa-user"></i>'; // Volta o ícone normal
     }
 }
@@ -1991,7 +2032,7 @@ window.carregarDadosPerfil = async function() {
         // 1. Verifica login
         const { data: { user } } = await _supabase.auth.getUser();
         if (!user) {
-            alert("Usuário não logado!");
+            showToast('Usuário não logado!', 'error');
             return;
         }
 
@@ -2068,7 +2109,7 @@ window.sincronizarPendentesGoogle = async function() {
         const token = session?.provider_token;
 
         if (!token) {
-            alert("🔒 Você não está conectado ao Google.\nPor favor, faça login novamente com o Google para gerar uma chave de acesso nova.");
+            showToast('Você não está conectado ao Google. Faça login novamente com o Google.', 'warning');
             return;
         }
 
@@ -2085,7 +2126,7 @@ window.sincronizarPendentesGoogle = async function() {
         if (error) throw error;
 
         if (!pendentes || pendentes.length === 0) {
-            alert("✅ Tudo atualizado! Nenhum agendamento pendente para enviar.");
+            showToast('Tudo atualizado! Nenhum agendamento pendente para enviar.', 'success');
             return;
         }
 
@@ -2137,11 +2178,11 @@ window.sincronizarPendentesGoogle = async function() {
         }
         
         if (enviados > 0) {
-            alert(`🎉 Sucesso! ${enviados} agendamentos foram enviados para o Google.`);
+            showToast(`${enviados} agendamentos enviados para o Google!`, 'success');
         }
     } catch (erro) {
         console.error("Erro Sync:", erro);
-        alert("Erro na sincronização. Certifique-se de estar logado na conta correta.");
+        showToast('Erro na sincronização. Certifique-se de estar logado com o Google.', 'error');
     } finally {
         if(btn) { btn.innerHTML = iconeOriginal; btn.disabled = false; }
     }
@@ -2195,7 +2236,7 @@ window.salvarAutomacoes = async function(btnElement) {
         if(typeof showToast === 'function') showToast("Mensagem do WhatsApp salva!", "success");
     } catch (err) {
         console.error(err);
-        alert("Erro ao salvar mensagem.");
+        showToast('Erro ao salvar mensagem.', 'error');
     } finally {
         btnElement.innerHTML = textoBotaoOriginal;
         btnElement.disabled = false;
@@ -2223,7 +2264,7 @@ window.salvarAutomacoesEmail = async function(btnElement) {
         if(typeof showToast === 'function') showToast("Configurações de e-mail atualizadas!", "success");
     } catch (err) {
         console.error(err);
-        alert("Erro ao salvar e-mail.");
+        showToast('Erro ao salvar configurações de e-mail.', 'error');
     } finally {
         btnElement.innerHTML = textoBotaoOriginal;
         btnElement.disabled = false;
@@ -2286,7 +2327,7 @@ async function salvarAutomacoes(btnElement) {
         const { error } = await _supabase.from('profiles').upsert({ id: user.id, mensagem_whatsapp: textoNovo });
         if (error) throw error;
         if(typeof showToast === 'function') showToast("Mensagem do WhatsApp salva!", "success");
-    } catch (err) { alert("Erro ao salvar mensagem."); } 
+    } catch (err) { showToast('Erro ao salvar mensagem.', 'error'); }
     finally { btnElement.innerHTML = textoBotaoOriginal; btnElement.disabled = false; }
 }
 
@@ -2306,7 +2347,7 @@ async function salvarAutomacoesEmail(btnElement) {
         });
         if (error) throw error;
         if(typeof showToast === 'function') showToast("Configurações de e-mail atualizadas!", "success");
-    } catch (err) { alert("Erro ao salvar e-mail."); } 
+    } catch (err) { showToast('Erro ao salvar configurações de e-mail.', 'error'); }
     finally { btnElement.innerHTML = textoBotaoOriginal; btnElement.disabled = false; }
 }
 
@@ -2322,11 +2363,11 @@ function inserirVariavel(variavel) {
 }
 
 window.dispararWhatsAppManual = async function(telefone, nome, dataHoraBr, procedimento) {
-    if (!telefone || String(telefone).trim() === '') return alert('Cliente sem telefone cadastrado.');
+    if (!telefone || String(telefone).trim() === '') { showToast('Cliente sem telefone cadastrado.', 'warning'); return; }
     let numLimpo = String(telefone).replace(/\D/g, ''); 
     if (numLimpo.startsWith('0')) numLimpo = numLimpo.substring(1);
     if (!numLimpo.startsWith('55')) numLimpo = `55${numLimpo}`;
-    if (numLimpo.length < 12 || numLimpo.length > 13) return alert('O telefone deste cliente está incorreto.');
+    if (numLimpo.length < 12 || numLimpo.length > 13) { showToast('O telefone deste cliente está incorreto.', 'warning'); return; }
 
     const partes = dataHoraBr.split(' às ');
     const dataApenas = partes[0] || '';
@@ -2639,7 +2680,7 @@ async function reverterConclusao(agendamentoId) {
 
     } catch (err) {
         console.error(err);
-        alert("Erro ao reverter: " + err.message);
+        showToast('Erro ao reverter: ' + err.message, 'error');
     } finally {
         if (overlay) { overlay.classList.add('hidden'); overlay.querySelector('h2').textContent = "Agendamento Premium"; }
     }
@@ -2677,7 +2718,7 @@ window.fazerLogout = async function(event) {
         
     } catch (err) {
         console.error("Erro ao sair:", err);
-        alert("Erro ao sair: " + err.message);
+        showToast('Erro ao sair: ' + err.message, 'error');
         // Em caso de falha, força um recarregamento para limpar o cache da sessão
         window.location.reload();
     }
