@@ -112,10 +112,10 @@ async function carregarHorariosDisponiveis() {
             return;
         }
 
-        // 2. Busca agendamentos ocupados (Filtrando pela Doutora)
+        // 2. Busca agendamentos ocupados com duração (Filtrando pela Doutora)
         let queryOcup = _supabase
             .from('agendamentos')
-            .select('hora')
+            .select('hora, duracao')
             .eq('data', state.dataSelecionada)
             .neq('status', 'cancelado');
 
@@ -125,22 +125,45 @@ async function carregarHorariosDisponiveis() {
 
         const { data: ocupados, error: errOcup } = await queryOcup;
         if (errOcup) throw errOcup;
-        
-        const horariosOcupados = ocupados.map(a => a.hora.slice(0, 5));
+
+        // Duração do serviço que o cliente está selecionando
+        const duracaoServico = state.servicoSelecionado?.duracao || 60;
+
+        // Converte "HH:MM" ou "HH:MM:SS" para minutos desde meia-noite
+        const toMinutos = (h) => {
+            const p = h.split(':');
+            return parseInt(p[0]) * 60 + parseInt(p[1]);
+        };
 
         // 3. Gera os botões
-        const inicioHora = parseInt(regra.abertura.split(':')[0]); 
-        const fimHora = parseInt(regra.fechamento.split(':')[0]); 
+        const inicioHora = parseInt(regra.abertura.split(':')[0]);
+        const fimHora = parseInt(regra.fechamento.split(':')[0]);
 
         container.innerHTML = '';
-        
+
         for (let h = inicioHora; h < fimHora; h++) {
             const horaFormatada = `${h.toString().padStart(2, '0')}:00`;
+            const slotInicio = toMinutos(horaFormatada);
+            const slotFim = slotInicio + duracaoServico;
+
+            // Bloqueia se o slot ultrapassar o horário de fechamento
+            const fechamentoMin = fimHora * 60;
+            if (slotFim > fechamentoMin) {
+                break;
+            }
+
+            // Verifica sobreposição com qualquer agendamento existente
+            const ocupado = ocupados.some(a => {
+                const existInicio = toMinutos(a.hora);
+                const existFim = existInicio + (a.duracao || 60);
+                return slotInicio < existFim && existInicio < slotFim;
+            });
+
             const btn = document.createElement('div');
             btn.className = 'time-btn';
             btn.textContent = horaFormatada;
 
-            if (horariosOcupados.includes(horaFormatada)) {
+            if (ocupado) {
                 btn.classList.add('disabled');
             } else {
                 btn.onclick = () => selecionarHorario(horaFormatada, btn);
