@@ -155,8 +155,7 @@ function setupEventListeners() {
     const fCliente = document.getElementById('formCliente');
     if (fCliente) fCliente.addEventListener('submit', salvarCliente);
 
-    const fAgenda = document.getElementById('formAgendamento');
-    if (fAgenda) fAgenda.addEventListener('submit', salvarAgendamento);
+    document.querySelectorAll('#formAgendamento').forEach(f => f.addEventListener('submit', salvarAgendamento));
 
     const fServico = document.getElementById('formServico');
     if (fServico) fServico.addEventListener('submit', salvarServico);
@@ -1536,25 +1535,48 @@ function toggleTipoAgendamento() {
     }
 }
 
-// --- VERIFICA SE JÁ EXISTE AGENDAMENTO NO MESMO HORÁRIO ---
-async function verificarConflitoHorario(data, hora, agendamentoIdExcluir = null) {
-    const userId = appState.user?.id;
-    if (!userId) return null;
+// --- VERIFICA SE JÁ EXISTE AGENDAMENTO QUE SOBREPONHA O HORÁRIO ---
+async function verificarConflitoHorario(data, hora, duracaoNova, agendamentoIdExcluir = null) {
+    console.log('[Conflito] Verificando:', { data, hora, duracaoNova, agendamentoIdExcluir });
+
+    const { data: { user }, error: userError } = await _supabase.auth.getUser();
+    if (userError || !user) { console.warn('[Conflito] Usuário não encontrado', userError); return null; }
 
     let query = _supabase
         .from('agendamentos')
-        .select('id, cliente_nome, evento_nome, hora')
+        .select('id, cliente_nome, evento_nome, hora, duracao')
         .eq('data', data)
-        .eq('hora', hora)
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .neq('status', 'cancelado');
 
     if (agendamentoIdExcluir) {
         query = query.neq('id', agendamentoIdExcluir);
     }
 
-    const { data: conflitos } = await query;
-    return conflitos && conflitos.length > 0 ? conflitos[0] : null;
+    const { data: agendamentos, error: queryError } = await query;
+    console.log('[Conflito] Agendamentos no dia:', agendamentos, 'Erro:', queryError);
+
+    if (!agendamentos || agendamentos.length === 0) return null;
+
+    // Converte "HH:MM" ou "HH:MM:SS" para minutos desde meia-noite
+    const toMinutos = (h) => {
+        const partes = h.split(':');
+        return parseInt(partes[0]) * 60 + parseInt(partes[1]);
+    };
+
+    const novoInicio = toMinutos(hora);
+    const novoFim = novoInicio + (duracaoNova || 60);
+    console.log('[Conflito] Novo intervalo:', novoInicio, '-', novoFim);
+
+    const conflito = agendamentos.find(a => {
+        const existInicio = toMinutos(a.hora);
+        const existFim = existInicio + (a.duracao || 60);
+        console.log('[Conflito] Comparando com:', a.cliente_nome || a.evento_nome, existInicio, '-', existFim);
+        return novoInicio < existFim && existInicio < novoFim;
+    });
+
+    console.log('[Conflito] Resultado:', conflito || 'sem conflito');
+    return conflito || null;
 }
 
 // --- FUNÇÃO DE SALVAR AGENDAMENTO (ATUALIZADA COM WHATSAPP) ---
@@ -1592,6 +1614,7 @@ async function salvarAgendamento(e) {
         let clienteNome = null;
         let servicoNome = null;
         let valor = 0;
+        let duracao = 60;
         
         // --- NOVO: Variável declarada fora para ser usada no final ---
         let clienteObj = null; 
@@ -1602,11 +1625,12 @@ async function salvarAgendamento(e) {
             clienteObj = appState.clientes.find(c => c.id == clienteId);
             if (clienteObj) clienteNome = clienteObj.nome;
 
-            // Find service name and value
+            // Find service name, value and duration
             const servicoObj = appState.servicos.find(s => s.id == servicoId);
             if (servicoObj) {
                 servicoNome = servicoObj.nome;
                 valor = servicoObj.valor;
+                duracao = servicoObj.duracao || 60;
             }
         }
 
@@ -1623,7 +1647,8 @@ async function salvarAgendamento(e) {
             cliente_nome: clienteNome,
             servico_nome: servicoNome,
             evento_nome: tipo === 'evento' ? eventoNome : null,
-            valor: valor
+            valor: valor,
+            duracao: duracao
         };
 
         // Add IDs only if it's a service
@@ -1636,7 +1661,7 @@ async function salvarAgendamento(e) {
         }
 
         // Verificar conflito de horário antes de salvar
-        const conflito = await verificarConflitoHorario(data, hora, id || null);
+        const conflito = await verificarConflitoHorario(data, hora, duracao, id || null);
         if (conflito) {
             const nomeConflito = conflito.cliente_nome || conflito.evento_nome || 'outro agendamento';
             showToast(`Horário ${hora.substring(0, 5)} já está ocupado com ${nomeConflito}. Escolha outro horário.`, 'warning');
