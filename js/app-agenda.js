@@ -304,24 +304,28 @@ window.toggleDia = function(diaIndex) {
 // Salvar no Banco
 document.getElementById('formHorarios').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) { showToast('Sessão expirada. Faça login novamente.', 'error'); return; }
+
     const updates = [];
-    
+
     for (let i = 0; i <= 6; i++) {
         const ativo = document.getElementById(`ativo_${i}`).checked;
-        const abertura = document.getElementById(`abre_${i}`).value; // Ex: "09:00:00"
+        const abertura = document.getElementById(`abre_${i}`).value;
         const fechamento = document.getElementById(`fecha_${i}`).value;
 
         updates.push({
+            user_id: user.id,
             dia_semana: i,
             ativo: ativo,
-            abertura: abertura, // O banco aceita HH:MM
+            abertura: abertura,
             fechamento: fechamento
         });
     }
 
     try {
-        const { error } = await _supabase.from('disponibilidade').upsert(updates);
+        const { error } = await _supabase.from('disponibilidade').upsert(updates, { onConflict: 'user_id,dia_semana' });
         if (error) throw error;
         
         showToast('Horários atualizados com sucesso!', 'success');
