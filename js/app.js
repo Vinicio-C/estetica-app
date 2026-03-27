@@ -1536,6 +1536,27 @@ function toggleTipoAgendamento() {
     }
 }
 
+// --- VERIFICA SE JÁ EXISTE AGENDAMENTO NO MESMO HORÁRIO ---
+async function verificarConflitoHorario(data, hora, agendamentoIdExcluir = null) {
+    const userId = appState.user?.id;
+    if (!userId) return null;
+
+    let query = _supabase
+        .from('agendamentos')
+        .select('id, cliente_nome, evento_nome, hora')
+        .eq('data', data)
+        .eq('hora', hora)
+        .eq('user_id', userId)
+        .neq('status', 'cancelado');
+
+    if (agendamentoIdExcluir) {
+        query = query.neq('id', agendamentoIdExcluir);
+    }
+
+    const { data: conflitos } = await query;
+    return conflitos && conflitos.length > 0 ? conflitos[0] : null;
+}
+
 // --- FUNÇÃO DE SALVAR AGENDAMENTO (ATUALIZADA COM WHATSAPP) ---
 async function salvarAgendamento(e) {
     e.preventDefault();
@@ -1614,8 +1635,16 @@ async function salvarAgendamento(e) {
             dados.servico_id = null;
         }
 
+        // Verificar conflito de horário antes de salvar
+        const conflito = await verificarConflitoHorario(data, hora, id || null);
+        if (conflito) {
+            const nomeConflito = conflito.cliente_nome || conflito.evento_nome || 'outro agendamento';
+            showToast(`Horário ${hora.substring(0, 5)} já está ocupado com ${nomeConflito}. Escolha outro horário.`, 'warning');
+            return;
+        }
+
         let error;
-        
+
         if (id) {
             // Update
             const res = await _supabase.from('agendamentos').update(dados).eq('id', id);
