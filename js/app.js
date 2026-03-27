@@ -1982,7 +1982,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("✅ Usuário logado:", session.user.email);
         if (window.location.href.includes('login.html')) {
             // Se estiver na tela de login mas já tem sessão, manda pro dashboard
-            window.location.href = 'index.html';
+            window.location.href = './';
         }
     }
 })();
