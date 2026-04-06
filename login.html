@@ -18,6 +18,12 @@
         .btn-login { width: 100%; padding: 12px; background: linear-gradient(45deg, #D4AF37, #FFE082); border: none; border-radius: 6px; color: #000; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; }
         .btn-login:hover { transform: scale(1.02); }
         .error-msg { color: #ff5252; font-size: 0.9rem; margin-top: 15px; display: none; }
+        .footer-links { text-align: center; margin-top: 24px; font-size: 0.88rem; color: #666; }
+        .footer-links a { color: #D4AF37; text-decoration: none; }
+        .footer-links a:hover { text-decoration: underline; }
+        .forgot-link { display: block; text-align: right; margin-top: -10px; margin-bottom: 16px; font-size: 0.82rem; color: #888; cursor: pointer; }
+        .forgot-link:hover { color: #D4AF37; }
+        hr.divider { border: none; border-top: 1px solid #333; margin: 20px 0; }
     </style>
 </head>
 <body>
@@ -38,14 +44,38 @@
                 <input type="password" id="password" required placeholder="********">
             </div>
             
+            <span class="forgot-link" onclick="esqueceuSenha()">Esqueci minha senha</span>
             <button type="submit" class="btn-login" id="btnLogin">ENTRAR</button>
             <p id="errorMsg" class="error-msg">E-mail ou senha incorretos.</p>
         </form>
+
+        <hr class="divider">
+
+        <div class="footer-links">
+            Ainda não tem conta? <a href="signup.html">Criar conta grátis</a>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-client.js"></script>
     <script>
+        // Esqueci minha senha
+        async function esqueceuSenha() {
+            const email = document.getElementById('email').value.trim();
+            if (!email) {
+                alert('Digite seu e-mail no campo acima primeiro.');
+                return;
+            }
+            const { error } = await window._supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/nova-senha.html'
+            });
+            if (error) {
+                alert('Erro: ' + error.message);
+            } else {
+                alert('Link de recuperação enviado para ' + email);
+            }
+        }
+
         // Lógica de Login
         document.getElementById('formLogin').addEventListener('submit', async (e) => {
             e.preventDefault();
