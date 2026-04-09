@@ -2,21 +2,6 @@
 // Agendamento Premium - App JavaScript
 // ========================================
 
-// ==========================================
-// 🔌 INICIALIZAÇÃO DO GOOGLE (ATUALIZADA)
-// ==========================================
-const API_KEY = 'AIzaSyDnpUtzu2QnkWSPvl2c-7tvy95BPioBB_g'; // Apenas a API Key é necessária
-
-// Inicia o carregamento assim que o script roda
-// Se o gapi já estiver na página (pelo script do HTML), ele carrega.
-if (typeof gapi !== 'undefined') {
-    handleClientLoad();
-} else {
-    // Se ainda não carregou, espera a janela carregar
-    window.onload = function() {
-        if (typeof gapi !== 'undefined') handleClientLoad();
-    }
-}
 
 // =========================================================
 // 🚨 FISCAL DE RECUPERAÇÃO DE SENHA (Coloque no TOPO do app.js)
@@ -85,8 +70,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Registrar Service Worker para PWA
     if ('serviceWorker' in navigator) {
         try {
-            await navigator.serviceWorker.register('./service-worker.js');
+            const reg = await navigator.serviceWorker.register('./service-worker.js');
             console.log('✅ Service Worker registrado');
+
+            // Quando uma nova versão do SW for instalada, recarrega automaticamente
+            reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+                        // Nova versão ativa — recarrega para servir arquivos atualizados
+                        window.location.reload();
+                    }
+                });
+            });
         } catch (err) {
             console.log('⚠️ Service Worker não registrado:', err);
         }
@@ -842,19 +838,6 @@ async function excluirCliente(id) {
         console.log(`🗑️ Excluindo Cliente ID: ${idParaExcluir}`);
 
         // 2. Limpar Google Agenda
-        const { data: agendamentosDoCliente } = await _supabase
-            .from('agendamentos')
-            .select('google_event_id')
-            .eq('cliente_id', idParaExcluir);
-
-        if (agendamentosDoCliente && agendamentosDoCliente.length > 0) {
-            for (const agenda of agendamentosDoCliente) {
-                if (agenda.google_event_id && typeof deletarDoGoogleCalendar === 'function') {
-                    await deletarDoGoogleCalendar(agenda.google_event_id);
-                }
-            }
-        }
-
         // 3. Deletar do Banco (Usando _supabase direto)
         const { error } = await _supabase
             .from('clientes')
@@ -1369,39 +1352,6 @@ async function atualizarNotificacoes() {
     }
 }
 
-async function limparAgendaGoogleDoDia(dataString) {
-    // Exemplo de uso: limparAgendaGoogleDoDia('2026-01-30')
-    const start = new Date(dataString);
-    start.setHours(0,0,0,0);
-    const end = new Date(dataString);
-    end.setHours(23,59,59,999);
-
-    const { data: { session } } = await _supabase.auth.getSession();
-    const token = session?.provider_token;
-    if (!token) { showToast('Conecte a agenda Google primeiro!', 'warning'); return; }
-
-    // 1. Listar eventos do dia
-    const resp = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${start.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const lista = await resp.json();
-    
-    if (!lista.items || lista.items.length === 0) { showToast('Nenhum evento encontrado neste dia.', 'info'); return; }
-
-    if (!confirm(`Encontrei ${lista.items.length} eventos no dia ${dataString}. Apagar TODOS do Google?`)) return;
-
-    // 2. Apagar tudo
-    let apagados = 0;
-    for (const item of lista.items) {
-        await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${item.id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        apagados++;
-        console.log('🗑️ Apagado:', item.summary);
-    }
-    showToast(`Faxina concluída! ${apagados} eventos apagados.`, 'success');
-}
 
 // ========================================
 // HELPER FUNCTIONS (Funções Auxiliares)
@@ -1682,14 +1632,19 @@ async function salvarAgendamento(e) {
 
         if (error) throw error;
 
-        // --- DISPARO DE E-MAIL AUTOMÁTICO ---
-        if (clienteObj && clienteObj.email) {
+        // --- DISPARO AUTOMÁTICO (E-MAIL + WHATSAPP) ---
+        if (clienteObj) {
             const procedimento = dados.servico_nome || dados.evento_nome || 'Atendimento';
             const [ano, mes, dia] = dados.data.split('-');
             const dataHoraBr = `${dia}/${mes}/${ano} às ${dados.hora}`;
-            
-            // Chama a função de e-mail sem "await", assim não trava o fechamento da tela!
-            window.dispararEmailAutomatico(clienteObj.email, clienteObj.nome, dataHoraBr, procedimento);
+
+            if (clienteObj.email) {
+                // Chama sem "await" para não travar o fechamento da tela
+                window.dispararEmailAutomatico(clienteObj.email, clienteObj.nome, dataHoraBr, procedimento);
+            }
+
+            // WhatsApp automático via Z-API (sem await, não bloqueia)
+            window.dispararWhatsAppAutomatico(dados, clienteObj);
         }
 
         showToast('Agendamento salvo com sucesso!', 'success');
@@ -1905,59 +1860,6 @@ window.cancelarAgendamento = async function(id) {
     }
 };
 
-// ========================================
-// INTEGRAÇÃO GOOGLE CALENDAR (FINAL)
-// ========================================
-
-// 1. Função para Iniciar a Conexão (Redireciona para o Google)
-window.conectarGoogle = async function() {
-    console.log("🔌 Iniciando conexão com Google...");
-    
-    const { data, error } = await _supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: window.location.href, // Volta para a mesma página
-            scopes: 'https://www.googleapis.com/auth/calendar', // Permissão de Agenda
-            queryParams: {
-                access_type: 'offline', // ⚠️ O SEGREDO: Pede um token que se renova
-                prompt: 'consent'       // Força a tela de permissão para garantir o token
-            }
-        }
-    });
-
-    if (error) {
-        console.error("Erro ao conectar:", error);
-        showToast('Erro ao conectar com Google', 'error');
-    }
-};
-
-// 2. Verifica se está conectado e muda a cor do botão
-async function verificarStatusGoogle() {
-    const btn = document.getElementById('btnConnectGoogle');
-    if (!btn) return;
-
-    const { data: { session } } = await _supabase.auth.getSession();
-    
-    // Se tiver sessão e tiver o token do provedor (Google)
-    if (session && session.provider_token) {
-        btn.innerHTML = '<i class="fab fa-google"></i> Conectado';
-        btn.classList.add('connected'); // Você pode criar um estilo verde para isso
-        btn.style.background = '#4CAF50';
-        btn.style.color = '#fff';
-        btn.style.borderColor = '#4CAF50';
-        console.log("✅ Google Conectado!");
-    } else {
-        btn.innerHTML = '<i class="fab fa-google"></i> Sincronizar';
-        btn.style.background = ''; // Volta ao padrão
-        console.log("❌ Google Não conectado.");
-    }
-}
-
-// Roda a verificação assim que o App carrega
-document.addEventListener('DOMContentLoaded', () => {
-    // Espera um pouco para o Supabase carregar a sessão
-    setTimeout(verificarStatusGoogle, 1000);
-});
 
 // ========================================
 // VERIFICAÇÃO DE LOGIN (COM PROTEÇÃO PARA RECUPERAÇÃO)
@@ -2076,8 +1978,6 @@ function atualizarAvatarNaTela(url) {
     }
 }
 
-// Exporta para garantir
-window.verificarStatusGoogle = verificarStatusGoogle;
 // Localize a linha 1040 do app.js e substitua a função por esta:
 window.carregarDadosPerfil = async function() {
     console.log("🚀 Carregando Perfil Único e Link..."); 
@@ -2147,100 +2047,6 @@ if (typeof uploadFotoPerfil !== 'undefined') {
 
 window.copiarLinkPerfil = copiarLinkPerfil; // Se tiver criado essa também
 
-// ==============================================================
-// 🔄 SINCRONIZADOR GOOGLE NATIVO (100% SUPABASE + FETCH)
-// ==============================================================
-window.sincronizarPendentesGoogle = async function() {
-    console.log("🔄 Sincronizando com Google via API Nativa...");
-
-    const btn = document.querySelector('button[onclick*="sincronizarPendentesGoogle"]');
-    const iconeOriginal = btn ? btn.innerHTML : '';
-    if(btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true; }
-
-    try {
-        // 1. Pega o Token Seguro diretamente do Supabase
-        const { data: { session } } = await window._supabase.auth.getSession();
-        const token = session?.provider_token;
-
-        if (!token) {
-            showToast('Você não está conectado ao Google. Faça login novamente com o Google.', 'warning');
-            return;
-        }
-
-        const hoje = new Date().toISOString().split('T')[0];
-
-        // 2. Busca Pendentes no Banco de Dados
-        const { data: pendentes, error } = await window._supabase
-            .from('agendamentos')
-            .select('*, clientes(nome)')
-            .gte('data', hoje)
-            .is('google_event_id', null)
-            .neq('status', 'cancelado');
-
-        if (error) throw error;
-
-        if (!pendentes || pendentes.length === 0) {
-            showToast('Tudo atualizado! Nenhum agendamento pendente para enviar.', 'success');
-            return;
-        }
-
-        let enviados = 0;
-        for (const agenda of pendentes) {
-            try {
-                const inicio = `${agenda.data}T${agenda.hora}:00`;
-                const dataInicio = new Date(inicio);
-                const dataFim = new Date(dataInicio.getTime() + 60*60*1000); // Duração: 1 hora
-                const fim = dataFim.toISOString().split('.')[0];
-
-                const nomeCliente = agenda.clientes?.nome || 'Cliente Site';
-
-                const evento = {
-                    'summary': `💆‍♀️ ${agenda.servico_nome || 'Serviço'} - ${nomeCliente}`,
-                    'description': `Agendamento via App. Obs: ${agenda.observacoes || '-'}`,
-                    'start': { 'dateTime': inicio, 'timeZone': 'America/Sao_Paulo' },
-                    'end':   { 'dateTime': fim, 'timeZone': 'America/Sao_Paulo' },
-                    'colorId': '5' // Cor Amarela
-                };
-
-                // 3. Comunica com o Google diretamente, sem usar o 'gapi'!
-                const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(evento)
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    console.error("Erro retornado pelo Google:", result);
-                    throw new Error(result.error?.message || "Erro ao conectar com a Agenda.");
-                }
-
-                // 4. Salva o ID do Google de volta no nosso banco
-                if (result.id) {
-                    await window._supabase.from('agendamentos')
-                        .update({ google_event_id: result.id })
-                        .eq('id', agenda.id);
-                    enviados++;
-                }
-            } catch (errEnvio) {
-                console.error("Erro ao enviar item específico:", errEnvio);
-            }
-        }
-        
-        if (enviados > 0) {
-            showToast(`${enviados} agendamentos enviados para o Google!`, 'success');
-        }
-    } catch (erro) {
-        console.error("Erro Sync:", erro);
-        showToast('Erro na sincronização. Certifique-se de estar logado com o Google.', 'error');
-    } finally {
-        if(btn) { btn.innerHTML = iconeOriginal; btn.disabled = false; }
-    }
-};
 
 // ==============================================================
 // 🤖 ABA DE AUTOMAÇÕES, WHATSAPP E E-MAIL (UNIFICADA)
@@ -2262,7 +2068,13 @@ window.carregarAutomacoes = async function() {
         const elZap = document.getElementById('textoAutomacaoZap');
         if (elZap) elZap.value = (perfil && perfil.mensagem_whatsapp) ? perfil.mensagem_whatsapp : MENSAGEM_PADRAO_ZAP;
 
-        // 2. E-mail
+        // 2. Fonnte (WhatsApp automático)
+        const elZapiToggle = document.getElementById('zapiAtivoToggle');
+        if (elZapiToggle) elZapiToggle.checked = (perfil && perfil.zapi_ativo === true);
+        const elZapiToken = document.getElementById('zapiToken');
+        if (elZapiToken) elZapiToken.value = (perfil && perfil.zapi_token) ? perfil.zapi_token : '';
+
+        // 3. E-mail
         const elAssunto = document.getElementById('textoAssuntoEmail');
         if (elAssunto) elAssunto.value = (perfil && perfil.email_assunto) ? perfil.email_assunto : EMAIL_PADRAO_ASSUNTO;
 
@@ -2479,11 +2291,75 @@ window.dispararEmailAutomatico = async function(emailCliente, nomeCliente, dataH
     } catch (error) { console.error("Erro interno no e-mail:", error); }
 };
 
+window.salvarConfigZapi = async function(btnElement) {
+    const token = document.getElementById('zapiToken').value.trim();
+    const ativo = document.getElementById('zapiAtivoToggle').checked;
+
+    const textoBotaoOriginal = btnElement.innerHTML;
+    btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    btnElement.disabled = true;
+
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        const { error } = await _supabase.from('profiles').upsert({
+            id: user.id,
+            zapi_token: token,
+            zapi_ativo: ativo
+        });
+        if (error) throw error;
+        showToast('Configuração salva!', 'success');
+    } catch (err) {
+        console.error(err);
+        showToast('Erro ao salvar configuração.', 'error');
+    } finally {
+        btnElement.innerHTML = textoBotaoOriginal;
+        btnElement.disabled = false;
+    }
+};
+
+window.dispararWhatsAppAutomatico = async function(agendamento, cliente) {
+    try {
+        if (!cliente?.telefone) return;
+
+        const { data: { user } } = await _supabase.auth.getUser();
+        const { data: perfil } = await _supabase.from('profiles')
+            .select('zapi_ativo, zapi_token, mensagem_whatsapp')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (!perfil?.zapi_ativo || !perfil?.zapi_token) return;
+
+        let numLimpo = String(cliente.telefone).replace(/\D/g, '');
+        if (numLimpo.startsWith('0')) numLimpo = numLimpo.substring(1);
+        if (!numLimpo.startsWith('55')) numLimpo = `55${numLimpo}`;
+        if (numLimpo.length < 12 || numLimpo.length > 13) return;
+
+        const mensagemBase = perfil.mensagem_whatsapp ||
+            `Olá {nome}! ✨\n\nPassando para confirmar o seu horário conosco.\n\n🗓 *Quando:* {data} às {hora}\n📌 *Procedimento:* {servico}\n\nPodemos confirmar sua presença? ✅`;
+
+        const mensagem = mensagemBase
+            .replace(/{nome}/g, (cliente.nome || 'Cliente').split(' ')[0])
+            .replace(/{servico}/g, agendamento.servico_nome || 'Atendimento')
+            .replace(/{data}/g, agendamento.data || '')
+            .replace(/{hora}/g, agendamento.hora || '');
+
+        // Chama via Edge Function (evita bloqueio de CORS do browser)
+        const { error: errWpp } = await _supabase.functions.invoke('enviar-whatsapp', {
+            body: { telefone: numLimpo, mensagem, token: perfil.zapi_token }
+        });
+        if (errWpp) console.error('Erro ao enviar WhatsApp:', errWpp);
+        else console.log('✅ WhatsApp automático enviado via Fonnte!');
+    } catch (err) {
+        console.error('Erro ao enviar WhatsApp automático:', err);
+    }
+};
+
 // OBRIGATÓRIO: Conecta as funções seguras ao navegador
 window.carregarAutomacoes = carregarAutomacoes;
 window.salvarAutomacoes = salvarAutomacoes;
 window.salvarAutomacoesEmail = salvarAutomacoesEmail;
 window.inserirVariavel = inserirVariavel;
+
 
 // ==============================================================
 // 🔍 AUTOCOMPLETE INTELIGENTE (CLIENTES E SERVIÇOS)

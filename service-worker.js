@@ -1,5 +1,8 @@
-const CACHE_NAME = 'estetica-premium-v2'; // Mudei para v2 para forçar atualização
-const ASSETS_TO_CACHE = [
+const APP_CACHE = 'estetica-app-v3';
+const CDN_CACHE = 'estetica-cdn-v1';
+
+// Arquivos locais do app — ficam em cache para funcionar offline
+const APP_ASSETS = [
     './',
     './index.html',
     './css/style.css',
@@ -7,76 +10,80 @@ const ASSETS_TO_CACHE = [
     './js/app-agenda.js',
     './js/supabase-client.js',
     './js/popular-dados.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
-    'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap'
+    './manifest.json'
 ];
 
-// 1. Instalação: Cache dos arquivos estáticos
+// CDNs externas — não mudam, cache permanente
+const CDN_ORIGINS = [
+    'cdnjs.cloudflare.com',
+    'fonts.googleapis.com',
+    'fonts.gstatic.com',
+    'cdn.jsdelivr.net'
+];
+
+// 1. Instalação
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('📦 Service Worker: Cacheando arquivos estáticos');
-                return cache.addAll(ASSETS_TO_CACHE);
-            })
+        caches.open(APP_CACHE).then((cache) => {
+            return cache.addAll(APP_ASSETS);
+        })
     );
     self.skipWaiting();
 });
 
-// 2. Ativação: Limpar caches antigos
+// 2. Ativação — limpa caches antigos do app (CDN fica)
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cache) => {
-                    if (cache !== CACHE_NAME) {
-                        console.log('🗑️ Service Worker: Limpando cache antigo', cache);
-                        return caches.delete(cache);
+        caches.keys().then((names) =>
+            Promise.all(
+                names.map((name) => {
+                    if (name !== APP_CACHE && name !== CDN_CACHE) {
+                        return caches.delete(name);
                     }
                 })
-            );
-        })
+            )
+        )
     );
     self.clients.claim();
 });
 
-// 3. Interceptação de Requisições (A CORREÇÃO ESTÁ AQUI)
+// 3. Interceptação de requisições
 self.addEventListener('fetch', (event) => {
-    // 🛑 IMPORTANTE: Ignorar requisições que não sejam GET (POST, DELETE, PUT)
-    // O erro "Failed to execute 'put' on 'Cache'" acontecia porque tentávamos cachear um POST
-    if (event.request.method !== 'GET') {
-        return; 
-    }
+    // Ignora não-GET e Supabase API
+    if (event.request.method !== 'GET') return;
+    if (event.request.url.includes('supabase.co')) return;
+    if (event.request.url.includes('chrome-extension')) return;
 
-    // Ignora URLs do Chrome Extension ou Supabase API (para garantir dados frescos)
-    if (event.request.url.includes('chrome-extension') || event.request.url.includes('supabase.co')) {
-        return;
-    }
+    const url = new URL(event.request.url);
+    const isCdn = CDN_ORIGINS.some((origin) => url.hostname.includes(origin));
 
-    event.respondWith(
-        caches.match(event.request)
-            .then((cachedResponse) => {
-                // Estratégia: Cache First, depois Network (Stale-while-revalidate light)
-                // Se tem no cache, retorna. Se não, busca na rede.
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
-
+    if (isCdn) {
+        // CDN: Cache First — não muda nunca, serve do cache direto
+        event.respondWith(
+            caches.match(event.request).then((cached) => {
+                if (cached) return cached;
                 return fetch(event.request).then((response) => {
-                    // Verifica se a resposta é válida
-                    if (!response || response.status !== 200 || response.type !== 'basic') {
-                        return response;
+                    if (response && response.status === 200) {
+                        const clone = response.clone();
+                        caches.open(CDN_CACHE).then((c) => c.put(event.request, clone));
                     }
-
-                    // Clona a resposta para salvar no cache
-                    const responseToCache = response.clone();
-                    caches.open(CACHE_NAME)
-                        .then((cache) => {
-                            cache.put(event.request, responseToCache);
-                        });
-
                     return response;
                 });
             })
-    );
+        );
+    } else {
+        // App local: Network First — sempre tenta buscar o mais novo
+        // Se offline ou erro de rede, cai no cache
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    if (response && response.status === 200 && response.type === 'basic') {
+                        const clone = response.clone();
+                        caches.open(APP_CACHE).then((c) => c.put(event.request, clone));
+                    }
+                    return response;
+                })
+                .catch(() => caches.match(event.request))
+        );
+    }
 });

@@ -242,13 +242,7 @@
                             <i class="fas fa-share-alt"></i> <span class="texto-botao">Link</span>
                         </button>
 
-                        <button id="btnConnectGoogle" onclick="conectarGoogle()" class="btn-google-sync" title="Conectar Agenda">
-                            <i class="fab fa-google"></i> <span class="texto-botao">Conectar</span>
-                        </button>
 
-                        <button onclick="sincronizarPendentesGoogle()" class="btn-secondary" style="padding: 10px 15px; border: 1px solid #D4AF37; color: #D4AF37;" title="Enviar agendamentos do site para o Google">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
                     </div>
                 </div>
 
@@ -435,7 +429,46 @@
                             </button>
                         </div>
                     </div>
-                    
+
+                    <div class="form-card" style="padding: 25px; background: #1E1E1E; border-radius: 12px; border: 1px solid #333; margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0; color: #fff; display: flex; align-items: center; gap: 10px;">
+                                <i class="fab fa-whatsapp" style="color: #25D366; font-size: 1.5rem;"></i> Envio Automático (Fonnte)
+                            </h3>
+                            <label class="switch">
+                                <input type="checkbox" id="zapiAtivoToggle">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+
+                        <div style="background: #111; border: 1px solid #2a2a2a; border-radius: 10px; padding: 18px; margin-bottom: 20px;">
+                            <p style="color: #D4AF37; font-size: 0.85rem; font-weight: bold; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                                <i class="fas fa-info-circle"></i> Como configurar (gratuito)
+                            </p>
+                            <ol style="color: #aaa; font-size: 0.88rem; line-height: 1.9; margin: 0; padding-left: 18px;">
+                                <li>Acesse <a href="https://fonnte.com" target="_blank" style="color: #D4AF37;">fonnte.com</a> e crie uma conta gratuita</li>
+                                <li>Vá em <strong style="color: #fff;">Devices → Add Device</strong></li>
+                                <li>Escaneie o <strong style="color: #fff;">QR Code</strong> com o WhatsApp do seu celular (igual ao WhatsApp Web) — faça isso <strong style="color: #fff;">uma única vez</strong></li>
+                                <li>Com o device conectado, clique nele e copie o <strong style="color: #fff;">Token</strong> que aparece no topo</li>
+                                <li>Cole o token no campo abaixo, ative o toggle e salve</li>
+                            </ol>
+                            <p style="color: #666; font-size: 0.8rem; margin: 12px 0 0 0;">
+                                <i class="fas fa-check-circle" style="color: #25D366;"></i> Gratuito até 1.000 mensagens/mês. Após configurado, toda vez que salvar um agendamento a mensagem é enviada automaticamente.
+                            </p>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label style="color: var(--gold);">Token do Fonnte</label>
+                            <input type="text" id="zapiToken" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 10px;" placeholder="Cole aqui o token do seu device no Fonnte">
+                        </div>
+
+                        <div style="text-align: right;">
+                            <button class="btn-primary" onclick="salvarConfigZapi(this)">
+                                <i class="fas fa-save"></i> Salvar Configuração
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="form-card" style="padding: 25px; background: #1E1E1E; border-radius: 12px; border: 1px solid #333; margin-top: 20px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h3 style="margin: 0; color: #fff; display: flex; align-items: center; gap: 10px;">
@@ -1132,15 +1165,14 @@
 
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    
-    <script src="js/supabase-client.js?v=4.0"></script>
-    <script src="js/app-agenda.js?v=4.1"></script>
-    <script src="js/app-relatorios.js?v=4.0"></script>
-    <script src="js/popular-dados.js?v=4.0"></script>
-    <script src="js/app-anamnese.js?v=4.0"></script>
-    <script src="js/perfil.js?v=99.0"></script>
-    <script src="js/app.js?v=14.0"></script>
+
+    <script src="js/supabase-client.js?v=15.0"></script>
+    <script src="js/app-agenda.js?v=15.0"></script>
+    <script src="js/app-relatorios.js?v=15.0"></script>
+    <script src="js/popular-dados.js?v=15.0"></script>
+    <script src="js/app-anamnese.js?v=15.0"></script>
+    <script src="js/perfil.js?v=15.0"></script>
+    <script src="js/app.js?v=15.2"></script>
     <script>
         window.fazerLogout = async function(event) {
             // Evita o recarregamento fantasma
