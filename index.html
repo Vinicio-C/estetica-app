@@ -213,6 +213,14 @@
                             <div id="dashContasReceberList" class="dashboard-list"></div>
                         </div>
                     </div>
+
+                    <div class="dashboard-card full-width" id="cardLembretesAmanha">
+                        <div class="card-header">
+                            <h3><i class="fab fa-whatsapp" style="color: #25D366;"></i> Lembretes de Amanhã</h3>
+                            <span id="lembreteAmanhaCount" style="font-size: 0.8rem; color: var(--text-secondary);"></span>
+                        </div>
+                        <div id="dashLembretesAmanhaList" class="dashboard-list"></div>
+                    </div>
                 </div>
             </div>
 
@@ -275,9 +283,14 @@
                         <span style="color: #888;">Data selecionada:</span>
                         <strong id="dataSelecionadaTexto" style="color: var(--gold); margin-left: 5px;">-</strong>
                     </div>
-                    <button class="btn-primary" onclick="abrirModalAgendamento()">
-                        <i class="fas fa-plus"></i> Novo Agendamento
-                    </button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="btnEnviarTodosZap" class="btn-whatsapp-todos" onclick="enviarLembretesTodos()">
+                            <i class="fab fa-whatsapp"></i> Enviar Todos
+                        </button>
+                        <button class="btn-primary" onclick="abrirModalAgendamento()">
+                            <i class="fas fa-plus"></i> Novo Agendamento
+                        </button>
+                    </div>
                 </div>
 
                 <div id="agendaContainer" class="agenda-timeline"></div>

@@ -196,8 +196,16 @@ async function carregarAgendaDoDia(dataObj) {
             const telefoneParaZap = clienteRef ? clienteRef.telefone : '';
             const dataHoraParaZap = `${dataFormatadaBr} às ${horaFormatada}`;
             
+            // Badge de lembrete enviado (persiste via localStorage)
+            const storageKeyCard = `zap_sent_${item.id}_${dataSQL}`;
+            const jaEnviadoCard = !!localStorage.getItem(storageKeyCard);
+            const badgeCardHtml = jaEnviadoCard
+                ? `<span class="badge-lembrete-enviado"><i class="fas fa-check"></i> Enviado</span>`
+                : '';
+
             const card = document.createElement('div');
             card.className = `agenda-card ${statusClass}`;
+            card.id = `agenda-card-${item.id}`;
             card.innerHTML = `
                 <div class="time-column">
                     <span class="time-hour">${horaFormatada}</span>
@@ -210,8 +218,9 @@ async function carregarAgendaDoDia(dataObj) {
                 </div>
                 <div class="action-column">
                     <span class="price-tag">${valor}</span>
+                    ${badgeCardHtml}
                     <div style="display: flex; gap: 5px; justify-content: flex-end;">
-                        <button class="icon-btn-small" style="background: #25D366; color: white; border: none; font-size: 1rem;" onclick="dispararWhatsAppManual('${telefoneParaZap}', '${nomeCliente}', '${dataHoraParaZap}', '${titulo}')" title="Confirmar pelo Zap">
+                        <button class="icon-btn-small" style="background: #25D366; color: white; border: none; font-size: 1rem;" onclick="dispararLembreteAgenda('${item.id}', '${telefoneParaZap}', '${nomeCliente.replace(/'/g, "\\'")}', '${dataHoraParaZap}', '${titulo.replace(/'/g, "\\'")}', '${dataSQL}')" title="Confirmar pelo Zap">
                             <i class="fab fa-whatsapp"></i>
                         </button>
                         <button class="icon-btn-small edit" onclick="abrirModalAgendamento('${item.id}')"><i class="fas fa-pencil-alt"></i></button>
@@ -231,6 +240,158 @@ async function carregarAgendaDoDia(dataObj) {
 // Funções globais necessárias
 window.hoje = hoje;
 window.carregarAgendaDoDia = carregarAgendaDoDia;
+
+// --- LEMBRETE INDIVIDUAL VIA CARD DA AGENDA ---
+window.dispararLembreteAgenda = async function(agendamentoId, telefone, nome, dataHoraBr, procedimento, dataSQL) {
+    await window.dispararWhatsAppManual(telefone, nome, dataHoraBr, procedimento);
+
+    const storageKey = `zap_sent_${agendamentoId}_${dataSQL}`;
+    localStorage.setItem(storageKey, '1');
+
+    // Atualiza badge no card da agenda
+    const card = document.getElementById(`agenda-card-${agendamentoId}`);
+    if (card) {
+        const actionCol = card.querySelector('.action-column');
+        if (actionCol && !actionCol.querySelector('.badge-lembrete-enviado')) {
+            const badge = document.createElement('span');
+            badge.className = 'badge-lembrete-enviado';
+            badge.innerHTML = '<i class="fas fa-check"></i> Enviado';
+            // Insere antes dos botões de ação
+            const btnGroup = actionCol.querySelector('div');
+            actionCol.insertBefore(badge, btnGroup);
+        }
+    }
+
+    // Atualiza badge no card do dashboard, se estiver visível
+    const dashRow = document.getElementById(`lembrete-row-${agendamentoId}`);
+    if (dashRow) {
+        const actionDiv = dashRow.querySelector('.dash-item-action');
+        if (actionDiv && !actionDiv.querySelector('.badge-lembrete-enviado')) {
+            const badge = document.createElement('span');
+            badge.className = 'badge-lembrete-enviado';
+            badge.innerHTML = '<i class="fas fa-check"></i> Enviado';
+            actionDiv.insertBefore(badge, actionDiv.firstChild);
+        }
+    }
+};
+
+// --- ENVIAR LEMBRETES PARA TODOS OS CLIENTES DA DATA SELECIONADA ---
+window.enviarLembretesTodos = async function() {
+    const displayEl = document.getElementById('dataSelecionadaTexto');
+    const dataExibida = displayEl ? displayEl.textContent.trim() : '';
+
+    if (!dataExibida || dataExibida === '-') {
+        if (typeof showToast === 'function') showToast('Selecione uma data na agenda primeiro.', 'warning');
+        return;
+    }
+
+    // Converte DD/MM/YYYY → YYYY-MM-DD
+    const partes = dataExibida.split('/');
+    if (partes.length !== 3) return;
+    const [dia, mes, ano] = partes;
+    const dataSQL = `${ano}-${mes}-${dia}`;
+
+    // Filtra agendamentos da data que ainda não receberam lembrete
+    const pendentes = (appState.agendamentos || []).filter(a => {
+        if (a.data !== dataSQL || a.status === 'cancelado') return false;
+        return !localStorage.getItem(`zap_sent_${a.id}_${dataSQL}`);
+    });
+
+    if (pendentes.length === 0) {
+        if (typeof showToast === 'function') showToast('Todos os lembretes desta data já foram enviados!', 'success');
+        return;
+    }
+
+    const confirmou = confirm(
+        `Enviar WhatsApp para ${pendentes.length} cliente(s)?\n\nO navegador abrirá uma janela por cliente com uma pequena pausa entre elas.`
+    );
+    if (!confirmou) return;
+
+    // Busca template da profissional uma única vez
+    let textoBase = `Olá {nome}! ✨\n\nPassando para confirmar o seu horário conosco.\n\n🗓 *Quando:* {data} às {hora}\n📌 *Procedimento:* {servico}\n\nPodemos confirmar sua presença? ✅`;
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (user) {
+            const { data: perfil } = await _supabase
+                .from('profiles')
+                .select('mensagem_whatsapp')
+                .eq('id', user.id)
+                .maybeSingle();
+            if (perfil && perfil.mensagem_whatsapp) textoBase = perfil.mensagem_whatsapp;
+        }
+    } catch (e) { /* usa template padrão */ }
+
+    // Desabilita botão durante envio
+    const btnEnviar = document.getElementById('btnEnviarTodosZap');
+    if (btnEnviar) {
+        btnEnviar.disabled = true;
+        btnEnviar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+    }
+
+    const DELAY_MS = 1200;
+
+    for (let i = 0; i < pendentes.length; i++) {
+        const a = pendentes[i];
+        const clienteRef = (appState.clientes || []).find(c => String(c.id) === String(a.cliente_id));
+        const telefone = clienteRef ? (clienteRef.telefone || '') : '';
+
+        if (!telefone) {
+            if (typeof showToast === 'function') showToast(`${a.cliente_nome || 'Cliente'}: sem telefone, pulando.`, 'warning');
+            continue;
+        }
+
+        let numLimpo = String(telefone).replace(/\D/g, '');
+        if (numLimpo.startsWith('0')) numLimpo = numLimpo.substring(1);
+        if (!numLimpo.startsWith('55')) numLimpo = `55${numLimpo}`;
+        if (numLimpo.length < 12 || numLimpo.length > 13) {
+            if (typeof showToast === 'function') showToast(`${a.cliente_nome || 'Cliente'}: telefone inválido, pulando.`, 'warning');
+            continue;
+        }
+
+        const horaFmt = a.hora ? a.hora.slice(0, 5) : '';
+        const dataFmtBr = `${dia}/${mes}/${ano}`;
+        const primeiroNome = (a.cliente_nome || 'Cliente').split(' ')[0];
+
+        const textoFinal = textoBase
+            .replace(/{nome}/g, primeiroNome)
+            .replace(/{data}/g, dataFmtBr)
+            .replace(/{hora}/g, horaFmt)
+            .replace(/{servico}/g, a.servico_nome || 'Atendimento');
+
+        window.open(
+            `https://api.whatsapp.com/send?phone=${numLimpo}&text=${encodeURIComponent(textoFinal)}`,
+            '_blank'
+        );
+
+        // Marca localStorage e atualiza badges
+        const storageKey = `zap_sent_${a.id}_${dataSQL}`;
+        localStorage.setItem(storageKey, '1');
+
+        const card = document.getElementById(`agenda-card-${a.id}`);
+        if (card) {
+            const actionCol = card.querySelector('.action-column');
+            if (actionCol && !actionCol.querySelector('.badge-lembrete-enviado')) {
+                const badge = document.createElement('span');
+                badge.className = 'badge-lembrete-enviado';
+                badge.innerHTML = '<i class="fas fa-check"></i> Enviado';
+                const btnGroup = actionCol.querySelector('div');
+                actionCol.insertBefore(badge, btnGroup);
+            }
+        }
+
+        // Aguarda antes do próximo (exceto no último)
+        if (i < pendentes.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+        }
+    }
+
+    if (btnEnviar) {
+        btnEnviar.disabled = false;
+        btnEnviar.innerHTML = '<i class="fab fa-whatsapp"></i> Enviar Todos';
+    }
+
+    if (typeof showToast === 'function') showToast('Lembretes enviados!', 'success');
+};
 
 const nomesDias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 

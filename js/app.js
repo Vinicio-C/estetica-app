@@ -419,7 +419,113 @@ function renderizarListasDashboard() {
             `).join('');
         }
     }
+
+    // 4. LEMBRETES DE AMANHÃ
+    renderizarLembretesAmanha();
 }
+
+function renderizarLembretesAmanha() {
+    const lista = document.getElementById('dashLembretesAmanhaList');
+    const counter = document.getElementById('lembreteAmanhaCount');
+    if (!lista) return;
+
+    const amanha = new Date();
+    amanha.setDate(amanha.getDate() + 1);
+    const amanhaStr = amanha.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    const agendamentosAmanha = appState.agendamentos
+        .filter(a => a.data === amanhaStr && a.status !== 'cancelado' && a.status !== 'concluido')
+        .sort((a, b) => a.hora.localeCompare(b.hora));
+
+    if (counter) {
+        counter.textContent = agendamentosAmanha.length > 0
+            ? `${agendamentosAmanha.length} agendamento(s)`
+            : '';
+    }
+
+    if (agendamentosAmanha.length === 0) {
+        lista.innerHTML = `<div style="padding: 20px; text-align: center; color: #666;">
+            <i class="fas fa-check-circle" style="color: #25D366; margin-right: 5px;"></i>
+            Nenhum agendamento para amanhã.
+        </div>`;
+        return;
+    }
+
+    lista.innerHTML = agendamentosAmanha.map(a => {
+        const clienteRef = appState.clientes.find(c => String(c.id) === String(a.cliente_id));
+        const telefone = clienteRef ? (clienteRef.telefone || '') : '';
+        const horaFmt = formatTime(a.hora);
+        const dataFmt = formatDate(a.data);
+        const [ano, mes, dia] = a.data.split('-');
+        const nomeMes = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'][parseInt(mes) - 1];
+
+        const storageKey = `zap_sent_${a.id}_${amanhaStr}`;
+        const jaEnviado = !!localStorage.getItem(storageKey);
+        const badgeHtml = jaEnviado
+            ? `<span class="badge-lembrete-enviado"><i class="fas fa-check"></i> Enviado</span>`
+            : '';
+
+        const btnStyle = telefone
+            ? `background:#25D366; color:#fff; border:none;`
+            : `background:#444; color:#888; border:none; cursor:not-allowed;`;
+        const btnTitle = telefone ? 'Enviar lembrete pelo WhatsApp' : 'Cliente sem telefone cadastrado';
+        const btnDisabled = telefone ? '' : 'disabled';
+
+        return `
+        <div class="dash-list-item" id="lembrete-row-${a.id}">
+            <div class="dash-item-time">
+                <span class="day">${dia}</span>
+                <span class="month">${nomeMes}</span>
+            </div>
+            <div class="dash-item-info">
+                <h4>${a.cliente_nome || 'Cliente'}</h4>
+                <p style="color:#bbb;">${a.servico_nome || 'Atendimento'} • ${horaFmt}</p>
+            </div>
+            <div class="dash-item-action" style="display:flex; align-items:center; gap:8px;">
+                ${badgeHtml}
+                <button
+                    class="icon-btn-small"
+                    style="${btnStyle} font-size:1rem; padding: 6px 10px; border-radius: 6px; cursor:pointer;"
+                    title="${btnTitle}"
+                    ${btnDisabled}
+                    onclick="dispararLembrete('${a.id}', '${telefone}', '${(a.cliente_nome || '').replace(/'/g, "\\'")}', '${dataFmt} às ${horaFmt}', '${(a.servico_nome || '').replace(/'/g, "\\'")}', '${amanhaStr}')">
+                    <i class="fab fa-whatsapp"></i>
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+window.dispararLembrete = async function(agendamentoId, telefone, nome, dataHoraBr, procedimento, dataRef) {
+    await window.dispararWhatsAppManual(telefone, nome, dataHoraBr, procedimento);
+
+    const storageKey = `zap_sent_${agendamentoId}_${dataRef}`;
+    localStorage.setItem(storageKey, '1');
+
+    // Atualiza badge no card do dashboard (in-place)
+    const row = document.getElementById(`lembrete-row-${agendamentoId}`);
+    if (row) {
+        const actionDiv = row.querySelector('.dash-item-action');
+        if (actionDiv && !actionDiv.querySelector('.badge-lembrete-enviado')) {
+            const badge = document.createElement('span');
+            badge.className = 'badge-lembrete-enviado';
+            badge.innerHTML = '<i class="fas fa-check"></i> Enviado';
+            actionDiv.insertBefore(badge, actionDiv.firstChild);
+        }
+    }
+
+    // Atualiza badge no card da agenda, se estiver visível
+    const agendaCard = document.getElementById(`agenda-card-${agendamentoId}`);
+    if (agendaCard) {
+        const actionCol = agendaCard.querySelector('.action-column');
+        if (actionCol && !actionCol.querySelector('.badge-lembrete-enviado')) {
+            const badge = document.createElement('span');
+            badge.className = 'badge-lembrete-enviado';
+            badge.innerHTML = '<i class="fas fa-check"></i> Enviado';
+            actionCol.appendChild(badge);
+        }
+    }
+};
 
 // ========================================
 // CLIENTES

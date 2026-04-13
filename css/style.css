@@ -281,12 +281,14 @@ body {
     border-radius: var(--border-radius);
     display: flex; align-items: center; gap: 15px;
     transition: var(--transition);
+    min-width: 0; /* impede overflow em grids */
 }
 
 .stat-card:hover { transform: translateY(-5px); border-color: var(--gold); }
-.stat-icon { width: 50px; height: 50px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--gold); }
-.stat-info h3 { font-size: 2rem; color: var(--gold); } /* Números Dourados */
-.stat-info p { text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
+.stat-icon { width: 50px; height: 50px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--gold); flex-shrink: 0; }
+.stat-info { min-width: 0; overflow: hidden; }
+.stat-info h3 { font-size: 2rem; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* Números Dourados */
+.stat-info p { text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; word-break: break-word; }
 
 /* Grids */
 .clientes-grid, .servicos-grid, .estoque-grid {
@@ -505,6 +507,7 @@ input[type="date"] {
     align-items: center;
     gap: 15px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    min-width: 0; /* impede overflow em grids */
 }
 
 .metric-icon {
@@ -513,11 +516,19 @@ input[type="date"] {
     opacity: 0.8;
 }
 
+.metric-info {
+    min-width: 0;
+    overflow: hidden;
+}
+
 .metric-info h3 {
     font-size: 1.5rem;
     color: var(--text-primary);
     margin: 0;
     font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .metric-info p {
@@ -526,6 +537,7 @@ input[type="date"] {
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 1px;
+    word-break: break-word;
 }
 
 /* --- 3. BOTÃO GOOGLE AGENDA (Estilo Bonito) --- */
@@ -1635,13 +1647,29 @@ input[type="date"] {
 .dash-item-time .day { font-size: 1.2rem; font-weight: bold; }
 .dash-item-time .month { font-size: 0.7rem; text-transform: uppercase; }
 
-.dash-item-info { flex: 1; }
-.dash-item-info h4 { margin: 0; font-size: 0.95rem; color: #fff; }
-.dash-item-info p { margin: 2px 0 0 0; font-size: 0.8rem; color: #888; }
+.dash-item-info { flex: 1; min-width: 0; overflow: hidden; }
+.dash-item-info h4 { margin: 0; font-size: 0.95rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-item-info p { margin: 2px 0 0 0; font-size: 0.8rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Cores de Alerta */
 .dash-list-item.warning { border-left: 3px solid var(--warning); }
 .dash-list-item.danger { border-left: 3px solid var(--error); }
+
+/* Badge de status de pagamento */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.status-badge.pago    { background: rgba(37,211,102,0.15); color: #25D366; border: 1px solid rgba(37,211,102,0.3); }
+.status-badge.pendente{ background: rgba(212,175,55,0.15);  color: var(--gold); border: 1px solid rgba(212,175,55,0.3); }
+.status-badge.devendo { background: rgba(255,77,79,0.15);   color: var(--error); border: 1px solid rgba(255,77,79,0.3); }
 
 .dash-item-icon {
     width: 40px; height: 40px;
@@ -2501,6 +2529,74 @@ canvas {
     .servicos-grid {
         grid-template-columns: 1fr !important;
     }
+
+    /* ---- CORREÇÕES DE OVERFLOW HORIZONTAL ---- */
+
+    /* Garante contenção total da área de conteúdo */
+    .page-container {
+        overflow-x: hidden !important;
+        width: 100% !important;
+    }
+
+    /* Reduz gap dos cards de métricas para caber na tela */
+    .metrics-row {
+        gap: 10px !important;
+    }
+    .stats-row {
+        gap: 10px !important;
+    }
+
+    /* Reduz padding e ícone nos cards de métrica */
+    .metric-card {
+        padding: 12px 10px !important;
+        gap: 10px !important;
+    }
+    .metric-icon {
+        font-size: 1.4rem !important;
+        flex-shrink: 0 !important;
+    }
+    .metric-info h3 {
+        font-size: 1.2rem !important;
+    }
+    .metric-info p {
+        font-size: 0.68rem !important;
+        letter-spacing: 0 !important;
+    }
+
+    /* ---- HARMONIA GERAL ---- */
+
+    /* Card header: evita que título e botão se sobreponham */
+    .card-header {
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+    }
+    .card-header h3 {
+        font-size: 0.95rem !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    /* Itens da lista do dashboard: nome truncado em vez de quebrar layout */
+    .dash-item-action {
+        flex-shrink: 0 !important;
+    }
+
+    /* Sidebar: áreas de toque maiores nos itens do menu */
+    .menu-item {
+        min-height: 52px !important;
+        padding: 0 2rem !important;
+    }
+
+    /* Toast: respeita home indicator no iPhone */
+    .toast-container {
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    /* Agenda quick-actions: empilha em telas muito pequenas */
+    .agenda-quick-actions {
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+    }
 }
 
 /* =======================================================
@@ -2596,3 +2692,38 @@ canvas {
         font-size: 16px !important; /* >= 16px evita zoom automático no iOS */
     }
 }
+
+/* =======================================================
+   LEMBRETES WHATSAPP — BADGE E BOTÃO
+   ======================================================= */
+
+.badge-lembrete-enviado {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #25D366;
+    background: rgba(37, 211, 102, 0.12);
+    border: 1px solid rgba(37, 211, 102, 0.35);
+    border-radius: 20px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+.btn-whatsapp-todos {
+    background: rgba(37, 211, 102, 0.15);
+    border: 1px solid #25D366;
+    color: #25D366;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+}
+.btn-whatsapp-todos:hover { background: rgba(37, 211, 102, 0.28); }
+.btn-whatsapp-todos:disabled { opacity: 0.5; cursor: not-allowed; }
