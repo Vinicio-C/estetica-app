@@ -2146,10 +2146,64 @@ window.carregarDadosPerfil = async function() {
         const divPerfil = document.getElementById('perfilPage');
         if (divPerfil) divPerfil.classList.add('active');
 
+        // 6. STATUS DO PLANO
+        _preencherStatusPlanoNoPerfil();
+
     } catch (err) {
         console.error("Erro crítico no perfil:", err);
     }
 };
+
+// Preenche a seção "Meu Plano" no perfil usando verificarPlano() do supabase-client.js
+async function _preencherStatusPlanoNoPerfil() {
+    const card = document.getElementById('secaoAssinatura');
+    const body = document.getElementById('planoCardBody');
+    if (!card || !body || typeof verificarPlano !== 'function') return;
+
+    const plano = await verificarPlano().catch(() => 'ativo');
+
+    card.classList.remove('plano-vitalicio', 'plano-ativo', 'plano-trial', 'plano-expirado');
+
+    if (plano === 'vitalicio') {
+        card.classList.add('plano-vitalicio');
+        body.innerHTML = `
+            <div class="plano-badge badge-vitalicio">✨ Vitalício</div>
+            <p class="plano-titulo">Acesso Vitalício</p>
+            <p class="plano-subtitulo">Obrigado pela confiança! Você tem acesso permanente e ilimitado a todos os recursos.</p>
+        `;
+    } else if (plano === 'ativo') {
+        card.classList.add('plano-ativo');
+        body.innerHTML = `
+            <div class="plano-badge badge-ativo">👑 Premium Ativo</div>
+            <p class="plano-titulo">Plano Premium</p>
+            <p class="plano-subtitulo">R$ 30/mês — acesso completo a todos os recursos.</p>
+            <button class="plano-btn plano-btn-gerenciar" onclick="abrirPortalStripe(event)">
+                <i class="fas fa-cog"></i> Gerenciar assinatura
+            </button>
+        `;
+    } else if (plano && plano.status === 'trial') {
+        const d = plano.diasRestantes;
+        card.classList.add('plano-trial');
+        body.innerHTML = `
+            <div class="plano-badge badge-trial">⏳ Período de Teste</div>
+            <p class="plano-titulo">Testando Gratuitamente</p>
+            <p class="plano-subtitulo">${d} dia${d !== 1 ? 's' : ''} restante${d !== 1 ? 's' : ''} — aproveite todos os recursos!</p>
+            <button class="plano-btn plano-btn-assinar" onclick="abrirCheckoutStripe(event)">
+                <i class="fas fa-credit-card"></i> Assinar por R$ 30/mês
+            </button>
+        `;
+    } else {
+        card.classList.add('plano-expirado');
+        body.innerHTML = `
+            <div class="plano-badge badge-expirado">⚠️ Expirado</div>
+            <p class="plano-titulo">Plano Expirado</p>
+            <p class="plano-subtitulo">Assine para continuar usando todos os recursos sem interrupção.</p>
+            <button class="plano-btn plano-btn-assinar" onclick="abrirCheckoutStripe(event)">
+                <i class="fas fa-credit-card"></i> Assinar por R$ 30/mês
+            </button>
+        `;
+    }
+}
 
 // Expor também a função de upload (caso tenha dado erro nela também)
 if (typeof uploadFotoPerfil !== 'undefined') {
@@ -2818,7 +2872,7 @@ function aplicarEstadoPlano(plano) {
             ? 'Seu período de teste termina amanhã!'
             : `Seu período de teste termina em ${plano.diasRestantes} dias.`;
         document.getElementById('bannerTrialTexto').textContent = texto;
-        banner.style.display = 'block';
+        banner.style.display = 'flex';
         modal.style.display = 'none';
     }
 }

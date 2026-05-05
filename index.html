@@ -47,7 +47,80 @@
     
     <!-- CSS -->
     <link rel="stylesheet" href="css/style.css?v=7.0">
-    
+
+    <style>
+    /* ===== PLANO CARD — VISUAL STATES ===== */
+    @property --rainbow-angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+    @keyframes rainbow-rotate  { to { --rainbow-angle: 360deg; } }
+    @keyframes badge-shimmer   { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+    @keyframes amber-pulse     { 0%,100%{box-shadow:0 0 12px rgba(245,158,11,.25)} 50%{box-shadow:0 0 28px rgba(245,158,11,.55)} }
+    @keyframes gold-breathe    { 0%,100%{box-shadow:0 0 22px rgba(212,175,55,.35),0 0 55px rgba(212,175,55,.1),inset 0 0 35px rgba(212,175,55,.04)} 50%{box-shadow:0 0 36px rgba(212,175,55,.55),0 0 80px rgba(212,175,55,.18),inset 0 0 50px rgba(212,175,55,.08)} }
+
+    #secaoAssinatura { border-radius:12px; transition:box-shadow .6s ease,border-color .6s ease; position:relative; }
+
+    /* VITALÍCIO — arco-íris girando */
+    #secaoAssinatura.plano-vitalicio {
+      --rainbow-angle: 0deg;
+      animation: rainbow-rotate 4s linear infinite;
+      border: 2px solid transparent;
+      background:
+        linear-gradient(#1E1E1E,#1E1E1E) padding-box,
+        conic-gradient(from var(--rainbow-angle),#ff0055,#ff7700,#ffee00,#00ee55,#00bfff,#aa00ff,#ff0055) border-box;
+      box-shadow: 0 0 35px rgba(180,80,255,.12);
+    }
+
+    /* ATIVO — ouro pulsante */
+    #secaoAssinatura.plano-ativo {
+      border: 2px solid #D4AF37;
+      background: linear-gradient(135deg,#1a1a0d,#1E1E1E 45%,#1a1a0d) padding-box;
+      animation: gold-breathe 3s ease-in-out infinite;
+    }
+
+    /* TRIAL — âmbar suave */
+    #secaoAssinatura.plano-trial {
+      border: 1px solid rgba(245,158,11,.6);
+      animation: amber-pulse 2.5s ease-in-out infinite;
+    }
+
+    /* EXPIRADO — vermelho estático */
+    #secaoAssinatura.plano-expirado {
+      border: 1px solid rgba(244,67,54,.6);
+      box-shadow: 0 0 18px rgba(244,67,54,.18);
+    }
+
+    /* Badges */
+    .plano-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:5px 14px; border-radius:20px;
+      font-size:.72rem; font-weight:700; letter-spacing:1.2px;
+      text-transform:uppercase; margin-bottom:14px;
+    }
+    .badge-vitalicio {
+      background:linear-gradient(90deg,#ff0055,#ff7700,#ffee00,#00ee55,#00bfff,#aa00ff,#ff0055);
+      background-size:300% auto;
+      animation:badge-shimmer 3s linear infinite;
+      color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.65);
+    }
+    .badge-ativo    { background:linear-gradient(135deg,#D4AF37,#f0d060); color:#000; }
+    .badge-trial    { background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.5); color:#f59e0b; }
+    .badge-expirado { background:rgba(244,67,54,.12);  border:1px solid rgba(244,67,54,.5);  color:#f44336; }
+
+    /* Tipografia do card */
+    .plano-titulo    { font-size:1.08rem; font-weight:700; color:#fff; margin:0 0 6px; }
+    .plano-subtitulo { font-size:.88rem; color:#aaa; margin:0 0 18px; line-height:1.55; }
+
+    /* Botões do card */
+    .plano-btn { width:100%; padding:14px; border:none; border-radius:8px; font-weight:700; font-size:1rem; cursor:pointer; transition:opacity .2s; }
+    .plano-btn:hover { opacity:.87; }
+    .plano-btn + .plano-btn { margin-top:10px; }
+    .plano-btn-assinar  { background:linear-gradient(135deg,#D4AF37,#b8960f); color:#000; }
+    .plano-btn-gerenciar{ background:transparent; border:1px solid #555 !important; color:#aaa; font-size:.95rem; font-weight:500; }
+    </style>
+
 </head>
 <body>
     <!-- Loading Screen -->
@@ -60,11 +133,10 @@
     </div>
 
     <!-- Banner de Trial (aparece no topo quando plano_status = trial) -->
-    <div id="bannerTrial" style="display:none; background: linear-gradient(90deg, #D4AF37, #b8960f); color: #000; text-align: center; padding: 10px 16px; font-size: 0.9rem; font-weight: 600; position: sticky; top: 0; z-index: 9998;">
-        <i class="fas fa-clock"></i>
-        <span id="bannerTrialTexto">Seu período de teste termina em X dias.</span>
-        &nbsp;|&nbsp;
-        <a href="#" onclick="abrirCheckoutStripe(event)" style="color: #000; text-decoration: underline; cursor: pointer;">Assinar agora por R$ 30/mês</a>
+    <div id="bannerTrial" style="display:none; background: linear-gradient(90deg, #D4AF37, #b8960f); color: #000; padding: 10px 16px; font-size: 0.9rem; font-weight: 600; position: sticky; top: 0; z-index: 9998; display:none; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;">
+        <span><i class="fas fa-clock"></i> <span id="bannerTrialTexto">Seu período de teste termina em X dias.</span></span>
+        <a href="#" onclick="abrirCheckoutStripe(event)" style="color: #000; text-decoration: underline; cursor: pointer; white-space:nowrap;">Assinar agora por R$ 30/mês</a>
+        <button onclick="document.getElementById('bannerTrial').style.display='none'" style="margin-left:8px; background:rgba(0,0,0,0.15); border:none; border-radius:50%; width:22px; height:22px; cursor:pointer; color:#000; font-size:0.85rem; line-height:1; display:flex; align-items:center; justify-content:center;" title="Fechar">&#x2715;</button>
     </div>
 
     <!-- Modal de Plano Expirado (bloqueio total) -->
@@ -436,17 +508,11 @@
                     </form>
 
                     <!-- Seção de Assinatura -->
-                    <div id="secaoAssinatura" style="margin-top: 24px; padding: 24px; background: #1E1E1E; border-radius: 12px; border: 1px solid #333;">
-                        <h3 style="margin: 0 0 6px; color: #fff; display: flex; align-items: center; gap: 10px;">
+                    <div id="secaoAssinatura" style="margin-top: 24px; padding: 24px; background: #1E1E1E; border: 1px solid #333;">
+                        <h3 style="margin: 0 0 16px; color: #fff; display: flex; align-items: center; gap: 10px;">
                             <i class="fas fa-crown" style="color: #D4AF37;"></i> Meu Plano
                         </h3>
-                        <p id="textoStatusPlano" style="color: #888; margin: 0 0 20px; font-size: 0.95rem;">Verificando...</p>
-                        <button id="btnAssinar" onclick="abrirCheckoutStripe(event)" style="display:none; width:100%; padding:14px; background:linear-gradient(135deg,#D4AF37,#b8960f); border:none; border-radius:8px; color:#000; font-weight:700; font-size:1rem; cursor:pointer;">
-                            <i class="fas fa-credit-card"></i> Assinar por R$ 30/mês
-                        </button>
-                        <button id="btnGerenciarPlano" onclick="abrirPortalStripe(event)" style="display:none; width:100%; padding:14px; background:transparent; border:1px solid #555; border-radius:8px; color:#aaa; font-size:0.95rem; cursor:pointer;">
-                            <i class="fas fa-cog"></i> Gerenciar assinatura
-                        </button>
+                        <div id="planoCardBody" style="color:#888; font-size:.95rem;">Verificando...</div>
                     </div>
                 </div>
             </div>

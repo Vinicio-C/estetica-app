@@ -27,39 +27,32 @@ document.addEventListener('input', (e) => {
 // 3. CARREGAR DADOS (Chamado pelo Menu)
 window.carregarDadosPerfil = async function() {
     console.log("⚡ Abrindo Perfil...");
+
+    // Roda independente do resto — garante que o status sempre aparece
+    preencherStatusPlano();
+
     try {
         const { data: { user } } = await _supabase.auth.getUser();
         if (!user) return;
 
         const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
 
-        // Preenche campos de edição
         if (perfil) {
             document.getElementById('profNome').value = perfil.nome || '';
             document.getElementById('profEspecialidade').value = perfil.especialidade || '';
             document.getElementById('profTelefone').value = mascaraTelefone(perfil.telefone || '');
-            
-            // Atualiza Topo
             document.getElementById('headerNome').textContent = perfil.nome || 'Doutora';
             if (perfil.foto_url && window.atualizarAvatarNaTela) {
                 window.atualizarAvatarNaTela(perfil.foto_url);
             }
         }
-        
+
         document.getElementById('headerEmail').textContent = user.email;
 
-        // Gera o Link Externo
         const urlBase = window.location.origin + window.location.pathname.replace('index.html', '');
         document.getElementById('profLink').value = `${urlBase}agendar.html?ref=${user.id}`;
 
-        // Preenche status do plano
-        await preencherStatusPlano();
-
-        // Mostra a tela
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById('perfilPage').classList.add('active');
-
-    } catch (err) { console.error("Erro carga:", err); }
+    } catch (err) { console.error("Erro carga perfil:", err); }
 };
 
 // Abre o portal de gerenciamento de assinatura do Stripe
