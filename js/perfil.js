@@ -52,12 +52,55 @@ window.carregarDadosPerfil = async function() {
         const urlBase = window.location.origin + window.location.pathname.replace('index.html', '');
         document.getElementById('profLink').value = `${urlBase}agendar.html?ref=${user.id}`;
 
+        // Preenche status do plano
+        await preencherStatusPlano();
+
         // Mostra a tela
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById('perfilPage').classList.add('active');
 
     } catch (err) { console.error("Erro carga:", err); }
 };
+
+// Abre o portal de gerenciamento de assinatura do Stripe
+window.abrirPortalStripe = async function(event) {
+    if (event) event.preventDefault();
+    if(typeof showToast === 'function') showToast('Redirecionando para o portal de assinatura...', 'info');
+    // Por enquanto abre o email de suporte — o portal do Stripe requer uma Edge Function extra
+    window.open('mailto:suporte@esteticaapp.com.br?subject=Gerenciar%20Assinatura', '_blank');
+};
+
+// 3b. PREENCHER STATUS DO PLANO NA SEÇÃO DE ASSINATURA
+async function preencherStatusPlano() {
+    const textoEl = document.getElementById('textoStatusPlano');
+    const btnAssinar = document.getElementById('btnAssinar');
+    const btnGerenciar = document.getElementById('btnGerenciarPlano');
+    if (!textoEl) return;
+
+    try {
+        const plano = typeof verificarPlano === 'function' ? await verificarPlano() : null;
+        if (!plano) return;
+
+        if (plano === 'vitalicio') {
+            textoEl.textContent = 'Acesso Vitalicio — obrigado pela confianca!';
+            textoEl.style.color = '#D4AF37';
+        } else if (plano === 'ativo') {
+            textoEl.textContent = 'Plano Ativo — R$ 30/mes. Proximo vencimento conforme Stripe.';
+            textoEl.style.color = '#4CAF50';
+            if (btnGerenciar) btnGerenciar.style.display = 'block';
+        } else if (plano && plano.status === 'trial') {
+            textoEl.textContent = `Periodo de teste — ${plano.diasRestantes} dia(s) restante(s).`;
+            textoEl.style.color = '#D4AF37';
+            if (btnAssinar) btnAssinar.style.display = 'block';
+        } else {
+            textoEl.textContent = 'Plano expirado — assine para continuar usando.';
+            textoEl.style.color = '#f44336';
+            if (btnAssinar) btnAssinar.style.display = 'block';
+        }
+    } catch (e) {
+        textoEl.textContent = 'Nao foi possivel verificar o plano.';
+    }
+}
 
 // 4. SALVAR DADOS (Chamado pelo Form onsubmit)
 window.salvarPerfilReal = async function(event) {

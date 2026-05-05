@@ -1,13 +1,48 @@
 // js/supabase-client.js
 
-// ⚠️ SUBSTITUA PELAS SUAS CHAVES DO SUPABASE
 const SUPABASE_URL = 'https://frnwbcvcaacraliropsw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZybndiY3ZjYWFjcmFsaXJvcHN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NDA5NzcsImV4cCI6MjA4NTIxNjk3N30.PmGVlSwl4KOSDezFRB8I_5IcsFTineYjE-vjF5G6Ce4';
 
-// Prende na janela global para garantir acesso
 window._supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 console.log('☁️ Conector Supabase Ativo!');
+
+// Verifica o status do plano do usuário logado e aplica bloqueio/banner.
+// Retorna: 'vitalicio' | 'ativo' | 'trial' | 'expirado'
+window.verificarPlano = async function() {
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (!user) return 'expirado';
+
+        const { data: perfil } = await _supabase
+            .from('profiles')
+            .select('plano_status, trial_expira_em')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (!perfil) return 'expirado';
+
+        const status = perfil.plano_status ?? 'trial';
+
+        if (status === 'vitalicio' || status === 'ativo') {
+            return status;
+        }
+
+        if (status === 'trial') {
+            const expira = new Date(perfil.trial_expira_em);
+            if (new Date() > expira) {
+                return 'expirado';
+            }
+            const diasRestantes = Math.ceil((expira - new Date()) / (1000 * 60 * 60 * 24));
+            return { status: 'trial', diasRestantes };
+        }
+
+        return 'expirado';
+    } catch (e) {
+        console.warn('Erro ao verificar plano:', e);
+        return 'ativo'; // Em caso de erro de rede, não bloqueia
+    }
+};
 
 // 2. Sobrescreve a função fetchAPI global do app
 window.fetchAPI = async function(endpoint, options = {}) {

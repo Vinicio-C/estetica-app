@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento Premium — Gestão para Profissionais Autônomos</title>
+    <meta name="description" content="Sistema de agendamento e gestão para esteticistas, nutricionistas, psicólogos, fisioterapeutas e outros profissionais autônomos. 14 dias grátis.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --gold: #D4AF37;
+            --gold-dark: #b8960f;
+            --bg: #0d0d0d;
+            --card: #1a1a1a;
+            --border: #2a2a2a;
+            --text: #e0e0e0;
+            --muted: #888;
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: var(--text); }
+
+        /* NAV */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 5%; background: rgba(13,13,13,0.95);
+            border-bottom: 1px solid var(--border); backdrop-filter: blur(8px);
+        }
+        .logo { font-size: 1.2rem; font-weight: 700; color: var(--gold); letter-spacing: 1px; }
+        .nav-cta {
+            padding: 10px 22px; background: var(--gold); color: #000;
+            border: none; border-radius: 6px; font-weight: 700; font-size: 0.9rem;
+            cursor: pointer; text-decoration: none; transition: background 0.2s;
+        }
+        .nav-cta:hover { background: var(--gold-dark); }
+
+        /* HERO */
+        .hero {
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            text-align: center; padding: 120px 5% 80px;
+            background: radial-gradient(ellipse at 50% 30%, rgba(212,175,55,0.08) 0%, transparent 60%);
+        }
+        .hero-badge {
+            display: inline-block; padding: 6px 16px; border: 1px solid var(--gold);
+            border-radius: 20px; color: var(--gold); font-size: 0.8rem; font-weight: 600;
+            letter-spacing: 1px; text-transform: uppercase; margin-bottom: 24px;
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 700; line-height: 1.15;
+            margin-bottom: 20px; max-width: 800px; margin-inline: auto;
+        }
+        .hero h1 span { color: var(--gold); }
+        .hero p {
+            font-size: 1.15rem; color: var(--muted); max-width: 560px;
+            margin: 0 auto 36px; line-height: 1.7;
+        }
+        .hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .btn-primary-hero {
+            padding: 16px 36px; background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: #000; border: none; border-radius: 8px; font-weight: 700;
+            font-size: 1.05rem; cursor: pointer; text-decoration: none; transition: transform 0.2s;
+        }
+        .btn-primary-hero:hover { transform: translateY(-2px); }
+        .btn-ghost {
+            padding: 16px 28px; background: transparent; color: var(--text);
+            border: 1px solid var(--border); border-radius: 8px; font-size: 1rem;
+            cursor: pointer; text-decoration: none; transition: border-color 0.2s;
+        }
+        .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+        .hero-note { margin-top: 20px; color: var(--muted); font-size: 0.85rem; }
+
+        /* PROFISSÕES */
+        .profissoes {
+            padding: 40px 5%; text-align: center; border-top: 1px solid var(--border);
+        }
+        .profissoes p { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        .chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .chip {
+            padding: 8px 18px; background: var(--card); border: 1px solid var(--border);
+            border-radius: 20px; font-size: 0.85rem; color: var(--muted);
+        }
+
+        /* FEATURES */
+        section { padding: 80px 5%; }
+        .section-title {
+            text-align: center; margin-bottom: 56px;
+        }
+        .section-title h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 700; margin-bottom: 12px; }
+        .section-title p { color: var(--muted); max-width: 480px; margin: 0 auto; line-height: 1.6; }
+
+        .features-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;
+            max-width: 1100px; margin: 0 auto;
+        }
+        .feature-card {
+            padding: 28px; background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; transition: border-color 0.2s;
+        }
+        .feature-card:hover { border-color: var(--gold); }
+        .feature-icon {
+            width: 48px; height: 48px; border-radius: 10px;
+            background: rgba(212,175,55,0.1); display: flex; align-items: center;
+            justify-content: center; font-size: 1.3rem; color: var(--gold); margin-bottom: 16px;
+        }
+        .feature-card h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
+        .feature-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+
+        /* PREÇO */
+        #preco { background: radial-gradient(ellipse at 50% 50%, rgba(212,175,55,0.05) 0%, transparent 70%); }
+        .preco-card {
+            max-width: 440px; margin: 0 auto;
+            background: var(--card); border: 1px solid var(--gold);
+            border-radius: 16px; padding: 48px 36px; text-align: center;
+        }
+        .preco-tag { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+        .preco-valor { font-size: 3.5rem; font-weight: 700; color: var(--gold); line-height: 1; }
+        .preco-valor span { font-size: 1.1rem; font-weight: 400; color: var(--muted); }
+        .preco-card ul { list-style: none; margin: 28px 0; text-align: left; }
+        .preco-card ul li {
+            padding: 8px 0; border-bottom: 1px solid var(--border);
+            font-size: 0.95rem; display: flex; align-items: center; gap: 10px;
+        }
+        .preco-card ul li:last-child { border: none; }
+        .preco-card ul li i { color: var(--gold); width: 16px; }
+        .btn-assinar {
+            width: 100%; padding: 16px; background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            border: none; border-radius: 8px; color: #000; font-weight: 700;
+            font-size: 1.05rem; cursor: pointer; text-decoration: none;
+            display: block; transition: transform 0.2s; margin-top: 8px;
+        }
+        .btn-assinar:hover { transform: translateY(-2px); }
+        .preco-nota { color: var(--muted); font-size: 0.8rem; margin-top: 14px; }
+
+        /* FAQ */
+        .faq-list { max-width: 700px; margin: 0 auto; }
+        .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
+        .faq-item summary {
+            cursor: pointer; font-weight: 600; font-size: 0.98rem;
+            list-style: none; display: flex; justify-content: space-between; align-items: center;
+        }
+        .faq-item summary::after { content: '+'; color: var(--gold); font-size: 1.3rem; }
+        details[open] summary::after { content: '−'; }
+        .faq-item p { color: var(--muted); font-size: 0.9rem; line-height: 1.7; padding-top: 12px; }
+
+        /* CTA FINAL */
+        .cta-final {
+            text-align: center; padding: 100px 5%;
+            background: radial-gradient(ellipse at 50% 50%, rgba(212,175,55,0.08) 0%, transparent 60%);
+        }
+        .cta-final h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; margin-bottom: 14px; }
+        .cta-final p { color: var(--muted); max-width: 480px; margin: 0 auto 36px; line-height: 1.7; }
+
+        /* FOOTER */
+        footer {
+            text-align: center; padding: 32px 5%; border-top: 1px solid var(--border);
+            color: var(--muted); font-size: 0.85rem;
+        }
+        footer a { color: var(--muted); text-decoration: none; }
+        footer a:hover { color: var(--gold); }
+
+        @media (max-width: 600px) {
+            .hero { padding: 100px 5% 60px; }
+            .hero-btns { flex-direction: column; align-items: center; }
+            .btn-primary-hero, .btn-ghost { width: 100%; max-width: 320px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo"><i class="fas fa-spa"></i> Agendamento Premium</div>
+    <a href="signup.html" class="nav-cta">Testar grátis</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div>
+        <div class="hero-badge">14 dias grátis · sem cartão</div>
+        <h1>Gerencie sua agenda e seus clientes <span>sem complicação</span></h1>
+        <p>Sistema completo para profissionais autônomos: agenda inteligente, página de agendamento online, lembretes WhatsApp e muito mais.</p>
+        <div class="hero-btns">
+            <a href="signup.html" class="btn-primary-hero"><i class="fas fa-rocket"></i> Começar grátis por 14 dias</a>
+            <a href="#features" class="btn-ghost">Ver recursos</a>
+        </div>
+        <p class="hero-note"><i class="fas fa-lock" style="color: var(--gold);"></i> Sem taxa de adesão · Cancele quando quiser</p>
+    </div>
+</section>
+
+<!-- PROFISSÕES -->
+<div class="profissoes">
+    <p>Ideal para</p>
+    <div class="chips">
+        <span class="chip"><i class="fas fa-spa"></i> Esteticistas</span>
+        <span class="chip"><i class="fas fa-heartbeat"></i> Fisioterapeutas</span>
+        <span class="chip"><i class="fas fa-brain"></i> Psicólogos</span>
+        <span class="chip"><i class="fas fa-apple-alt"></i> Nutricionistas</span>
+        <span class="chip"><i class="fas fa-paint-brush"></i> Tatuadores</span>
+        <span class="chip"><i class="fas fa-user-nurse"></i> Enfermeiros estetas</span>
+        <span class="chip"><i class="fas fa-dumbbell"></i> Personal Trainers</span>
+        <span class="chip">e muito mais</span>
+    </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+    <div class="section-title">
+        <h2>Tudo que você precisa, num só lugar</h2>
+        <p>Sem planilhas, sem caderninho, sem caos. Profissional e fácil de usar.</p>
+    </div>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-calendar-alt"></i></div>
+            <h3>Agenda Inteligente</h3>
+            <p>Visualize seus compromissos em calendário mensal. Sem conflito de horários — o sistema verifica a disponibilidade automaticamente.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-link"></i></div>
+            <h3>Página de Agendamento Online</h3>
+            <p>Seu cliente acessa o seu link pessoal e agenda sozinho, 24h por dia — você recebe confirmado na agenda, sem precisar responder nada.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon"><i class="fab fa-whatsapp"></i></div>
+            <h3>Lembretes via WhatsApp</h3>
+            <p>Envie confirmações e lembretes automáticos. Menos faltas, mais previsibilidade de renda.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-chart-pie"></i></div>
+            <h3>Relatórios Financeiros</h3>
+            <p>Veja o faturamento do mês, o que ainda está a receber e os serviços mais rentáveis — tudo em gráficos simples.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-users"></i></div>
+            <h3>Ficha de Clientes</h3>
+            <p>Histórico completo de cada cliente: serviços realizados, valores gastos, débitos pendentes e próximos agendamentos.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-file-medical"></i></div>
+            <h3>Anamnese Digital</h3>
+            <p>Formulário de anamnese com mapeamento facial e assinatura digital. Armazenado com segurança, imprimível a qualquer momento.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-boxes"></i></div>
+            <h3>Controle de Estoque</h3>
+            <p>Saiba quando um produto está acabando e evite ser pego de surpresa no meio de um atendimento.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+            <h3>Funciona no Celular</h3>
+            <p>Instale como app no iPhone ou Android. Acesse offline e tenha tudo na palma da mão, sem ocupar memória do celular.</p>
+        </div>
+    </div>
+</section>
+
+<!-- PREÇO -->
+<section id="preco">
+    <div class="section-title">
+        <h2>Um plano. Um preço. Simples.</h2>
+        <p>Sem taxa de adesão, sem surpresas. Cancele quando quiser.</p>
+    </div>
+    <div class="preco-card">
+        <div class="preco-tag">Plano Mensal</div>
+        <div class="preco-valor">R$ 30<span>/mês</span></div>
+        <ul>
+            <li><i class="fas fa-check"></i> Agenda ilimitada</li>
+            <li><i class="fas fa-check"></i> Página de agendamento online</li>
+            <li><i class="fas fa-check"></i> Lembretes WhatsApp e e-mail</li>
+            <li><i class="fas fa-check"></i> Clientes, serviços e estoque ilimitados</li>
+            <li><i class="fas fa-check"></i> Relatórios financeiros</li>
+            <li><i class="fas fa-check"></i> Anamnese digital com assinatura</li>
+            <li><i class="fas fa-check"></i> App instalável (PWA)</li>
+            <li><i class="fas fa-check"></i> Suporte por e-mail</li>
+        </ul>
+        <a href="signup.html" class="btn-assinar"><i class="fas fa-rocket"></i> Começar com 14 dias grátis</a>
+        <p class="preco-nota">Sem cartão de crédito para o trial. Cobrança começa somente após o 14° dia.</p>
+    </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+    <div class="section-title">
+        <h2>Dúvidas frequentes</h2>
+    </div>
+    <div class="faq-list">
+        <details class="faq-item">
+            <summary>Preciso de cartão de crédito para começar?</summary>
+            <p>Não. Você cria a conta e usa por 14 dias sem precisar cadastrar nenhum cartão. Só pedimos o pagamento se quiser continuar após o período de teste.</p>
+        </details>
+        <details class="faq-item">
+            <summary>Posso cancelar quando quiser?</summary>
+            <p>Sim. Sem fidelidade, sem multa. Cancele quando quiser pelo painel de assinatura e o acesso continua até o fim do período pago.</p>
+        </details>
+        <details class="faq-item">
+            <summary>Funciona para qualquer área, não só estética?</summary>
+            <p>Sim! O sistema foi pensado para qualquer profissional autônomo que trabalha com agendamentos: nutricionistas, psicólogos, fisioterapeutas, tatuadores, personal trainers, coaches e muito mais.</p>
+        </details>
+        <details class="faq-item">
+            <summary>Meus dados ficam seguros?</summary>
+            <p>Seus dados são armazenados no Supabase (infraestrutura da AWS), com isolamento total entre contas. Você é o único que acessa seus clientes e informações.</p>
+        </details>
+        <details class="faq-item">
+            <summary>O cliente precisa baixar algum aplicativo para agendar?</summary>
+            <p>Não. O seu cliente acessa um link simples no navegador, escolhe o serviço, o horário e confirma. Sem cadastro, sem app.</p>
+        </details>
+        <details class="faq-item">
+            <summary>Como funciona o WhatsApp automático?</summary>
+            <p>Você pode enviar mensagens de confirmação e lembrete com um clique, ou ativar o envio automático via integração com a plataforma Fonnte (requer conta separada na Fonnte, que tem plano gratuito).</p>
+        </details>
+    </div>
+</section>
+
+<!-- CTA FINAL -->
+<div class="cta-final">
+    <h2>Pronto para organizar sua agenda?</h2>
+    <p>Comece grátis hoje. Sem cartão, sem complicação. Leva menos de 2 minutos para criar sua conta.</p>
+    <a href="signup.html" class="btn-primary-hero"><i class="fas fa-rocket"></i> Criar conta grátis</a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+    <p>&copy; 2025 Agendamento Premium &mdash; esteticaapp.com.br &nbsp;|&nbsp; <a href="legal.html">Termos e Privacidade</a></p>
+</footer>
+
+</body>
+</html>

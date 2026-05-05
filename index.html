@@ -59,6 +59,29 @@
         </div>
     </div>
 
+    <!-- Banner de Trial (aparece no topo quando plano_status = trial) -->
+    <div id="bannerTrial" style="display:none; background: linear-gradient(90deg, #D4AF37, #b8960f); color: #000; text-align: center; padding: 10px 16px; font-size: 0.9rem; font-weight: 600; position: sticky; top: 0; z-index: 9998;">
+        <i class="fas fa-clock"></i>
+        <span id="bannerTrialTexto">Seu período de teste termina em X dias.</span>
+        &nbsp;|&nbsp;
+        <a href="#" onclick="abrirCheckoutStripe(event)" style="color: #000; text-decoration: underline; cursor: pointer;">Assinar agora por R$ 30/mês</a>
+    </div>
+
+    <!-- Modal de Plano Expirado (bloqueio total) -->
+    <div id="modalPlanoExpirado" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:99999; display:none; align-items:center; justify-content:center; padding: 20px;">
+        <div style="background:#1a1a1a; border:1px solid #D4AF37; border-radius:16px; max-width:440px; width:100%; padding:40px 32px; text-align:center;">
+            <i class="fas fa-lock" style="font-size:3rem; color:#D4AF37; margin-bottom:20px;"></i>
+            <h2 style="color:#fff; margin:0 0 12px;">Seu acesso expirou</h2>
+            <p style="color:#aaa; margin:0 0 28px; line-height:1.6;">
+                Seu período de teste terminou. Assine por <strong style="color:#D4AF37;">R$ 30/mês</strong> e continue usando todos os recursos sem limitação.
+            </p>
+            <button onclick="abrirCheckoutStripe(event)" style="width:100%; padding:16px; background:linear-gradient(135deg,#D4AF37,#b8960f); border:none; border-radius:8px; color:#000; font-weight:700; font-size:1.05rem; cursor:pointer; margin-bottom:14px;">
+                <i class="fas fa-credit-card"></i> Assinar por R$ 30/mês
+            </button>
+            <p style="color:#555; font-size:0.8rem; margin:0;">Cancele quando quiser. Sem taxa de adesão.</p>
+        </div>
+    </div>
+
     <!-- Sidebar Menu -->
     <nav id="sidebar" class="sidebar">
         <div class="sidebar-header">
@@ -411,6 +434,20 @@
                             </button>
                         </div>
                     </form>
+
+                    <!-- Seção de Assinatura -->
+                    <div id="secaoAssinatura" style="margin-top: 24px; padding: 24px; background: #1E1E1E; border-radius: 12px; border: 1px solid #333;">
+                        <h3 style="margin: 0 0 6px; color: #fff; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-crown" style="color: #D4AF37;"></i> Meu Plano
+                        </h3>
+                        <p id="textoStatusPlano" style="color: #888; margin: 0 0 20px; font-size: 0.95rem;">Verificando...</p>
+                        <button id="btnAssinar" onclick="abrirCheckoutStripe(event)" style="display:none; width:100%; padding:14px; background:linear-gradient(135deg,#D4AF37,#b8960f); border:none; border-radius:8px; color:#000; font-weight:700; font-size:1rem; cursor:pointer;">
+                            <i class="fas fa-credit-card"></i> Assinar por R$ 30/mês
+                        </button>
+                        <button id="btnGerenciarPlano" onclick="abrirPortalStripe(event)" style="display:none; width:100%; padding:14px; background:transparent; border:1px solid #555; border-radius:8px; color:#aaa; font-size:0.95rem; cursor:pointer;">
+                            <i class="fas fa-cog"></i> Gerenciar assinatura
+                        </button>
+                    </div>
                 </div>
             </div>
             <div id="automacoesPage" class="page">
@@ -785,13 +822,19 @@
         </div>
     </div>
 
+    <!-- Modal Anamnese (form gerado dinamicamente pelo app-anamnese.js) -->
     <div id="modalAnamnese" class="modal">
         <div class="modal-content anamnese-paper">
-            <div class="modal-header no-print">
+            <div class="modal-header no-print" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <h2>Ficha de Anamnese</h2>
-                <button class="modal-close" onclick="fecharModal('modalAnamnese')">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditorTemplate()">
+                        <i class="fas fa-sliders-h"></i> Personalizar Modelo
+                    </button>
+                    <button class="modal-close" onclick="fecharModal('modalAnamnese')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="anamnese-header-print only-print">
@@ -809,37 +852,10 @@
             </div>
 
             <form id="formAnamnese">
-                
+                <!-- Campos gerados dinamicamente pelo app-anamnese.js -->
                 <div id="tabAnamneseTexto" class="anamnese-tab-content active">
-                    <div class="anamnese-section">
-                        <h3>1. Histórico de Saúde</h3>
-                        <div class="checkbox-group">
-                            <label><input type="checkbox" name="saude_gestante"> Gestante / Lactante</label>
-                            <label><input type="checkbox" name="saude_cardiaco"> Problemas Cardíacos</label>
-                            <label><input type="checkbox" name="saude_diabetes"> Diabetes</label>
-                            <label><input type="checkbox" name="saude_alergia"> Alergias</label>
-                            <label><input type="checkbox" name="saude_oncologico"> Histórico Oncológico</label>
-                        </div>
-                        <div class="form-group">
-                            <label>Uso de Medicamentos Contínuos?</label>
-                            <input type="text" name="medicamentos" placeholder="Quais?">
-                        </div>
-                        <div class="form-group">
-                            <label>Alergias Específicas?</label>
-                            <input type="text" name="alergias_obs" placeholder="Medicamentos, cosméticos, alimentos...">
-                        </div>
-                    </div>
-
-                    <div class="anamnese-section">
-                        <h3>2. Histórico Estético</h3>
-                        <div class="form-group">
-                            <label>Queixa Principal</label>
-                            <textarea name="queixa_principal" rows="2"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Cuidados Diários (Home Care)</label>
-                            <input type="text" name="home_care">
-                        </div>
+                    <div id="camposDinamicos" class="anamnese-section">
+                        <div style="color:#888; text-align:center; padding:20px;">Carregando ficha...</div>
                     </div>
                 </div>
 
@@ -847,15 +863,17 @@
                     <div class="drawing-toolbar no-print">
                         <label>Cor da Caneta:</label>
                         <div class="color-picker">
-                            <div class="color-dot active" style="background: #000;" onclick="setCorCaneta('#000000', this)"></div> <div class="color-dot" style="background: #E53935;" onclick="setCorCaneta('#E53935', this)"></div> <div class="color-dot" style="background: #1E88E5;" onclick="setCorCaneta('#1E88E5', this)"></div> <div class="color-dot" style="background: #43A047;" onclick="setCorCaneta('#43A047', this)"></div> </div>
+                            <div class="color-dot active" style="background: #000;" onclick="setCorCaneta('#000000', this)"></div>
+                            <div class="color-dot" style="background: #E53935;" onclick="setCorCaneta('#E53935', this)"></div>
+                            <div class="color-dot" style="background: #1E88E5;" onclick="setCorCaneta('#1E88E5', this)"></div>
+                            <div class="color-dot" style="background: #43A047;" onclick="setCorCaneta('#43A047', this)"></div>
+                        </div>
                         <button type="button" class="btn-small" onclick="limparMapaFacial()">
                             <i class="fas fa-eraser"></i> Limpar
                         </button>
                     </div>
-
                     <div class="mapa-container">
                         <canvas id="mapaFacialCanvas" width="600" height="500"></canvas>
-                        
                         <div class="mapa-background">
                             <svg viewBox="0 0 200 250" xmlns="http://www.w3.org/2000/svg" stroke="#ccc" fill="none" stroke-width="1">
                                 <path d="M50,60 C50,10 150,10 150,60 C150,130 130,160 100,170 C70,160 50,130 50,60 Z" />
@@ -872,18 +890,13 @@
                 </div>
 
                 <div class="anamnese-section">
-                    <h3>3. Termo e Assinatura</h3>
-                    <p class="legal-text">
-                        Declaro que as informações são verdadeiras.
-                    </p>
-                    
+                    <h3>Termo e Assinatura</h3>
+                    <p class="legal-text">Declaro que as informações são verdadeiras.</p>
                     <div class="signature-area">
                         <label>Assinatura da Cliente:</label>
-                        
                         <div class="canvas-wrapper">
                             <canvas id="signatureCanvas"></canvas>
                         </div>
-                        
                         <div class="signature-actions no-print">
                             <button type="button" class="btn-link-gold" onclick="limparAssinatura()">Limpar Assinatura</button>
                         </div>
@@ -894,13 +907,57 @@
                     <button type="button" class="btn-secondary" onclick="buscarEImprimirFicha()">
                         <i class="fas fa-print"></i> Imprimir Ficha Salva
                     </button>
-                    
                     <button type="submit" class="btn-primary">Salvar Ficha</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Modal Editor de Template de Anamnese -->
+    <div id="modalEditorTemplate" class="modal">
+        <div class="modal-content" style="max-width:600px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-sliders-h"></i> Personalizar Modelo de Anamnese</h2>
+                <button class="modal-close" onclick="fecharModal('modalEditorTemplate')"><i class="fas fa-times"></i></button>
+            </div>
+            <div style="padding: 20px;">
+                <p style="color:#888; font-size:0.9rem; margin-bottom:20px;">
+                    Cada profissional tem seu próprio modelo. Adicione, remova ou reordene os campos da ficha das suas clientes.
+                </p>
+
+                <!-- Lista de campos -->
+                <div id="listaEditorCampos" style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;"></div>
+
+                <!-- Adicionar novo campo -->
+                <div style="background:#1a1a1a; border:1px solid #333; border-radius:10px; padding:16px;">
+                    <p style="color:#aaa; font-size:0.85rem; margin-bottom:12px; font-weight:600;">Adicionar novo campo:</p>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <select id="novoTipoCampo" style="flex:1; min-width:140px; background:#111; color:#fff; border:1px solid #444; border-radius:6px; padding:8px;">
+                            <option value="checkbox">Checkbox (Sim/Não)</option>
+                            <option value="texto">Texto curto</option>
+                            <option value="textarea">Texto longo</option>
+                            <option value="titulo">Título / Separador</option>
+                        </select>
+                        <input type="text" id="novoLabelCampo" placeholder="Nome do campo..." style="flex:2; min-width:160px; background:#111; color:#fff; border:1px solid #444; border-radius:6px; padding:8px;">
+                        <button type="button" onclick="adicionarCampoEditor()" style="padding:8px 16px; background:var(--gold,#D4AF37); border:none; border-radius:6px; color:#000; font-weight:700; cursor:pointer; white-space:nowrap;">
+                            <i class="fas fa-plus"></i> Adicionar
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end; flex-wrap:wrap;">
+                    <button type="button" class="btn-secondary" onclick="restaurarTempladePadrao()">
+                        <i class="fas fa-undo"></i> Restaurar Padrão
+                    </button>
+                    <button type="button" class="btn-primary" onclick="salvarTemplate()">
+                        <i class="fas fa-save"></i> Salvar Modelo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ficha de Impressão (gerada dinamicamente) -->
     <div id="fichaImpressao" class="print-only-container">
         <div class="print-header">
             <h1>Agendamento Premium</h1>
@@ -910,46 +967,8 @@
                 <span><strong>Data:</strong> <span id="printDataFicha"></span></span>
             </div>
         </div>
-
-        <div class="print-body">
-            <div class="print-section">
-                <h3>1. Histórico de Saúde</h3>
-                <div class="print-grid">
-                    <div><span id="checkGestante">☐</span> Gestante/Lactante</div>
-                    <div><span id="checkCardiaco">☐</span> Cardíaco</div>
-                    <div><span id="checkDiabetes">☐</span> Diabetes</div>
-                    <div><span id="checkAlergia">☐</span> Alergias</div>
-                    <div><span id="checkOnco">☐</span> Histórico Oncológico</div>
-                </div>
-                <p><strong>Medicamentos:</strong> <span id="printMedicamentos"></span></p>
-                <p><strong>Alergias/Obs:</strong> <span id="printAlergias"></span></p>
-            </div>
-
-            <div class="print-section">
-                <h3>2. Histórico Estético</h3>
-                <p><strong>Queixa Principal:</strong> <br> <span id="printQueixa"></span></p>
-                <p><strong>Home Care:</strong> <span id="printHomeCare"></span></p>
-            </div>
-
-            <div class="print-section keep-together">
-                <h3>3. Mapeamento Facial</h3>
-                <div class="print-map-container">
-                    <img id="printMapaImg" src="" alt="Mapa Facial" style="max-height: 300px; max-width: 100%; display: block; margin: 0 auto;">
-                </div>
-            </div>
-
-            <div class="print-section keep-together">
-                <h3>4. Termo de Responsabilidade</h3>
-                <p class="legal-text-small">
-                    Declaro que as informações acima são verdadeiras e autorizo a realização dos procedimentos.
-                </p>
-                <div class="print-sig-container" style="text-align: center; margin-top: 30px;">
-                    <img id="printAssinaturaImg" src="" alt="Assinatura" style="height: 80px; display: block; margin: 0 auto;">
-                    <div class="line" style="border-top: 1px solid #000; display: inline-block; width: 300px; margin-top: 5px;"></div>
-                    <div class="label">Assinatura do Cliente</div>
-                </div>
-            </div>
-        </div>
+        <!-- Conteúdo gerado dinamicamente por buscarEImprimirFicha() -->
+        <div id="printBodyDinamico" class="print-body"></div>
     </div>
 
     <!-- Modal Agendamento -->

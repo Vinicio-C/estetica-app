@@ -93,17 +93,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const lastDate = localStorage.getItem('lastAgendaDate');
         if (lastDate) {
             appState.currentAgendaDate = new Date(lastDate);
-            // Atualiza também a displayDate do calendário para o mês certo
             if (typeof displayDate !== 'undefined') {
                 displayDate = new Date(lastDate);
             }
         }
         // Configurar event listeners (com proteção)
         setupEventListeners();
-        
+
         // Carregar dados iniciais
         await carregarDadosIniciais();
-        
+
+        // Verifica o plano e aplica banner ou bloqueio
+        if (typeof verificarPlano === 'function') {
+            const plano = await verificarPlano();
+            aplicarEstadoPlano(plano);
+        }
+
         // Inicializar página
         if (typeof carregarDashboard === 'function') {
             carregarDashboard();
@@ -2770,7 +2775,7 @@ async function excluirServico(id) {
     try {
         const { error } = await _supabase.from('servicos').delete().eq('id', id);
         if (error) throw error;
-        
+
         if(typeof showToast === 'function') showToast('Serviço excluído com sucesso!', 'success');
         if(typeof carregarServicos === 'function') carregarServicos();
     } catch (err) {
@@ -2778,3 +2783,65 @@ async function excluirServico(id) {
         if(typeof showToast === 'function') showToast('Erro ao excluir serviço.', 'error');
     }
 }
+
+// ========================================
+// CONTROLE DE PLANO / ASSINATURA
+// ========================================
+
+function aplicarEstadoPlano(plano) {
+    const banner = document.getElementById('bannerTrial');
+    const modal = document.getElementById('modalPlanoExpirado');
+
+    if (!banner || !modal) return;
+
+    // Verificar se veio de um pagamento bem-sucedido pelo Stripe
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('plano') === 'sucesso') {
+        showToast('Pagamento confirmado! Seu plano está ativo.', 'success');
+        window.history.replaceState({}, '', 'index.html');
+    }
+
+    if (plano === 'vitalicio' || plano === 'ativo') {
+        banner.style.display = 'none';
+        modal.style.display = 'none';
+        return;
+    }
+
+    if (plano === 'expirado') {
+        banner.style.display = 'none';
+        modal.style.display = 'flex';
+        return;
+    }
+
+    if (plano && plano.status === 'trial') {
+        const texto = plano.diasRestantes === 1
+            ? 'Seu período de teste termina amanhã!'
+            : `Seu período de teste termina em ${plano.diasRestantes} dias.`;
+        document.getElementById('bannerTrialTexto').textContent = texto;
+        banner.style.display = 'block';
+        modal.style.display = 'none';
+    }
+}
+
+window.abrirCheckoutStripe = async function(event) {
+    if (event) event.preventDefault();
+    const btn = event?.target?.closest('button, a');
+    if (btn) { btn.textContent = 'Redirecionando...'; btn.disabled = true; }
+
+    try {
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (!session) { window.location.href = 'login.html'; return; }
+
+        const { data, error } = await _supabase.functions.invoke('criar-checkout', {
+            headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+
+        if (error || !data?.url) throw new Error(error?.message || 'Erro ao criar checkout');
+
+        window.location.href = data.url;
+    } catch (err) {
+        console.error(err);
+        if(typeof showToast === 'function') showToast('Erro ao redirecionar para o pagamento. Tente novamente.', 'error');
+        if (btn) { btn.textContent = 'Assinar por R$ 30/mês'; btn.disabled = false; }
+    }
+};
