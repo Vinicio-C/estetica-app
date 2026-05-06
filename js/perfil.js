@@ -78,7 +78,7 @@ async function preencherStatusPlano() {
             textoEl.textContent = 'Acesso Vitalicio — obrigado pela confianca!';
             textoEl.style.color = '#D4AF37';
         } else if (plano === 'ativo') {
-            textoEl.textContent = 'Plano Ativo — R$ 30/mes. Proximo vencimento conforme Stripe.';
+            textoEl.textContent = 'Plano Ativo — R$ 29,99/mes. Proximo vencimento conforme Stripe.';
             textoEl.style.color = '#4CAF50';
             if (btnGerenciar) btnGerenciar.style.display = 'block';
         } else if (plano && plano.status === 'trial') {

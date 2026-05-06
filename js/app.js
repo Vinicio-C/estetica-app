@@ -2176,7 +2176,7 @@ async function _preencherStatusPlanoNoPerfil() {
         body.innerHTML = `
             <div class="plano-badge badge-ativo">👑 Premium Ativo</div>
             <p class="plano-titulo">Plano Premium</p>
-            <p class="plano-subtitulo">R$ 30/mês — acesso completo a todos os recursos.</p>
+            <p class="plano-subtitulo">R$ 29,99/mês — acesso completo a todos os recursos.</p>
             <button class="plano-btn plano-btn-gerenciar" onclick="abrirPortalStripe(event)">
                 <i class="fas fa-cog"></i> Gerenciar assinatura
             </button>
@@ -2189,7 +2189,7 @@ async function _preencherStatusPlanoNoPerfil() {
             <p class="plano-titulo">Testando Gratuitamente</p>
             <p class="plano-subtitulo">${d} dia${d !== 1 ? 's' : ''} restante${d !== 1 ? 's' : ''} — aproveite todos os recursos!</p>
             <button class="plano-btn plano-btn-assinar" onclick="abrirCheckoutStripe(event)">
-                <i class="fas fa-credit-card"></i> Assinar por R$ 30/mês
+                <i class="fas fa-credit-card"></i> Assinar por R$ 29,99/mês
             </button>
         `;
     } else {
@@ -2199,7 +2199,7 @@ async function _preencherStatusPlanoNoPerfil() {
             <p class="plano-titulo">Plano Expirado</p>
             <p class="plano-subtitulo">Assine para continuar usando todos os recursos sem interrupção.</p>
             <button class="plano-btn plano-btn-assinar" onclick="abrirCheckoutStripe(event)">
-                <i class="fas fa-credit-card"></i> Assinar por R$ 30/mês
+                <i class="fas fa-credit-card"></i> Assinar por R$ 29,99/mês
             </button>
         `;
     }
@@ -2896,6 +2896,6 @@ window.abrirCheckoutStripe = async function(event) {
     } catch (err) {
         console.error(err);
         if(typeof showToast === 'function') showToast('Erro ao redirecionar para o pagamento. Tente novamente.', 'error');
-        if (btn) { btn.textContent = 'Assinar por R$ 30/mês'; btn.disabled = false; }
+        if (btn) { btn.textContent = 'Assinar por R$ 29,99/mês'; btn.disabled = false; }
     }
 };

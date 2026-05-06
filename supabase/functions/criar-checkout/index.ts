@@ -57,7 +57,7 @@ serve(async (req) => {
 
     const origin = req.headers.get('origin') ?? 'https://esteticaapp.com.br'
 
-    // Cria a sessão de checkout com o preço mensal de R$30
+    // Cria a sessão de checkout com o preço mensal de R$29,99
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
