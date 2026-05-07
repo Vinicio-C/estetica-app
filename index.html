@@ -318,6 +318,13 @@
                         <div id="dashLembretesAmanhaList" class="dashboard-list"></div>
                     </div>
                 </div>
+
+                <!-- Botão de tour manual -->
+                <div style="text-align:center; margin-top:24px; padding-bottom:8px;">
+                    <button onclick="iniciarTourManual()" style="background:transparent; border:1px solid #333; border-radius:8px; color:#666; font-size:0.82rem; padding:10px 20px; cursor:pointer; transition:border-color .2s,color .2s;" onmouseover="this.style.borderColor='#D4AF37';this.style.color='#D4AF37';" onmouseout="this.style.borderColor='#333';this.style.color='#666';">
+                        <i class="fas fa-map-signs"></i> Rever tour do app
+                    </button>
+                </div>
             </div>
 
             <div id="clientesPage" class="page">
@@ -1272,6 +1279,7 @@
     <script src="js/app-anamnese.js?v=15.0"></script>
     <script src="js/perfil.js?v=15.0"></script>
     <script src="js/app.js?v=15.2"></script>
+    <script src="js/tour.js?v=1.0"></script>
     <script>
         window.fazerLogout = async function(event) {
             // Evita o recarregamento fantasma
@@ -1302,7 +1310,45 @@
             }
         };
     </script>
-    
-    
+
+    <!-- ===== TOUR DE BOAS-VINDAS ===== -->
+
+    <!-- 1. Modal de boas-vindas -->
+    <div id="modalBoasVindasTour" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.78); align-items:center; justify-content:center; padding:20px;">
+        <div style="background:#1A1A1A; border-radius:16px; border:1px solid #D4AF37; padding:40px 32px; max-width:420px; width:100%; text-align:center; box-shadow:0 24px 80px rgba(0,0,0,0.7);">
+            <div style="font-size:3rem; margin-bottom:14px;">✨</div>
+            <h2 style="color:#D4AF37; margin:0 0 12px; font-size:1.55rem; font-family:'Cormorant Garamond',serif;">Seja bem-vindo(a)!</h2>
+            <p style="color:#bbb; font-size:0.93rem; line-height:1.65; margin:0 0 28px;">Parece que é a sua primeira vez por aqui.<br>Quer um tour rápido pelo app para conhecer tudo o que está disponível?</p>
+            <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                <button onclick="iniciarTour()" style="padding:13px 28px; background:linear-gradient(135deg,#D4AF37,#b8960f); border:none; border-radius:8px; color:#000; font-weight:700; font-size:0.98rem; cursor:pointer;">
+                    Sim, vamos lá! 🚀
+                </button>
+                <button onclick="pularTour()" style="padding:13px 20px; background:transparent; border:1px solid #555; border-radius:8px; color:#aaa; font-size:0.9rem; cursor:pointer;">
+                    Pular por agora
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Overlay escuro -->
+    <div id="tourOverlay" style="display:none; position:fixed; inset:0; z-index:99980; background:rgba(0,0,0,0.65);"></div>
+
+    <!-- 3. Destaque dourado ao redor do elemento -->
+    <div id="tourDestaque" style="display:none; position:fixed; z-index:99985; border-radius:8px; pointer-events:none; border:2px solid #D4AF37; box-shadow:0 0 0 4px rgba(212,175,55,0.2), 0 0 28px rgba(212,175,55,0.35); transition:top .28s ease,left .28s ease,width .28s ease,height .28s ease;"></div>
+
+    <!-- 4. Tooltip do passo atual -->
+    <div id="tourTooltip" style="display:none; position:fixed; z-index:99990; width:295px; background:#1A1A1A; border:1px solid #D4AF37; border-radius:14px; padding:22px 20px 16px; box-shadow:0 14px 55px rgba(0,0,0,0.65); transition:top .28s ease,left .28s ease;">
+        <button onclick="encerrarTour()" style="position:absolute; top:10px; right:12px; background:none; border:none; color:#555; font-size:1rem; cursor:pointer; padding:2px 5px;" title="Fechar tour">✕</button>
+        <div id="tourTitulo" style="font-size:1rem; font-weight:700; color:#D4AF37; margin-bottom:8px;"></div>
+        <div id="tourTexto" style="font-size:0.85rem; color:#ccc; line-height:1.6; margin-bottom:16px;"></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <span id="tourContador" style="font-size:0.72rem; color:#666;"></span>
+            <div style="display:flex; gap:8px;">
+                <button id="tourBtnAnterior" onclick="anteriorPassoTour()" style="display:none; padding:7px 12px; background:transparent; border:1px solid #555; border-radius:6px; color:#aaa; font-size:0.8rem; cursor:pointer; align-items:center;">← Anterior</button>
+                <button id="tourBtnProximo" onclick="proximoPassoTour()" style="padding:7px 16px; background:linear-gradient(135deg,#D4AF37,#b8960f); border:none; border-radius:6px; color:#000; font-weight:700; font-size:0.82rem; cursor:pointer;">Próximo →</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

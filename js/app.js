@@ -114,6 +114,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             carregarDashboard();
         }
 
+        // Tour de boas-vindas (só aparece na primeira vez)
+        if (typeof verificarEIniciarTour === 'function') verificarEIniciarTour();
+
     } catch (error) {
         console.error("Erro fatal na inicialização:", error);
     } finally {
