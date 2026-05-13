@@ -46,6 +46,28 @@
     </header>
 
     <main class="container">
+
+        <!-- Card de localização da profissional -->
+        <div id="cardLocalizacao" style="display:none; margin-bottom: 24px; background: #1a1a1a; border: 1px solid #2e2e2e; border-radius: 16px; overflow: hidden;">
+            <div style="padding: 20px 20px 0;">
+                <h3 style="margin: 0 0 6px; color: #D4AF37; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-map-marker-alt"></i> Localização
+                </h3>
+                <p id="locEnderecoTexto" style="margin: 0 0 14px; color: #ccc; font-size: 0.95rem; line-height: 1.5;"></p>
+                <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <button id="btnVerMaps" onclick="abrirMaps()" style="flex: 1; min-width: 140px; padding: 10px 14px; background: #D4AF37; color: #121212; border: none; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i class="fas fa-map"></i> Ver no Google Maps
+                    </button>
+                    <button onclick="copiarEndereco()" style="flex: 1; min-width: 140px; padding: 10px 14px; background: transparent; color: #D4AF37; border: 1px solid #D4AF37; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" id="btnCopiarEndereco">
+                        <i class="fas fa-copy"></i> Copiar endereço
+                    </button>
+                </div>
+            </div>
+            <div id="mapaPublicoContainer" style="display:none;">
+                <iframe id="mapaPublicoIframe" width="100%" height="200" style="border:0; display:block;" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+        </div>
+
         <div id="step1" class="step active">
             <h2>1. Escolha o Procedimento</h2>
             <div id="listaServicos" class="services-grid">

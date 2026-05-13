@@ -22,7 +22,87 @@ document.addEventListener('input', (e) => {
         let input = e.target;
         input.value = mascaraTelefone(input.value);
     }
+    if (e.target.id === 'profEndereco' || e.target.id === 'profNumero' || e.target.id === 'profCidade' || e.target.id === 'profEstado') {
+        atualizarPreviewMapa();
+    }
 });
+
+// LOCALIZAÇÃO — Busca CEP via ViaCEP
+window.buscarCEP = async function() {
+    const cepRaw = document.getElementById('profCep').value.replace(/\D/g, '');
+    if (cepRaw.length !== 8) {
+        if (typeof showToast === 'function') showToast('CEP inválido. Digite 8 números.', 'error');
+        return;
+    }
+    try {
+        const res = await fetch(`https://viacep.com.br/ws/${cepRaw}/json/`);
+        const dados = await res.json();
+        if (dados.erro) {
+            if (typeof showToast === 'function') showToast('CEP não encontrado.', 'error');
+            return;
+        }
+        document.getElementById('profEndereco').value = dados.logradouro || '';
+        document.getElementById('profBairro').value = dados.bairro || '';
+        document.getElementById('profCidade').value = dados.localidade || '';
+        document.getElementById('profEstado').value = dados.uf || '';
+        document.getElementById('profNumero').focus();
+        atualizarPreviewMapa();
+        if (typeof showToast === 'function') showToast('Endereço preenchido!', 'success');
+    } catch (e) {
+        if (typeof showToast === 'function') showToast('Erro ao buscar CEP.', 'error');
+    }
+};
+
+// LOCALIZAÇÃO — Geolocalização do dispositivo
+window.usarLocalizacaoAtual = function() {
+    if (!navigator.geolocation) {
+        if (typeof showToast === 'function') showToast('Geolocalização não disponível neste navegador.', 'error');
+        return;
+    }
+    if (typeof showToast === 'function') showToast('Obtendo localização...', 'info');
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`, {
+                headers: { 'Accept-Language': 'pt-BR' }
+            });
+            const d = await res.json();
+            const addr = d.address || {};
+            document.getElementById('profEndereco').value = addr.road || addr.pedestrian || '';
+            document.getElementById('profNumero').value = addr.house_number || '';
+            document.getElementById('profBairro').value = addr.suburb || addr.neighbourhood || addr.city_district || '';
+            document.getElementById('profCidade').value = addr.city || addr.town || addr.village || '';
+            document.getElementById('profEstado').value = (addr.state_code || addr.ISO3166_2_lvl4 || '').replace(/^BR-/, '').slice(0, 2);
+            const cepRaw = (addr.postcode || '').replace(/\D/g, '');
+            if (cepRaw) document.getElementById('profCep').value = cepRaw.replace(/(\d{5})(\d)/, '$1-$2');
+            atualizarPreviewMapa();
+            if (typeof showToast === 'function') showToast('Localização obtida!', 'success');
+        } catch (e) {
+            if (typeof showToast === 'function') showToast('Erro ao obter endereço. Preencha manualmente.', 'error');
+        }
+    }, () => {
+        if (typeof showToast === 'function') showToast('Permissão de localização negada.', 'error');
+    });
+};
+
+// LOCALIZAÇÃO — Atualiza o iframe de preview
+function atualizarPreviewMapa() {
+    const endereco = document.getElementById('profEndereco')?.value.trim() || '';
+    const numero = document.getElementById('profNumero')?.value.trim() || '';
+    const cidade = document.getElementById('profCidade')?.value.trim() || '';
+    const estado = document.getElementById('profEstado')?.value.trim() || '';
+    const container = document.getElementById('mapaPreviewContainer');
+    const iframe = document.getElementById('mapaPreviewIframe');
+    if (!container || !iframe) return;
+
+    if (!endereco || !cidade) {
+        container.style.display = 'none';
+        return;
+    }
+    const query = encodeURIComponent([endereco, numero, cidade, estado, 'Brasil'].filter(Boolean).join(', '));
+    iframe.src = `https://maps.google.com/maps?q=${query}&output=embed`;
+    container.style.display = 'block';
+}
 
 // 3. CARREGAR DADOS (Chamado pelo Menu)
 window.carregarDadosPerfil = async function() {
@@ -45,6 +125,15 @@ window.carregarDadosPerfil = async function() {
             if (perfil.foto_url && window.atualizarAvatarNaTela) {
                 window.atualizarAvatarNaTela(perfil.foto_url);
             }
+            // Localização
+            document.getElementById('profCep').value = perfil.cep || '';
+            document.getElementById('profEndereco').value = perfil.endereco || '';
+            document.getElementById('profNumero').value = perfil.numero || '';
+            document.getElementById('profComplemento').value = perfil.complemento || '';
+            document.getElementById('profBairro').value = perfil.bairro || '';
+            document.getElementById('profCidade').value = perfil.cidade || '';
+            document.getElementById('profEstado').value = perfil.estado || '';
+            atualizarPreviewMapa();
         }
 
         document.getElementById('headerEmail').textContent = user.email;
@@ -111,7 +200,14 @@ window.salvarPerfilReal = async function(event) {
             id: user.id,
             nome: document.getElementById('profNome').value,
             especialidade: document.getElementById('profEspecialidade').value,
-            telefone: document.getElementById('profTelefone').value.replace(/\D/g, "") // Salva limpo
+            telefone: document.getElementById('profTelefone').value.replace(/\D/g, ""),
+            cep: document.getElementById('profCep').value.replace(/\D/g, ""),
+            endereco: document.getElementById('profEndereco').value,
+            numero: document.getElementById('profNumero').value,
+            complemento: document.getElementById('profComplemento').value,
+            bairro: document.getElementById('profBairro').value,
+            cidade: document.getElementById('profCidade').value,
+            estado: document.getElementById('profEstado').value.toUpperCase()
         };
 
         const { error } = await _supabase.from('profiles').upsert(dados);

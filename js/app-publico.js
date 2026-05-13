@@ -13,12 +13,16 @@ const state = {
 
 const CONFIG = { inicio: 9, fim: 19 }; 
 
+let _enderecoCompleto = '';
+let _mapsUrl = '';
+
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const refId = params.get('ref');
     if (refId) {
         state.doutoraId = refId;
         console.log("Agendando para:", refId);
+        carregarPerfilProfissional();
     }
     carregarServicos();
     
@@ -343,7 +347,78 @@ async function finalizarAgendamento(e) {
     }
 }
 
-// --- 5. FUNÇÃO PARA NOVO AGENDAMENTO (Mantendo o ID) ---
+// --- 5. LOCALIZAÇÃO DA PROFISSIONAL ---
+async function carregarPerfilProfissional() {
+    try {
+        const { data: perfil } = await _supabase
+            .from('profiles')
+            .select('nome, especialidade, cep, endereco, numero, complemento, bairro, cidade, estado')
+            .eq('id', state.doutoraId)
+            .maybeSingle();
+
+        if (perfil) renderizarCardLocalizacao(perfil);
+    } catch (e) {
+        console.error("Erro ao carregar perfil público:", e);
+    }
+}
+
+function renderizarCardLocalizacao(perfil) {
+    if (!perfil.endereco) return;
+
+    const partes = [
+        perfil.endereco,
+        perfil.numero,
+        perfil.complemento,
+        perfil.bairro ? `– ${perfil.bairro}` : null,
+        perfil.cidade ? `${perfil.cidade}` : null,
+        perfil.estado ? `– ${perfil.estado}` : null,
+        perfil.cep ? `| CEP ${perfil.cep.replace(/^(\d{5})(\d{3})$/, '$1-$2')}` : null
+    ].filter(Boolean).join(' ');
+
+    _enderecoCompleto = partes;
+    _mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(partes)}`;
+
+    const texto = document.getElementById('locEnderecoTexto');
+    const card = document.getElementById('cardLocalizacao');
+    const mapaContainer = document.getElementById('mapaPublicoContainer');
+    const mapaIframe = document.getElementById('mapaPublicoIframe');
+
+    if (texto) texto.textContent = partes;
+    if (card) card.style.display = 'block';
+
+    if (mapaIframe && mapaContainer) {
+        const query = encodeURIComponent(partes);
+        mapaIframe.src = `https://maps.google.com/maps?q=${query}&output=embed`;
+        mapaContainer.style.display = 'block';
+    }
+}
+
+window.abrirMaps = function() {
+    if (_mapsUrl) window.open(_mapsUrl, '_blank');
+};
+
+window.copiarEndereco = async function() {
+    if (!_enderecoCompleto) return;
+    try {
+        await navigator.clipboard.writeText(_enderecoCompleto);
+        const btn = document.getElementById('btnCopiarEndereco');
+        if (btn) {
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+            btn.style.background = '#D4AF37';
+            btn.style.color = '#121212';
+            setTimeout(() => {
+                btn.innerHTML = original;
+                btn.style.background = 'transparent';
+                btn.style.color = '#D4AF37';
+            }, 2000);
+        }
+    } catch (e) {
+        prompt('Copie o endereço abaixo:', _enderecoCompleto);
+    }
+};
+
+// --- 6. FUNÇÃO PARA NOVO AGENDAMENTO (Mantendo o ID) ---
 window.novoAgendamento = function() {
     if (state.doutoraId) {
         // Força o recarregamento da página INCLUINDO o ID da doutora na URL

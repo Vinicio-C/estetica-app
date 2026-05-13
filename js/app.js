@@ -103,6 +103,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Carregar dados iniciais
         await carregarDadosIniciais();
 
+        // Notificações em tempo real para novos agendamentos pelo site
+        iniciarRealtimeAgendamentos();
+
         // Verifica o plano e aplica banner ou bloqueio
         if (typeof verificarPlano === 'function') {
             const plano = await verificarPlano();
@@ -1362,6 +1365,39 @@ function trocarTab(tabName) {
 
 // --- SISTEMA DE NOTIFICAÇÕES INTELIGENTE ---
 
+async function iniciarRealtimeAgendamentos() {
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) return;
+
+    _supabase
+        .channel('agendamentos-site-' + user.id)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'agendamentos',
+            filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+            const novo = payload.new;
+            if (novo.observacoes !== 'Agendamento pelo Site') return;
+
+            // Atualiza o badge sem abrir o dropdown
+            const badge = document.getElementById('notifCount');
+            if (badge) {
+                const atual = parseInt(badge.textContent) || 0;
+                badge.textContent = atual + 1;
+                badge.style.display = 'flex';
+            }
+
+            const [ano, mes, dia] = (novo.data || '').split('-');
+            showToast(
+                `📅 Novo agendamento: ${novo.cliente_nome} — ${novo.servico_nome} em ${dia}/${mes}/${ano} às ${(novo.hora || '').slice(0, 5)}`,
+                'success',
+                6000
+            );
+        })
+        .subscribe();
+}
+
 function toggleNotifications() {
     const dropdown = document.getElementById('notificationsDropdown');
     dropdown.classList.toggle('active');
@@ -1386,16 +1422,43 @@ async function atualizarNotificacoes() {
     const estoque = appState.estoque || [];
     const agendamentos = appState.agendamentos || [];
     const clientes = appState.clientes || [];
-    
+
     const lista = document.getElementById('notifList');
     const badge = document.getElementById('notifCount');
     if (!lista || !badge) return;
 
-    lista.innerHTML = '';
-    
+    lista.innerHTML = '<div class="notif-empty" style="font-size:0.85rem;color:#666;">Carregando...</div>';
+
     let count = 0;
     let html = '';
     const hoje = new Date();
+
+    // --- 0. AGENDAMENTOS PELO SITE (pendentes, a partir de hoje) ---
+    try {
+        const hojeStr = hoje.toISOString().split('T')[0];
+        const { data: agendSite } = await _supabase
+            .from('agendamentos')
+            .select('id, cliente_nome, servico_nome, data, hora')
+            .eq('observacoes', 'Agendamento pelo Site')
+            .eq('status', 'pendente')
+            .gte('data', hojeStr)
+            .order('data', { ascending: true });
+
+        (agendSite || []).forEach(a => {
+            count++;
+            const [ano, mes, dia] = a.data.split('-');
+            html += `
+                <div class="notif-item" style="border-left: 4px solid #D4AF37;" onclick="navigateTo('agenda')">
+                    <div class="notif-icon" style="color: #D4AF37;"><i class="fas fa-calendar-plus"></i></div>
+                    <div class="notif-content">
+                        <h4 style="color: #D4AF37;">Novo agendamento pelo site</h4>
+                        <p><strong>${a.cliente_nome}</strong> — ${a.servico_nome}</p>
+                        <p style="font-size:0.8rem;color:#888;">${dia}/${mes}/${ano} às ${a.hora?.slice(0,5)}</p>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (e) { console.warn('Erro ao buscar agendamentos pelo site:', e); }
 
     // --- 1. ANIVERSARIANTES DO DIA (NOVO) ---
     clientes.forEach(c => {
@@ -1510,27 +1573,26 @@ function formatTime(timeString) {
 }
 
 // Mostra notificações (Toast)
-function showToast(message, type = 'success') {
+function showToast(message, type = 'success', duration = 3000) {
     const container = document.getElementById('toastContainer');
-    if (!container) return; // Proteção se o container não existir
+    if (!container) return;
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     let icon = 'check-circle';
     if (type === 'error') icon = 'exclamation-circle';
     if (type === 'warning') icon = 'exclamation-triangle';
     if (type === 'info') icon = 'info-circle';
 
     toast.innerHTML = `<i class="fas fa-${icon}"></i> <span>${message}</span>`;
-    
+
     container.appendChild(toast);
-    
-    // Remove após 3 segundos
+
     setTimeout(() => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    }, duration);
 }
 
 // =======================================================
