@@ -356,7 +356,17 @@ async function carregarPerfilProfissional() {
             .eq('id', state.doutoraId)
             .maybeSingle();
 
-        if (perfil) renderizarCardLocalizacao(perfil);
+        if (perfil) {
+            if (perfil.nome) {
+                const h1 = document.getElementById('headerNomeProfissional');
+                if (h1) h1.textContent = perfil.nome;
+            }
+            if (perfil.especialidade) {
+                const sub = document.getElementById('headerEspecialidade');
+                if (sub) sub.textContent = perfil.especialidade;
+            }
+            renderizarCardLocalizacao(perfil);
+        }
     } catch (e) {
         console.error("Erro ao carregar perfil público:", e);
     }
