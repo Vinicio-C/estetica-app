@@ -1067,6 +1067,20 @@
                     Cada profissional tem seu próprio modelo. Adicione, remova ou reordene os campos da ficha das suas clientes.
                 </p>
 
+                <!-- Importar / Exportar modelo -->
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+                    <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="exportarModeloPDF()">
+                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                    </button>
+                    <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="exportarModeloWord()">
+                        <i class="fas fa-file-word"></i> Exportar Word
+                    </button>
+                    <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="document.getElementById('inputImportarModelo').click()">
+                        <i class="fas fa-file-import"></i> Importar Modelo
+                    </button>
+                    <input type="file" id="inputImportarModelo" accept=".pdf,.docx" hidden onchange="importarModelo(event)">
+                </div>
+
                 <!-- Lista de campos -->
                 <div id="listaEditorCampos" style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;"></div>
 
@@ -1340,11 +1354,16 @@
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <!-- Bibliotecas para importar/exportar modelo de anamnese (PDF/Word) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
     <script src="js/supabase-client.js?v=15.0"></script>
     <script src="js/app-agenda.js?v=15.0"></script>
     <script src="js/app-relatorios.js?v=15.0"></script>
     <script src="js/popular-dados.js?v=15.0"></script>
-    <script src="js/app-anamnese.js?v=15.0"></script>
+    <script src="js/app-anamnese.js?v=16.0"></script>
     <script src="js/perfil.js?v=16.0"></script>
     <script src="js/app.js?v=15.2"></script>
     <script src="js/tour.js?v=1.0"></script>

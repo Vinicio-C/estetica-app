@@ -21,6 +21,10 @@ const TEMPLATE_PADRAO = [
     { id: 'home_care',        tipo: 'texto',    label: 'Cuidados Diários (Home Care)' },
 ];
 
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     setupCanvas('signatureCanvas', sigPad);
     setupCanvas('mapaFacialCanvas', mapPad);
@@ -399,6 +403,175 @@ async function buscarEImprimirFicha() {
 }
 
 function imprimirAnamnese() { window.print(); }
+
+// ─── EXPORTAR / IMPORTAR MODELO (PDF / Word) ────────────────────────────────
+
+// Monta um HTML tipo "questionário em branco" a partir dos campos do modelo
+function gerarHtmlModelo(campos) {
+    let html = '<div style="font-family: Arial, sans-serif; color:#000; padding:20px;">';
+    html += '<h2 style="text-align:center; margin-bottom:24px;">Modelo de Ficha de Anamnese</h2>';
+
+    let i = 0;
+    while (i < campos.length) {
+        const campo = campos[i];
+
+        if (campo.tipo === 'titulo') {
+            html += `<h3 style="margin-top:20px; border-bottom:1px solid #999; padding-bottom:4px;">${campo.label}</h3>`;
+            i++;
+            continue;
+        }
+
+        if (campo.tipo === 'checkbox') {
+            html += '<div style="margin:8px 0;">';
+            while (i < campos.length && campos[i].tipo === 'checkbox') {
+                html += `<div>☐ ${campos[i].label}</div>`;
+                i++;
+            }
+            html += '</div>';
+            continue;
+        }
+
+        if (campo.tipo === 'textarea') {
+            html += `<p style="margin:14px 0;"><strong>${campo.label}:</strong><br><br>______________________________________________<br><br>______________________________________________</p>`;
+        } else {
+            html += `<p style="margin:14px 0;"><strong>${campo.label}:</strong> ______________________________________________</p>`;
+        }
+        i++;
+    }
+
+    html += '</div>';
+    return html;
+}
+
+window.exportarModeloPDF = async function() {
+    const campos = (camposEditor && camposEditor.length) ? camposEditor : await carregarTemplate();
+    if (!campos.length) { showToast('Nenhum campo no modelo para exportar.', 'warning'); return; }
+
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-9999px';
+    wrapper.innerHTML = gerarHtmlModelo(campos);
+    document.body.appendChild(wrapper);
+
+    try {
+        await html2pdf().from(wrapper).set({
+            filename: 'Modelo_Anamnese.pdf',
+            margin: 10,
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).save();
+        showToast('PDF exportado!', 'success');
+    } catch (err) {
+        console.error(err);
+        showToast('Erro ao gerar PDF.', 'error');
+    } finally {
+        wrapper.remove();
+    }
+};
+
+window.exportarModeloWord = async function() {
+    const campos = (camposEditor && camposEditor.length) ? camposEditor : await carregarTemplate();
+    if (!campos.length) { showToast('Nenhum campo no modelo para exportar.', 'warning'); return; }
+
+    const corpo = gerarHtmlModelo(campos);
+    const documentoCompleto = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Modelo de Anamnese</title></head><body>${corpo}</body></html>`;
+
+    const blob = new Blob(['﻿', documentoCompleto], { type: 'application/msword' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'Modelo_Anamnese.doc';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('Word exportado!', 'success');
+};
+
+// Heurística: converte texto solto em campos sugeridos para o modelo
+function converterTextoEmCampos(texto) {
+    const linhas = texto
+        .split(/\r?\n/)
+        .map(l => l.trim())
+        .filter(l => l.length >= 3 && l.length <= 200);
+
+    const campos = [];
+    const regexCheckboxMarcador = /(\[\s*\]|\[\s*x\s*\]|☐|☒|\(\s*\)|\(\s*x\s*\))/i;
+    const regexSimNao = /\bsim\s*\/\s*n[ãa]o\b/i;
+
+    linhas.forEach((linhaOriginal, idx) => {
+        let linha = linhaOriginal.replace(regexCheckboxMarcador, '').replace(regexSimNao, '').trim();
+        linha = linha.replace(/^[-•*]\s*/, '').replace(/[:_]+$/, '').trim();
+        if (linha.length < 3) return;
+
+        let tipo;
+        if (regexCheckboxMarcador.test(linhaOriginal) || regexSimNao.test(linhaOriginal)) {
+            tipo = 'checkbox';
+        } else if (/[?]\s*$/.test(linha)) {
+            tipo = (linha.length > 60 || /descreva|explique|detalhe|relate|coment[áa]rio/i.test(linha)) ? 'textarea' : 'texto';
+        } else if (linha === linha.toUpperCase() && linha.length > 3 && /[A-ZÀ-Ú]/.test(linha)) {
+            tipo = 'titulo';
+        } else if (/^[-_]{2,}$/.test(linhaOriginal)) {
+            return; // linha decorativa
+        } else {
+            tipo = 'texto';
+        }
+
+        campos.push({ id: `${tipo}_${idx}_${Date.now()}`, tipo, label: linha });
+    });
+
+    return campos;
+}
+
+window.importarModelo = async function(event) {
+    const file = event.target.files[0];
+    event.target.value = ''; // permite reimportar o mesmo arquivo depois
+    if (!file) return;
+
+    showToast('Lendo documento...', 'info');
+
+    try {
+        let texto = '';
+        const nome = file.name.toLowerCase();
+
+        if (nome.endsWith('.pdf')) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            for (let p = 1; p <= pdf.numPages; p++) {
+                const page = await pdf.getPage(p);
+                const content = await page.getTextContent();
+                texto += content.items.map(it => it.str).join('\n') + '\n';
+            }
+        } else if (nome.endsWith('.docx')) {
+            const arrayBuffer = await file.arrayBuffer();
+            const resultado = await mammoth.extractRawText({ arrayBuffer });
+            texto = resultado.value || '';
+        } else {
+            showToast('Formato não suportado. Use .pdf ou .docx.', 'error');
+            return;
+        }
+
+        const sugestoes = converterTextoEmCampos(texto);
+        if (!sugestoes.length) {
+            showToast('Nenhum campo reconhecido no documento.', 'warning');
+            return;
+        }
+
+        if (camposEditor.length > 0) {
+            if (confirm(`Encontramos ${sugestoes.length} campo(s) no documento.\n\nClique OK para ADICIONAR aos campos atuais, ou Cancelar para SUBSTITUIR todos os campos existentes.`)) {
+                camposEditor = camposEditor.concat(sugestoes);
+            } else {
+                camposEditor = sugestoes;
+            }
+        } else {
+            camposEditor = sugestoes;
+        }
+
+        renderizarListaEditor();
+        showToast(`${sugestoes.length} campo(s) adicionados — revise antes de salvar!`, 'success');
+    } catch (err) {
+        console.error('Erro ao importar modelo:', err);
+        showToast('Erro ao ler o documento.', 'error');
+    }
+};
 
 // ─── EDITOR DE TEMPLATE ──────────────────────────────────────────────────────
 
