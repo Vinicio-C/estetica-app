@@ -891,14 +891,23 @@ function montarCorpoImpressao(campos, respostas) {
 }
 
 function blocoAssinatura(assinaturaImg) {
+    const profissional = perfilCache?.nome || '';
+    const temAssinatura = assinaturaImg && assinaturaImg.length > 100;
+
     return `<div class="print-section keep-together">
         <h3>Termo de Responsabilidade</h3>
         <p class="legal-text-small">Declaro que as informações prestadas acima são verdadeiras e autorizo a realização dos procedimentos indicados.</p>
-        <div class="print-sig-container" style="text-align:center; margin-top:34px;">
-            ${assinaturaImg && assinaturaImg.length > 100
-                ? `<img src="${assinaturaImg}" alt="Assinatura" style="height:70px; display:block; margin:0 auto;">` : ''}
-            <div style="border-top:1px solid #000; display:inline-block; width:320px; margin-top:4px;"></div>
-            <div>Assinatura da Cliente</div>
+        <div class="print-assinaturas">
+            <div class="print-assinatura">
+                ${temAssinatura ? `<img src="${assinaturaImg}" alt="Assinatura">` : '<div class="print-assinatura-espaco"></div>'}
+                <div class="print-assinatura-linha"></div>
+                <div>Assinatura da Cliente</div>
+            </div>
+            <div class="print-assinatura">
+                <div class="print-assinatura-espaco"></div>
+                <div class="print-assinatura-linha"></div>
+                <div>${esc(profissional) || 'Profissional Responsável'}</div>
+            </div>
         </div>
     </div>`;
 }
@@ -1336,6 +1345,11 @@ async function gerarHtmlModelo(nomeModelo, campos) {
         .doc-modelo .print-condicional-detalhe { margin-left:22px; font-size:10pt; }
         .doc-modelo .print-opcao { margin-right:14px; white-space:nowrap; }
         .doc-modelo .legal-text-small { font-size:9pt; font-style:italic; }
+        .doc-modelo .print-assinaturas { display:flex; justify-content:space-around; gap:30px; margin-top:26px; text-align:center; }
+        .doc-modelo .print-assinatura { flex:1; }
+        .doc-modelo .print-assinatura img { height:58px; display:block; margin:0 auto; }
+        .doc-modelo .print-assinatura-espaco { height:58px; }
+        .doc-modelo .print-assinatura-linha { border-top:1px solid #000; margin:2px auto 4px; width:90%; }
     </style>
     <h1>${esc(perfil.nome || 'Estética Premium')}</h1>
     <p class="sub">${esc(nomeModelo)}</p>
