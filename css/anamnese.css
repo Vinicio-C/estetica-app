@@ -114,22 +114,82 @@
     border-bottom: 1px solid #333;
 }
 
-.campo-condicional .label-check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+/* A regra global `input { width:100%; padding:14px 16px }` do style.css também
+   pega os checkboxes e os transforma em blocos enormes. Aqui eles voltam a
+   ter tamanho de checkbox. */
+.anamnese-topico input[type="checkbox"],
+.editor-check-padrao input[type="checkbox"] {
+    flex: 0 0 17px;
+    width: 17px;
+    height: 17px;
+    min-width: 17px;
+    padding: 0;
+    margin: 0;
+    accent-color: var(--gold);
     cursor: pointer;
 }
+
+/* Cada pergunta de sim/não é um cartão clicável */
+.checkbox-group { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+
+.checkbox-group label,
+.campo-condicional {
+    background: #181818;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 11px 13px;
+    margin: 0;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.checkbox-group label,
+.campo-condicional .label-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+    font-size: 0.88rem;
+    line-height: 1.35;
+    color: var(--text-primary);
+    text-align: left;
+}
+.campo-condicional .label-check { margin: 0; }
+
+.checkbox-group label:hover,
+.campo-condicional:hover { border-color: #4d4d4d; }
+
+/* Destaque quando marcado */
+.checkbox-group label:has(input:checked),
+.campo-condicional:has(.label-check input:checked) {
+    border-color: rgba(212, 175, 55, 0.55);
+    background: rgba(212, 175, 55, 0.06);
+}
+
+.campo-condicional { margin-bottom: 10px; }
 .campo-condicional .condicional-box {
-    margin: 8px 0 0 26px;
+    margin: 11px 0 2px 27px;
     padding-left: 12px;
     border-left: 2px solid var(--gold);
 }
 .campo-condicional .condicional-box label {
     display: block;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--gold);
+    margin-bottom: 5px;
+}
+.campo-condicional .condicional-box input {
+    padding: 9px 12px;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 620px) {
+    .checkbox-group { grid-template-columns: 1fr; }
 }
 
 /* --- Anexos (ficha escaneada) --- */
