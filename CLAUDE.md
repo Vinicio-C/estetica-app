@@ -7,7 +7,9 @@ PWA de gestão para clínicas de estética. Sistema multi-tenant: cada profissio
 - **Frontend:** HTML/CSS/JS puro, sem framework. PWA instalável.
 - **Backend:** Supabase (Auth + Postgres + Storage)
 - **Email transacional:** Resend (DKIM e SPF já verificados e funcionando)
-- **Hospedagem:** a definir (não deployado ainda)
+- **Hospedagem:** Cloudflare Pages, deploy automático a cada push na `main`
+  - Produção: **https://esteticaapp.com.br** (também em `estetica-app.pages.dev`)
+  - O GitHub Pages do repo (`vinicio-c.github.io/estetica-app`) também está ligado e responde, mas **não é** a produção — cuidado para não confundir
 
 ## Arquivos principais
 | Arquivo | Função |
@@ -37,6 +39,7 @@ Migrações: `anamnese_multiplos_modelos_e_anexos`, `anamnese_anexos_storage_buc
 - `anamnese_templates`: cada profissional pode ter **vários modelos nomeados** (`nome`, `is_padrao`, `ordem`, `campos` jsonb). Índice único em `(user_id, lower(nome))` — nome duplicado devolve erro `23505`.
 - `anamneses`: ganhou `template_id`, `template_nome`, `anexos` (jsonb) e `atualizado_em`. Agora a cliente pode ter **várias fichas** (uma por procedimento).
 - Cada ficha salva um snapshot da estrutura em `respostas.__campos`, para que a impressão continue fiel mesmo se o modelo mudar depois.
+- Migração `anamnese_backfill_snapshot_fichas_legadas`: as 7 fichas criadas antes dessa mudança não tinham snapshot e cairiam no modelo padrão novo (ids diferentes → respostas em branco). O snapshot do modelo antigo foi gravado nelas. **Qualquer ficha sem `__campos` e sem `template_id` tem esse mesmo risco.**
 
 Tipos de campo (`campos[].tipo`): `titulo` (tópico/seção), `texto`, `textarea`, `checkbox`, `checkbox_texto` (marcou "sim" → abre campo de detalhe, rótulo em `labelCondicional`), `select` (com `opcoes[]`), `data`, `numero`.
 
