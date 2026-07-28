@@ -1,0 +1,326 @@
+/* =======================================================
+   ANAMNESE — modelos múltiplos, tópicos, condicionais e anexos
+   ======================================================= */
+
+.btn-small {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid #444;
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: 0.2s;
+}
+.btn-small:hover { border-color: var(--gold); color: var(--gold); }
+.btn-small:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-small-danger { color: #EF5350; border-color: #5a2a2a; }
+.btn-small-danger:hover { border-color: #EF5350; color: #EF5350; background: rgba(239, 83, 80, 0.1); }
+
+/* --- Painel de fichas da cliente --- */
+
+.painel-fichas-secao { margin-bottom: 26px; }
+
+.painel-fichas-titulo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.painel-fichas-titulo h3 {
+    color: var(--gold);
+    font-size: 1rem;
+    margin: 0;
+}
+.painel-fichas-ajuda {
+    color: var(--text-secondary);
+    font-size: 0.83rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.lista-modelos, .lista-fichas { display: flex; flex-direction: column; gap: 10px; }
+
+.modelo-card, .ficha-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+.modelo-card:hover, .ficha-card:hover { border-color: #4a4a4a; }
+
+.modelo-card-info, .ficha-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 150px;
+}
+.modelo-card-info strong, .ficha-card-info strong { color: var(--text-primary); font-size: 0.95rem; }
+.modelo-card-info small, .ficha-card-info small { color: #888; font-size: 0.76rem; }
+
+.modelo-card-acoes, .ficha-card-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.badge-padrao {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--gold);
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    border-radius: 20px;
+    padding: 1px 8px;
+    margin-left: 6px;
+}
+
+.ficha-card-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 3px; }
+.badge-ok {
+    font-size: 0.68rem;
+    color: #66BB6A;
+    background: rgba(102, 187, 106, 0.12);
+    border: 1px solid rgba(102, 187, 106, 0.35);
+    border-radius: 20px;
+    padding: 1px 8px;
+}
+
+/* --- Tópicos dentro da ficha --- */
+
+.anamnese-topico {
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    background: rgba(255, 255, 255, 0.015);
+}
+.anamnese-topico > h3 {
+    color: var(--gold);
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #333;
+}
+
+.campo-condicional .label-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+.campo-condicional .condicional-box {
+    margin: 8px 0 0 26px;
+    padding-left: 12px;
+    border-left: 2px solid var(--gold);
+}
+.campo-condicional .condicional-box label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+/* --- Anexos (ficha escaneada) --- */
+
+.anexos-box { padding: 6px 2px 14px; }
+.anexos-ajuda {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+}
+.lista-anexos { display: flex; flex-direction: column; gap: 8px; }
+.anexo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 9px 12px;
+    flex-wrap: wrap;
+}
+.anexo-item i { color: var(--gold); }
+.anexo-item .anexo-nome {
+    flex: 1;
+    min-width: 110px;
+    font-size: 0.87rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.anexo-item small { color: #888; font-size: 0.74rem; }
+
+/* --- Editor de modelos --- */
+
+.editor-modelo-barra {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.editor-mini-label {
+    display: block;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+    margin-bottom: 4px;
+}
+#seletorModeloEditor, #nomeModeloEditor {
+    width: 100%;
+    background: #111;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 9px;
+    font-size: 0.9rem;
+}
+.editor-modelo-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+.editor-check-padrao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    padding-bottom: 9px;
+    cursor: pointer;
+}
+
+.editor-ferramentas {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 12px 0 16px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.editor-lista-campos {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+    max-height: 46vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.editor-campo-row {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 9px 11px;
+}
+.editor-campo-row.is-topico {
+    background: rgba(212, 175, 55, 0.07);
+    border-color: rgba(212, 175, 55, 0.35);
+}
+
+.editor-campo-linha { display: flex; align-items: center; gap: 8px; }
+
+.editor-campo-mover { display: flex; flex-direction: column; gap: 2px; }
+.editor-campo-mover button {
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    font-size: 0.78rem;
+}
+.editor-campo-mover button:disabled { color: #444; cursor: default; }
+
+.editor-campo-tipo {
+    background: #111;
+    border: 1px solid #444;
+    border-radius: 5px;
+    padding: 4px 6px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    max-width: 132px;
+    cursor: pointer;
+}
+.editor-campo-label {
+    flex: 1;
+    min-width: 90px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #444;
+    color: #fff;
+    font-size: 0.9rem;
+    padding: 4px 2px;
+    outline: none;
+}
+.editor-campo-label:focus { border-bottom-color: var(--gold); }
+.editor-campo-del { background: none; border: none; color: #f44336; cursor: pointer; padding: 4px; }
+
+.editor-campo-extra { margin: 8px 0 2px 30px; }
+.editor-campo-extra label {
+    display: block;
+    font-size: 0.74rem;
+    color: #888;
+    margin-bottom: 3px;
+}
+.editor-campo-extra input {
+    width: 100%;
+    background: #111;
+    color: #fff;
+    border: 1px solid #3a3a3a;
+    border-radius: 5px;
+    padding: 6px 8px;
+    font-size: 0.83rem;
+}
+
+@media (max-width: 600px) {
+    .editor-campo-linha { flex-wrap: wrap; }
+    .editor-campo-tipo { max-width: none; flex: 1; }
+    .editor-campo-label { flex-basis: 100%; }
+    .modelo-card, .ficha-card { flex-direction: column; align-items: stretch; }
+    .modelo-card-acoes, .ficha-card-acoes { justify-content: flex-end; }
+}
+
+/* --- Impressão: linhas em branco para preencher à mão --- */
+
+@media print {
+    .print-linha {
+        border-bottom: 1px solid #777;
+        height: 18px;
+        margin: 6px 0;
+    }
+    .print-linha-inline {
+        display: inline-block;
+        border-bottom: 1px solid #777;
+        width: 55%;
+        height: 13px;
+    }
+    .print-check {
+        font-family: "Courier New", monospace;
+        font-size: 13pt;
+        font-weight: bold;
+        margin-right: 4px;
+    }
+    .print-campo { margin: 0 0 7px; }
+    .print-condicional { margin: 8px 0; }
+    .print-condicional-detalhe {
+        margin-left: 22px;
+        font-size: 10pt;
+    }
+    .print-escolha { margin: 0 0 8px; }
+    .print-opcao { margin-right: 14px; white-space: nowrap; }
+    .print-section ul { margin: 0 0 0 18px; }
+    .legal-text-small { font-size: 9pt; font-style: italic; }
+}

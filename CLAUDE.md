@@ -27,9 +27,28 @@ PWA de gestão para clínicas de estética. Sistema multi-tenant: cada profissio
 | `js/perfil.js` | Lógica do perfil da profissional |
 
 ## Tabelas no Supabase
-`clientes`, `servicos`, `estoque`, `agendamentos`, `pagamentos`, `anamneses`, `disponibilidade`, `profiles`
+`clientes`, `servicos`, `estoque`, `agendamentos`, `pagamentos`, `anamneses`, `anamnese_templates`, `disponibilidade`, `profiles`
 
 Todas com RLS habilitado. Cada tabela tem `user_id` que referencia o usuário dono dos dados.
+
+## Anamnese — modelos múltiplos
+Migrações: `anamnese_multiplos_modelos_e_anexos`, `anamnese_anexos_storage_bucket`
+
+- `anamnese_templates`: cada profissional pode ter **vários modelos nomeados** (`nome`, `is_padrao`, `ordem`, `campos` jsonb). Índice único em `(user_id, lower(nome))` — nome duplicado devolve erro `23505`.
+- `anamneses`: ganhou `template_id`, `template_nome`, `anexos` (jsonb) e `atualizado_em`. Agora a cliente pode ter **várias fichas** (uma por procedimento).
+- Cada ficha salva um snapshot da estrutura em `respostas.__campos`, para que a impressão continue fiel mesmo se o modelo mudar depois.
+
+Tipos de campo (`campos[].tipo`): `titulo` (tópico/seção), `texto`, `textarea`, `checkbox`, `checkbox_texto` (marcou "sim" → abre campo de detalhe, rótulo em `labelCondicional`), `select` (com `opcoes[]`), `data`, `numero`.
+
+### Storage — fichas escaneadas
+Bucket **`anamnese-anexos`**, **privado** (dado de saúde), limite 10MB, aceita imagem e PDF.
+Caminho: `<user_id>/<cliente_id>/<arquivo>`. Políticas em `storage.objects` liberam apenas a própria pasta.
+Leitura é feita via `createSignedUrl` (1h) — nunca URL pública.
+
+### Impressão / exportação
+- `imprimirModeloEmBranco()` e `imprimirEditorEmBranco()` geram a ficha **vazia** com linhas e caixinhas para preencher à mão.
+- Exportação: PDF (html2pdf), Word (.doc) e **JSON** (backup fiel, reimportável sem perdas).
+- Importação aceita `.json`, `.pdf`, `.docx`, `.txt`. O PDF é reconstruído por posição vertical dos fragmentos (pdf.js entrega texto solto); a heurística reconhece tópicos, checkboxes e perguntas do tipo "se sim, quais?".
 
 ## Multi-tenancy
 - RLS já configurado e corrigido — profissional autenticada vê **apenas seus próprios dados**

@@ -48,6 +48,7 @@
     
     <!-- CSS -->
     <link rel="stylesheet" href="css/style.css?v=7.0">
+    <link rel="stylesheet" href="css/anamnese.css?v=1.0">
 
     <style>
     /* ===== PLANO CARD — VISUAL STATES ===== */
@@ -964,24 +965,55 @@
         </div>
     </div>
 
+    <!-- Modal: Fichas de Anamnese da Cliente -->
+    <div id="modalFichasCliente" class="modal">
+        <div class="modal-content" style="max-width:720px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-notes-medical"></i> Fichas de <span id="nomeClienteFichas"></span></h2>
+                <button class="modal-close" onclick="fecharPainelFichas()"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div style="padding:20px;">
+                <div class="painel-fichas-secao">
+                    <div class="painel-fichas-titulo">
+                        <h3><i class="fas fa-file-medical"></i> Preencher nova ficha</h3>
+                        <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditorTemplate()">
+                            <i class="fas fa-sliders-h"></i> Personalizar Modelos
+                        </button>
+                    </div>
+                    <p class="painel-fichas-ajuda">
+                        Escolha o modelo do procedimento. <strong>Imprimir em branco</strong> gera a ficha vazia
+                        para a cliente preencher à mão — depois é só escanear e anexar na ficha digital.
+                    </p>
+                    <div id="listaModelosFicha" class="lista-modelos"></div>
+                </div>
+
+                <div class="painel-fichas-secao">
+                    <div class="painel-fichas-titulo">
+                        <h3><i class="fas fa-folder-open"></i> Fichas já preenchidas</h3>
+                    </div>
+                    <div id="listaFichasCliente" class="lista-fichas"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Anamnese (form gerado dinamicamente pelo app-anamnese.js) -->
     <div id="modalAnamnese" class="modal">
         <div class="modal-content anamnese-paper">
             <div class="modal-header no-print" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <h2>Ficha de Anamnese</h2>
+                <h2 style="display:flex; flex-direction:column; gap:2px;">
+                    <span id="nomeModeloFicha">Ficha de Anamnese</span>
+                    <small style="font-size:0.75rem; color:var(--text-secondary); font-weight:400;" id="printClienteFicha"></small>
+                </h2>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditorTemplate()">
                         <i class="fas fa-sliders-h"></i> Personalizar Modelo
                     </button>
-                    <button class="modal-close" onclick="fecharModal('modalAnamnese')">
+                    <button class="modal-close" onclick="fecharFichaAnamnese()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-            </div>
-
-            <div class="anamnese-header-print only-print">
-                <h1>Agendamento Premium</h1>
-                <p>Ficha de Avaliação e Anamnese</p>
             </div>
 
             <div class="anamnese-tabs no-print">
@@ -989,14 +1021,17 @@
                     <i class="fas fa-list-alt"></i> Perguntas
                 </button>
                 <button type="button" class="tab-btn" onclick="trocarTabAnamnese('desenho')">
-                    <i class="fas fa-pen-fancy"></i> Mapa Facial / Desenho
+                    <i class="fas fa-pen-fancy"></i> Mapa / Desenho
+                </button>
+                <button type="button" class="tab-btn" onclick="trocarTabAnamnese('anexos')">
+                    <i class="fas fa-paperclip"></i> Ficha Escaneada
                 </button>
             </div>
 
             <form id="formAnamnese">
                 <!-- Campos gerados dinamicamente pelo app-anamnese.js -->
                 <div id="tabAnamneseTexto" class="anamnese-tab-content active">
-                    <div id="camposDinamicos" class="anamnese-section">
+                    <div id="camposDinamicos">
                         <div style="color:#888; text-align:center; padding:20px;">Carregando ficha...</div>
                     </div>
                 </div>
@@ -1031,6 +1066,23 @@
                     <p style="text-align: center; color: #888; font-size: 0.8rem;">Use a caneta do tablet para marcar áreas de interesse.</p>
                 </div>
 
+                <div id="tabAnamneseAnexos" class="anamnese-tab-content">
+                    <div class="anexos-box">
+                        <p class="anexos-ajuda">
+                            Preencheu a ficha no papel? Fotografe ou escaneie e anexe aqui.
+                            Aceita imagem (JPG, PNG, HEIC) ou PDF, até 10MB por arquivo.
+                        </p>
+                        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
+                            <button type="button" class="btn-secondary" onclick="document.getElementById('inputAnexoFicha').click()">
+                                <i class="fas fa-cloud-upload-alt"></i> Anexar ficha escaneada
+                            </button>
+                            <span id="statusUploadAnexo" style="color:var(--gold); font-size:0.85rem;"></span>
+                            <input type="file" id="inputAnexoFicha" accept="image/*,application/pdf" multiple hidden onchange="enviarAnexoFicha(event)">
+                        </div>
+                        <div id="listaAnexosFicha" class="lista-anexos"></div>
+                    </div>
+                </div>
+
                 <div class="anamnese-section">
                     <h3>Termo e Assinatura</h3>
                     <p class="legal-text">Declaro que as informações são verdadeiras.</p>
@@ -1046,8 +1098,8 @@
                 </div>
 
                 <div class="modal-buttons no-print">
-                    <button type="button" class="btn-secondary" onclick="buscarEImprimirFicha()">
-                        <i class="fas fa-print"></i> Imprimir Ficha Salva
+                    <button type="button" class="btn-secondary" onclick="imprimirFichaAberta()">
+                        <i class="fas fa-print"></i> Imprimir
                     </button>
                     <button type="submit" class="btn-primary">Salvar Ficha</button>
                 </div>
@@ -1059,40 +1111,69 @@
     <div id="modalEditorTemplate" class="modal">
         <div class="modal-content" style="max-width:600px;">
             <div class="modal-header">
-                <h2><i class="fas fa-sliders-h"></i> Personalizar Modelo de Anamnese</h2>
-                <button class="modal-close" onclick="fecharModal('modalEditorTemplate')"><i class="fas fa-times"></i></button>
+                <h2><i class="fas fa-sliders-h"></i> Modelos de Ficha de Anamnese</h2>
+                <button class="modal-close" onclick="fecharEditorModelos()"><i class="fas fa-times"></i></button>
             </div>
             <div style="padding: 20px;">
-                <p style="color:#888; font-size:0.9rem; margin-bottom:20px;">
-                    Cada profissional tem seu próprio modelo. Adicione, remova ou reordene os campos da ficha das suas clientes.
+                <p style="color:#888; font-size:0.9rem; margin-bottom:16px;">
+                    Crie um modelo para cada procedimento (ex: "Botox", "Limpeza de Pele"). Organize as perguntas
+                    em <strong>tópicos</strong> e use o tipo <strong>Sim + "quais?"</strong> para perguntas que pedem detalhe.
                 </p>
 
-                <!-- Importar / Exportar modelo -->
-                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
-                    <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="exportarModeloPDF()">
-                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                <!-- Seletor de modelo -->
+                <div class="editor-modelo-barra">
+                    <div style="flex:1; min-width:200px;">
+                        <label class="editor-mini-label">Modelo em edição</label>
+                        <select id="seletorModeloEditor" onchange="trocarModeloEditor(this.value)"></select>
+                    </div>
+                    <div class="editor-modelo-acoes">
+                        <button type="button" class="btn-small" onclick="novoModelo()"><i class="fas fa-plus"></i> Novo</button>
+                        <button type="button" class="btn-small" onclick="duplicarModelo()"><i class="fas fa-copy"></i> Duplicar</button>
+                        <button type="button" class="btn-small btn-small-danger" onclick="excluirModelo()"><i class="fas fa-trash"></i> Excluir</button>
+                    </div>
+                </div>
+
+                <div class="editor-modelo-barra">
+                    <div style="flex:1; min-width:200px;">
+                        <label class="editor-mini-label">Nome do modelo</label>
+                        <input type="text" id="nomeModeloEditor" placeholder="Ex: Ficha de Micropigmentação">
+                    </div>
+                    <label class="editor-check-padrao">
+                        <input type="checkbox" id="checkModeloPadrao"> Usar como modelo padrão
+                    </label>
+                </div>
+
+                <!-- Importar / Exportar / Imprimir -->
+                <div class="editor-ferramentas">
+                    <button type="button" class="btn-small" onclick="imprimirEditorEmBranco()">
+                        <i class="fas fa-print"></i> Imprimir em branco
                     </button>
-                    <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="exportarModeloWord()">
-                        <i class="fas fa-file-word"></i> Exportar Word
+                    <button type="button" class="btn-small" onclick="exportarModeloPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+                    <button type="button" class="btn-small" onclick="exportarModeloWord()"><i class="fas fa-file-word"></i> Word</button>
+                    <button type="button" class="btn-small" onclick="exportarModeloJSON()" title="Backup fiel do modelo, pode ser reimportado sem perder nada"><i class="fas fa-download"></i> Backup</button>
+                    <button type="button" class="btn-small" onclick="document.getElementById('inputImportarModelo').click()">
+                        <i class="fas fa-file-import"></i> Importar
                     </button>
-                    <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="document.getElementById('inputImportarModelo').click()">
-                        <i class="fas fa-file-import"></i> Importar Modelo
-                    </button>
-                    <input type="file" id="inputImportarModelo" accept=".pdf,.docx" hidden onchange="importarModelo(event)">
+                    <button type="button" class="btn-small" onclick="aplicarModeloPronto()"><i class="fas fa-magic"></i> Modelo pronto</button>
+                    <input type="file" id="inputImportarModelo" accept=".json,.pdf,.docx,.txt" hidden onchange="importarModelo(event)">
                 </div>
 
                 <!-- Lista de campos -->
-                <div id="listaEditorCampos" style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;"></div>
+                <div id="listaEditorCampos" class="editor-lista-campos"></div>
 
                 <!-- Adicionar novo campo -->
                 <div style="background:#1a1a1a; border:1px solid #333; border-radius:10px; padding:16px;">
                     <p style="color:#aaa; font-size:0.85rem; margin-bottom:12px; font-weight:600;">Adicionar novo campo:</p>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <select id="novoTipoCampo" style="flex:1; min-width:140px; background:#111; color:#fff; border:1px solid #444; border-radius:6px; padding:8px;">
-                            <option value="checkbox">Checkbox (Sim/Não)</option>
+                        <select id="novoTipoCampo" style="flex:1; min-width:150px; background:#111; color:#fff; border:1px solid #444; border-radius:6px; padding:8px;">
+                            <option value="titulo">Tópico (ex: Dados Pessoais)</option>
                             <option value="texto">Texto curto</option>
                             <option value="textarea">Texto longo</option>
-                            <option value="titulo">Título / Separador</option>
+                            <option value="checkbox">Sim / Não</option>
+                            <option value="checkbox_texto">Sim + "quais?"</option>
+                            <option value="select">Escolha (lista de opções)</option>
+                            <option value="data">Data</option>
+                            <option value="numero">Número</option>
                         </select>
                         <input type="text" id="novoLabelCampo" placeholder="Nome do campo..." style="flex:2; min-width:160px; background:#111; color:#fff; border:1px solid #444; border-radius:6px; padding:8px;">
                         <button type="button" onclick="adicionarCampoEditor()" style="padding:8px 16px; background:var(--gold,#D4AF37); border:none; border-radius:6px; color:#000; font-weight:700; cursor:pointer; white-space:nowrap;">
@@ -1102,9 +1183,7 @@
                 </div>
 
                 <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end; flex-wrap:wrap;">
-                    <button type="button" class="btn-secondary" onclick="restaurarTempladePadrao()">
-                        <i class="fas fa-undo"></i> Restaurar Padrão
-                    </button>
+                    <button type="button" class="btn-secondary" onclick="fecharEditorModelos()">Cancelar</button>
                     <button type="button" class="btn-primary" onclick="salvarTemplate()">
                         <i class="fas fa-save"></i> Salvar Modelo
                     </button>
@@ -1116,14 +1195,14 @@
     <!-- Ficha de Impressão (gerada dinamicamente) -->
     <div id="fichaImpressao" class="print-only-container">
         <div class="print-header">
-            <h1>Agendamento Premium</h1>
-            <p>Ficha de Avaliação e Anamnese</p>
+            <h1 id="printTituloClinica">Estética Premium</h1>
+            <p id="printSubtitulo">Ficha de Avaliação e Anamnese</p>
             <div class="print-meta">
                 <span><strong>Cliente:</strong> <span id="printNomeCliente"></span></span>
                 <span><strong>Data:</strong> <span id="printDataFicha"></span></span>
             </div>
         </div>
-        <!-- Conteúdo gerado dinamicamente por buscarEImprimirFicha() -->
+        <!-- Conteúdo gerado dinamicamente pelo app-anamnese.js -->
         <div id="printBodyDinamico" class="print-body"></div>
     </div>
 
@@ -1363,7 +1442,7 @@
     <script src="js/app-agenda.js?v=15.0"></script>
     <script src="js/app-relatorios.js?v=15.0"></script>
     <script src="js/popular-dados.js?v=15.0"></script>
-    <script src="js/app-anamnese.js?v=16.0"></script>
+    <script src="js/app-anamnese.js?v=17.0"></script>
     <script src="js/perfil.js?v=16.0"></script>
     <script src="js/app.js?v=15.2"></script>
     <script src="js/tour.js?v=1.0"></script>
