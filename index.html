@@ -1195,11 +1195,16 @@
     <!-- Ficha de Impressão (gerada dinamicamente) -->
     <div id="fichaImpressao" class="print-only-container">
         <div class="print-header">
-            <h1 id="printTituloClinica">Estética Premium</h1>
-            <p id="printSubtitulo">Ficha de Avaliação e Anamnese</p>
+            <div class="print-header-topo">
+                <div class="print-header-clinica">
+                    <h1 id="printTituloClinica">Estética Premium</h1>
+                    <p id="printEspecialidade"></p>
+                </div>
+                <p id="printSubtitulo">Ficha de Avaliação e Anamnese</p>
+            </div>
             <div class="print-meta">
-                <span><strong>Cliente:</strong> <span id="printNomeCliente"></span></span>
-                <span><strong>Data:</strong> <span id="printDataFicha"></span></span>
+                <span class="pm-campo pm-cliente"><strong>Cliente:</strong><span id="printNomeCliente"></span></span>
+                <span class="pm-campo pm-data"><strong>Data:</strong><span id="printDataFicha"></span></span>
             </div>
         </div>
         <!-- Conteúdo gerado dinamicamente pelo app-anamnese.js -->

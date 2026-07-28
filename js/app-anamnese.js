@@ -813,6 +813,8 @@ window.removerAnexoFicha = async function(idx) {
 function montarCorpoImpressao(campos, respostas) {
     const emBranco = respostas === null;
     const linha = (n = 1) => '<div class="print-linha"></div>'.repeat(n);
+    // "O que espera alcançar?" não vira "O que espera alcançar?:"
+    const rotulo = (txt) => esc(txt) + (/[?:!]$/.test(String(txt).trim()) ? '' : ':');
 
     let html = '';
     let secaoAberta = false;
@@ -846,28 +848,24 @@ function montarCorpoImpressao(campos, respostas) {
             const marcado  = !emBranco && ehVerdadeiro(respostas[campo.id]);
             const detalhe  = emBranco ? '' : (respostas[campo.id + '__detalhe'] || '');
             const labelCond = campo.labelCondicional || 'Se sim, quais?';
+            const conteudo = (emBranco || !detalhe)
+                ? '<span class="print-linha-flex"></span>'
+                : `<span class="print-valor">${esc(detalhe)}</span>`;
             html += `<div class="print-condicional">
                 <div><span class="print-check">${marcado ? '☒' : '☐'}</span> <strong>${esc(campo.label)}</strong></div>
-                <div class="print-condicional-detalhe">
-                    <em>${esc(labelCond)}</em> ${emBranco || !detalhe ? linha() : esc(detalhe)}
-                </div>
+                <div class="print-condicional-detalhe"><em>${esc(labelCond)}</em>${conteudo}</div>
             </div>`;
             i++;
             continue;
         }
 
         if (campo.tipo === 'select') {
-            if (emBranco) {
-                html += `<div class="print-escolha"><strong>${esc(campo.label)}:</strong> ` +
-                    (campo.opcoes || []).map(o => `<span class="print-opcao"><span class="print-check">☐</span> ${esc(o)}</span>`).join(' ') +
-                    '</div>';
-            } else {
-                html += `<div class="print-escolha"><strong>${esc(campo.label)}:</strong> ` +
-                    ((campo.opcoes || []).length
-                        ? campo.opcoes.map(o => `<span class="print-opcao"><span class="print-check">${String(respostas[campo.id]) === String(o) ? '☒' : '☐'}</span> ${esc(o)}</span>`).join(' ')
-                        : esc(respostas[campo.id] || '')) +
-                    '</div>';
-            }
+            const escolhido = emBranco ? null : respostas[campo.id];
+            html += `<div class="print-escolha"><strong>${rotulo(campo.label)}</strong> ` +
+                ((campo.opcoes || []).length
+                    ? campo.opcoes.map(o => `<span class="print-opcao"><span class="print-check">${String(escolhido) === String(o) ? '☒' : '☐'}</span> ${esc(o)}</span>`).join(' ')
+                    : esc(escolhido || '')) +
+                '</div>';
             i++;
             continue;
         }
@@ -876,11 +874,11 @@ function montarCorpoImpressao(campos, respostas) {
         const valor = campo.tipo === 'data' && bruto ? dataBR(bruto) : bruto;
 
         if (campo.tipo === 'textarea') {
-            html += `<p class="print-campo"><strong>${esc(campo.label)}:</strong></p>` +
+            html += `<p class="print-campo"><strong>${rotulo(campo.label)}</strong></p>` +
                     (valor ? `<p class="print-valor">${esc(valor)}</p>` : linha(3));
         } else {
-            html += `<p class="print-campo"><strong>${esc(campo.label)}:</strong> ` +
-                    (valor ? `<span class="print-valor">${esc(valor)}</span>` : '<span class="print-linha-inline"></span>') +
+            html += `<p class="print-campo print-campo-linha"><strong>${rotulo(campo.label)}</strong>` +
+                    (valor ? `<span class="print-valor">${esc(valor)}</span>` : '<span class="print-linha-flex"></span>') +
                     '</p>';
         }
         i++;
@@ -912,9 +910,11 @@ function blocoAssinatura(assinaturaImg) {
     </div>`;
 }
 
-async function montarCabecalhoImpressao({ titulo, cliente, data }) {
+// cliente/data vazios deixam a linha em branco para preencher à mão (a régua vem do CSS)
+async function montarCabecalhoImpressao({ titulo, cliente = '', data = '' }) {
     const perfil = await getPerfil();
     document.getElementById('printTituloClinica').textContent = perfil.nome || 'Estética Premium';
+    document.getElementById('printEspecialidade').textContent = perfil.especialidade || '';
     document.getElementById('printSubtitulo').textContent = titulo;
     document.getElementById('printNomeCliente').textContent = cliente;
     document.getElementById('printDataFicha').textContent = data;
@@ -979,11 +979,7 @@ window.imprimirModeloEmBranco = async function(templateId) {
     const campos = t.campos || [];
     if (!campos.length) { showToast('Este modelo não tem campos.', 'warning'); return; }
 
-    await montarCabecalhoImpressao({
-        titulo: t.nome,
-        cliente: '_______________________________________',
-        data: '______ / ______ / __________',
-    });
+    await montarCabecalhoImpressao({ titulo: t.nome });
 
     const html = montarCorpoImpressao(campos, null) + blocoAssinatura(null);
     document.getElementById('printBodyDinamico').innerHTML = html;
@@ -995,11 +991,7 @@ window.imprimirEditorEmBranco = async function() {
     if (!camposEditor.length) { showToast('Adicione campos ao modelo primeiro.', 'warning'); return; }
     const nome = document.getElementById('nomeModeloEditor')?.value.trim() || 'Ficha de Anamnese';
 
-    await montarCabecalhoImpressao({
-        titulo: nome,
-        cliente: '_______________________________________',
-        data: '______ / ______ / __________',
-    });
+    await montarCabecalhoImpressao({ titulo: nome });
 
     document.getElementById('printBodyDinamico').innerHTML =
         montarCorpoImpressao(camposEditor, null) + blocoAssinatura(null);
@@ -1331,19 +1323,27 @@ async function gerarHtmlModelo(nomeModelo, campos) {
 
     return `<div class="doc-modelo" style="font-family:Arial,Helvetica,sans-serif; color:#000; font-size:11pt; line-height:1.45;">
     <style>
-        .doc-modelo h1 { font-size:19pt; text-align:center; margin:0 0 4px; text-transform:uppercase; }
-        .doc-modelo .sub { text-align:center; font-style:italic; margin:0 0 10px; }
-        .doc-modelo .meta { border-top:1px solid #999; border-bottom:1px solid #999; padding:7px 0; margin-bottom:16px; font-size:10.5pt; }
+        .doc-modelo h1 { font-size:16pt; text-align:left; margin:0; letter-spacing:0.3px; }
+        .doc-modelo .cab { width:100%; border-collapse:collapse; margin:0; }
+        .doc-modelo .cab td { vertical-align:bottom; padding:0; border:none; }
+        .doc-modelo .cab-esp { font-size:9.5pt; margin-top:2px; }
+        .doc-modelo .cab-dir { text-align:right; font-size:11.5pt; font-weight:bold; text-transform:uppercase; letter-spacing:0.6px; white-space:nowrap; }
+        .doc-modelo .cab-regua { border-bottom:2px solid #000; margin:9px 0 12px; }
+        .doc-modelo .meta { width:100%; border-collapse:collapse; margin-bottom:18px; font-size:10.5pt; }
+        .doc-modelo .meta td { padding:0 14px 0 0; border:none; }
+        .doc-modelo .meta .linha { display:inline-block; border-bottom:1px solid #333; height:14px; }
         .doc-modelo .print-section { margin-bottom:16px; page-break-inside:avoid; }
         .doc-modelo .print-section h3 { font-size:12pt; text-transform:uppercase; background:#eee; padding:4px 8px; border-left:4px solid #333; margin:0 0 8px; }
         .doc-modelo .print-campo { margin:0 0 7px; }
         .doc-modelo .print-linha { border-bottom:1px solid #888; height:17px; margin:5px 0; }
-        .doc-modelo .print-linha-inline { display:inline-block; border-bottom:1px solid #888; width:58%; height:13px; }
+        /* inline-block em vez de flex: o Word nao renderiza flexbox */
+        .doc-modelo .print-linha-flex { display:inline-block; border-bottom:1px solid #888; width:55%; height:13px; }
         .doc-modelo .print-grid div { display:inline-block; min-width:47%; margin:3px 0; }
         .doc-modelo .print-check { font-family:"Courier New",monospace; font-size:13pt; font-weight:bold; }
         .doc-modelo .print-condicional { margin:7px 0; }
         .doc-modelo .print-condicional-detalhe { margin-left:22px; font-size:10pt; }
-        .doc-modelo .print-opcao { margin-right:14px; white-space:nowrap; }
+        .doc-modelo .print-escolha > strong { margin-right:8px; }
+        .doc-modelo .print-opcao { display:inline-block; margin:0 16px 2px 0; white-space:nowrap; }
         .doc-modelo .legal-text-small { font-size:9pt; font-style:italic; }
         .doc-modelo .print-assinaturas { display:flex; justify-content:space-around; gap:30px; margin-top:26px; text-align:center; }
         .doc-modelo .print-assinatura { flex:1; }
@@ -1351,12 +1351,18 @@ async function gerarHtmlModelo(nomeModelo, campos) {
         .doc-modelo .print-assinatura-espaco { height:58px; }
         .doc-modelo .print-assinatura-linha { border-top:1px solid #000; margin:2px auto 4px; width:90%; }
     </style>
-    <h1>${esc(perfil.nome || 'Estética Premium')}</h1>
-    <p class="sub">${esc(nomeModelo)}</p>
-    <div class="meta">
-        <strong>Cliente:</strong> ______________________________________________
-        &nbsp;&nbsp;<strong>Data:</strong> ______ / ______ / __________
-    </div>
+    <table class="cab"><tr>
+        <td>
+            <h1>${esc(perfil.nome || 'Estética Premium')}</h1>
+            ${perfil.especialidade ? `<div class="cab-esp">${esc(perfil.especialidade)}</div>` : ''}
+        </td>
+        <td class="cab-dir">${esc(nomeModelo)}</td>
+    </tr></table>
+    <div class="cab-regua"></div>
+    <table class="meta"><tr>
+        <td style="width:64%"><strong>Cliente:</strong> <span class="linha" style="width:78%"></span></td>
+        <td style="width:36%"><strong>Data:</strong> <span class="linha" style="width:72%"></span></td>
+    </tr></table>
     ${corpo}
     ${blocoAssinatura(null)}
 </div>`;

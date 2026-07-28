@@ -301,12 +301,6 @@
         height: 18px;
         margin: 6px 0;
     }
-    .print-linha-inline {
-        display: inline-block;
-        border-bottom: 1px solid #777;
-        width: 55%;
-        height: 13px;
-    }
     .print-check {
         font-family: "Courier New", monospace;
         font-size: 13pt;
@@ -314,15 +308,104 @@
         margin-right: 4px;
     }
     .print-campo { margin: 0 0 7px; }
-    .print-condicional { margin: 8px 0; }
+
+    /* Rótulo e régua na mesma linha, régua ocupando o espaço que sobra */
+    .print-campo-linha {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+    .print-campo-linha > strong { white-space: nowrap; }
+    .print-linha-flex {
+        flex: 1;
+        border-bottom: 1px solid #777;
+        height: 13px;
+        min-width: 60px;
+    }
+
+    .print-condicional { margin: 7px 0 9px; }
     .print-condicional-detalhe {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
         margin-left: 22px;
         font-size: 10pt;
     }
+    .print-condicional-detalhe > em { white-space: nowrap; }
     .print-escolha { margin: 0 0 8px; }
-    .print-opcao { margin-right: 14px; white-space: nowrap; }
+    .print-escolha > strong { margin-right: 8px; }
+    .print-opcao {
+        display: inline-block;
+        margin: 0 16px 2px 0;
+        white-space: nowrap;
+    }
     .print-section ul { margin: 0 0 0 18px; }
     .legal-text-small { font-size: 9pt; font-style: italic; }
+
+    /* Cabeçalho: profissional à esquerda, nome da ficha à direita */
+    .print-header {
+        text-align: left;
+        border-bottom: 2px solid #000;
+        margin-bottom: 18px;
+        padding-bottom: 9px;
+    }
+    .print-header-topo {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 20px;
+    }
+    .print-header h1 {
+        font-size: 16pt !important;
+        text-transform: none;
+        text-align: left;
+        margin: 0;
+        letter-spacing: 0.3px;
+        line-height: 1.15;
+    }
+    .print-header-clinica p {
+        font-size: 9.5pt;
+        font-style: normal;
+        margin: 2px 0 0;
+        text-align: left;
+        letter-spacing: 0.3px;
+    }
+    #printSubtitulo {
+        font-size: 11.5pt !important;
+        font-style: normal;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin: 0;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    /* Cliente / Data: régua desenhada em CSS, sem underscore digitado */
+    .print-meta {
+        display: flex;
+        gap: 26px;
+        align-items: baseline;
+        border-top: none;
+        margin-top: 12px;
+        padding-top: 0;
+        font-size: 10.5pt;
+        font-weight: 400;
+    }
+    .pm-campo {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+    }
+    .pm-cliente { flex: 1 1 auto; }
+    .pm-data    { flex: 0 0 30%; }
+    .pm-campo > strong { white-space: nowrap; }
+    .pm-campo > span {
+        flex: 1;
+        border-bottom: 1px solid #333;
+        min-height: 1.15em;
+        padding: 0 4px;
+    }
 
     .print-assinaturas {
         display: flex;
