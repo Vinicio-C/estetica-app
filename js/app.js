@@ -2962,12 +2962,21 @@ window.abrirCheckoutStripe = async function(event) {
             headers: { Authorization: `Bearer ${session.access_token}` }
         });
 
-        if (error || !data?.url) throw new Error(error?.message || 'Erro ao criar checkout');
+        if (error || !data?.url) {
+            // O supabase-js só devolve "non-2xx status code"; a mensagem real do
+            // Stripe vem no corpo da resposta, guardado em error.context.
+            let detalhe = error?.message || 'Erro ao criar checkout';
+            try {
+                const corpo = await error?.context?.json();
+                if (corpo?.error) detalhe = corpo.error;
+            } catch (_) { /* corpo não era JSON */ }
+            throw new Error(detalhe);
+        }
 
         window.location.href = data.url;
     } catch (err) {
-        console.error(err);
-        if(typeof showToast === 'function') showToast('Erro ao redirecionar para o pagamento. Tente novamente.', 'error');
+        console.error('Falha no checkout:', err.message);
+        if(typeof showToast === 'function') showToast('Erro ao abrir o pagamento: ' + err.message, 'error', 9000);
         if (btn) { btn.textContent = 'Assinar por R$ 29,99/mês'; btn.disabled = false; }
     }
 };
