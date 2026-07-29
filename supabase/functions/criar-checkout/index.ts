@@ -39,6 +39,18 @@ serve(async (req) => {
 
     let customerId = perfil?.stripe_customer_id
 
+    // Um customer criado no sandbox não existe na conta de produção (e vice-versa).
+    // Sem esta checagem, trocar de ambiente quebra o checkout com "No such customer".
+    if (customerId) {
+      try {
+        const existente = await stripe.customers.retrieve(customerId)
+        if ((existente as any).deleted) customerId = null
+      } catch (_) {
+        console.warn(`Customer ${customerId} não existe neste ambiente do Stripe — criando outro`)
+        customerId = null
+      }
+    }
+
     // Cria o customer no Stripe se ainda não existir
     if (!customerId) {
       const customer = await stripe.customers.create({
