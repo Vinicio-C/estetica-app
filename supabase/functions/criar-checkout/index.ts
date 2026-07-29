@@ -57,26 +57,43 @@ serve(async (req) => {
 
     const origin = req.headers.get('origin') ?? 'https://esteticaapp.com.br'
 
-    // Cria a sessão de checkout com o preço mensal de R$29,99
-    // Sem `payment_method_types`: assim o Stripe usa os métodos habilitados no
-    // painel (cartão, Apple Pay, Google Pay, Link e boleto) e filtra sozinho os
-    // que funcionam em assinatura. Fixar a lista aqui sobrescreve o painel.
-    const session = await stripe.checkout.sessions.create({
+    // O boleto só é oferecido pelo Stripe quando ele sabe que a cliente está no
+    // Brasil. Sem endereço no customer, o filtro automático descartava o boleto
+    // e sobrava só cartão — por isso a lista vai explícita aqui.
+    // Apple Pay, Google Pay e Link não entram na lista: são carteiras que
+    // andam junto com 'card' e aparecem sozinhas no aparelho compatível.
+    const opcoesBase = {
       customer: customerId,
-      mode: 'subscription',
+      mode: 'subscription' as const,
       line_items: [{
         price: Deno.env.get('STRIPE_PRICE_ID') ?? '',
         quantity: 1,
       }],
-      // Boleto: o Stripe envia um novo por email a cada ciclo da assinatura
-      payment_method_options: {
-        boleto: { expires_after_days: 3 },
-      },
       success_url: `${origin}/index.html?plano=sucesso`,
       cancel_url: `${origin}/index.html?plano=cancelado`,
-      locale: 'pt-BR',
+      locale: 'pt-BR' as const,
       metadata: { supabase_user_id: user.id },
-    })
+    }
+
+    let session
+    try {
+      session = await stripe.checkout.sessions.create({
+        ...opcoesBase,
+        payment_method_types: ['card', 'boleto'],
+        // O Stripe envia um novo boleto por email a cada ciclo da assinatura
+        payment_method_options: {
+          boleto: { expires_after_days: 3 },
+        },
+      })
+    } catch (erroBoleto) {
+      // Se a conta não puder emitir boleto, não deixa o checkout inteiro cair:
+      // volta para cartão (e carteiras) para não perder a venda.
+      console.error('Checkout com boleto falhou, usando só cartão:', erroBoleto.message)
+      session = await stripe.checkout.sessions.create({
+        ...opcoesBase,
+        payment_method_types: ['card'],
+      })
+    }
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
