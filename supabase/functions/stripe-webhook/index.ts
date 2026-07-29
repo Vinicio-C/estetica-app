@@ -14,17 +14,22 @@ serve(async (req) => {
 
   const signature = req.headers.get('stripe-signature')
   const body = await req.text()
+  const segredo = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? ''
 
   let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature ?? '',
-      Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? ''
-    )
+    // constructEvent (síncrono) depende do crypto do Node e não funciona no
+    // runtime Deno das Edge Functions — a verificação falha sempre.
+    // A versão Async usa o SubtleCrypto, que existe aqui.
+    event = await stripe.webhooks.constructEventAsync(body, signature ?? '', segredo)
   } catch (err) {
+    // Diagnóstico sem vazar o segredo: só formato e tamanho
     console.error('Webhook signature invalida:', err.message)
+    console.error('Diagnostico -> segredo definido:', segredo.length > 0,
+      '| prefixo whsec_:', segredo.startsWith('whsec_'),
+      '| tamanho:', segredo.length,
+      '| header stripe-signature presente:', Boolean(signature))
     return new Response(`Webhook Error: ${err.message}`, { status: 400 })
   }
 
