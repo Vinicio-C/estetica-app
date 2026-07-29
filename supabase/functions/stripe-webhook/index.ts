@@ -39,23 +39,30 @@ serve(async (req) => {
     switch (event.type) {
       case 'invoice.paid': {
         // Pagamento realizado — ativa o plano
-        const invoice = event.data.object as Stripe.Invoice
-        const customerId = invoice.customer as string
+        const invoice = event.data.object as any
+        const dados: Record<string, string> = { plano_status: 'ativo' }
+        const idAssinatura = assinaturaDaFatura(invoice)
+        if (idAssinatura) dados.stripe_subscription_id = idAssinatura
 
-        await atualizarPlanoPorCustomer(supabase, customerId, {
-          plano_status: 'ativo',
-          stripe_subscription_id: invoice.subscription as string,
-        })
+        await atualizarPlanoPorCustomer(supabase, invoice.customer as string, dados)
         break
       }
 
-      case 'customer.subscription.deleted':
       case 'invoice.payment_failed': {
-        // Assinatura cancelada ou pagamento falhou — bloqueia o acesso
-        const obj = event.data.object as Stripe.Subscription | Stripe.Invoice
-        const customerId = (obj as any).customer as string
+        // Com boleto, a fatura "falha" no instante em que o boleto é emitido e
+        // ainda não foi pago. Bloquear aqui tirava o acesso de quem acabou de
+        // assinar e tem até 3 dias para pagar.
+        // Quem decide a expiração é o ciclo de vida da assinatura (canceled /
+        // unpaid / deleted), depois que o Stripe esgota as tentativas.
+        const invoice = event.data.object as any
+        console.log(`Pagamento pendente na fatura ${invoice.id} — acesso mantido, aguardando o status da assinatura`)
+        break
+      }
 
-        await atualizarPlanoPorCustomer(supabase, customerId, {
+      case 'customer.subscription.deleted': {
+        // Assinatura encerrada de fato — bloqueia o acesso
+        const subscription = event.data.object as Stripe.Subscription
+        await atualizarPlanoPorCustomer(supabase, subscription.customer as string, {
           plano_status: 'expirado',
         })
         break
@@ -92,6 +99,16 @@ serve(async (req) => {
     status: 200,
   })
 })
+
+// A partir da API 2025-03-31 o campo `invoice.subscription` saiu do topo e foi
+// para `invoice.parent.subscription_details.subscription`. Este endpoint entrega
+// eventos na versão 2026-04-22.dahlia, então o campo antigo vem vazio.
+// Aceita os dois formatos para não depender da versão configurada no Stripe.
+function assinaturaDaFatura(invoice: any): string | null {
+  return invoice?.parent?.subscription_details?.subscription
+      ?? invoice?.subscription
+      ?? null
+}
 
 async function atualizarPlanoPorCustomer(
   supabase: ReturnType<typeof createClient>,
