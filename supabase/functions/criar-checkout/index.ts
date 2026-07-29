@@ -58,14 +58,20 @@ serve(async (req) => {
     const origin = req.headers.get('origin') ?? 'https://esteticaapp.com.br'
 
     // Cria a sessão de checkout com o preço mensal de R$29,99
+    // Sem `payment_method_types`: assim o Stripe usa os métodos habilitados no
+    // painel (cartão, Apple Pay, Google Pay, Link e boleto) e filtra sozinho os
+    // que funcionam em assinatura. Fixar a lista aqui sobrescreve o painel.
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
-      payment_method_types: ['card'],
       line_items: [{
         price: Deno.env.get('STRIPE_PRICE_ID') ?? '',
         quantity: 1,
       }],
+      // Boleto: o Stripe envia um novo por email a cada ciclo da assinatura
+      payment_method_options: {
+        boleto: { expires_after_days: 3 },
+      },
       success_url: `${origin}/index.html?plano=sucesso`,
       cancel_url: `${origin}/index.html?plano=cancelado`,
       locale: 'pt-BR',

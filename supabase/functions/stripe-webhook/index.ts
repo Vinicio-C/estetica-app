@@ -59,11 +59,19 @@ serve(async (req) => {
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
+        const status = subscription.status
 
-        // Se a assinatura foi pausada ou o status não é mais ativo
-        const novoStatus = subscription.status === 'active' ? 'ativo' : 'expirado'
+        // 'incomplete' e 'past_due' são transitórios: com boleto a assinatura
+        // fica assim até o pagamento compensar (até 3 dias). Expirar aqui
+        // bloquearia justamente quem acabou de assinar e ainda vai pagar.
+        if (status === 'incomplete' || status === 'past_due') {
+          console.log(`Assinatura ${subscription.id} em "${status}" — aguardando compensação, acesso mantido`)
+          break
+        }
+
+        const ativo = status === 'active' || status === 'trialing'
         await atualizarPlanoPorCustomer(supabase, customerId, {
-          plano_status: novoStatus,
+          plano_status: ativo ? 'ativo' : 'expirado',
           stripe_subscription_id: subscription.id,
         })
         break

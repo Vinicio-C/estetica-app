@@ -2916,7 +2916,14 @@ function aplicarEstadoPlano(plano) {
     // Verificar se veio de um pagamento bem-sucedido pelo Stripe
     const params = new URLSearchParams(window.location.search);
     if (params.get('plano') === 'sucesso') {
-        showToast('Pagamento confirmado! Seu plano está ativo.', 'success');
+        // Boleto não compensa na hora, e mesmo no cartão o webhook pode chegar
+        // depois do redirect — só confirmamos se o plano já estiver ativo.
+        const jaAtivo = plano === 'ativo' || plano === 'vitalicio';
+        if (jaAtivo) {
+            showToast('Pagamento confirmado! Seu plano está ativo.', 'success');
+        } else {
+            showToast('Assinatura registrada! Se você pagou por boleto, ele foi enviado para o seu email — o acesso é liberado assim que o pagamento compensar.', 'info', 9000);
+        }
         window.history.replaceState({}, '', 'index.html');
     }
 
