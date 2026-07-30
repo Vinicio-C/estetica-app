@@ -2727,3 +2727,51 @@ canvas {
 }
 .btn-whatsapp-todos:hover { background: rgba(37, 211, 102, 0.28); }
 .btn-whatsapp-todos:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Opção de aviso por e-mail no perfil.
+   O `input { width:100% }` global também pega checkbox, por isso o tamanho fixo. */
+.switch-notificacao {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 0;
+    cursor: pointer;
+    text-transform: none;
+    transition: border-color 0.15s, background 0.15s;
+}
+.switch-notificacao input[type="checkbox"] {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    padding: 0;
+    margin: 2px 0 0;
+    accent-color: var(--gold);
+    cursor: pointer;
+}
+.switch-notificacao strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.switch-notificacao small {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 400;
+    text-transform: none;
+    margin-top: 3px;
+    line-height: 1.45;
+}
+.switch-notificacao:hover { border-color: #4d4d4d; }
+.switch-notificacao:has(input:checked) {
+    border-color: rgba(212, 175, 55, 0.5);
+    background: rgba(212, 175, 55, 0.06);
+}

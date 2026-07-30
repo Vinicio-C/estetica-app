@@ -330,6 +330,17 @@ async function finalizarAgendamento(e) {
         const { error: erroAgenda } = await _supabase.from('agendamentos').insert(payload);
         if (erroAgenda) throw erroAgenda;
 
+        // B2. Avisa a profissional por email. Sem await e com catch próprio:
+        // se o email falhar, o agendamento já está salvo e a cliente não pode
+        // ver erro nenhum por causa disso.
+        _supabase.functions.invoke('notificar-agendamento', {
+            body: {
+                user_id: state.doutoraId,
+                data: state.dataSelecionada,
+                hora: state.horaSelecionada,
+            }
+        }).catch(err => console.warn('Falha ao avisar a profissional:', err));
+
         // C. Sucesso
         document.getElementById('nomeSucesso').textContent = nome;
         document.getElementById('servicoSucesso').textContent = state.servicoSelecionado.nome;

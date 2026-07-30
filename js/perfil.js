@@ -121,6 +121,8 @@ window.carregarDadosPerfil = async function() {
             document.getElementById('profNome').value = perfil.nome || '';
             document.getElementById('profEspecialidade').value = perfil.especialidade || '';
             document.getElementById('profTelefone').value = mascaraTelefone(perfil.telefone || '');
+            const chkNotif = document.getElementById('profNotificarAgendamento');
+            if (chkNotif) chkNotif.checked = perfil.notificar_novo_agendamento !== false;
             document.getElementById('headerNome').textContent = perfil.nome || 'Doutora';
             if (perfil.foto_url && window.atualizarAvatarNaTela) {
                 window.atualizarAvatarNaTela(perfil.foto_url);
@@ -207,7 +209,8 @@ window.salvarPerfilReal = async function(event) {
             complemento: document.getElementById('profComplemento').value,
             bairro: document.getElementById('profBairro').value,
             cidade: document.getElementById('profCidade').value,
-            estado: document.getElementById('profEstado').value.toUpperCase()
+            estado: document.getElementById('profEstado').value.toUpperCase(),
+            notificar_novo_agendamento: document.getElementById('profNotificarAgendamento')?.checked ?? true
         };
 
         const { error } = await _supabase.from('profiles').upsert(dados);
