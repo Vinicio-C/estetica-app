@@ -2511,8 +2511,13 @@ window.dispararEmailAutomatico = async function(emailCliente, nomeCliente, dataH
             .replace(/{hora}/g, horaApenas)
             .replace(/{servico}/g, procedimento);
 
+        // A função exige sessão autenticada e só envia para clientes da própria
+        // profissional. O reply_to é definido no servidor, a partir do JWT.
+        const { data: { session } } = await _supabase.auth.getSession();
+
         const { data, error } = await _supabase.functions.invoke('enviar-email', {
-            body: { para: emailCliente, reply_to: user.email, assunto: assuntoFinal, corpo: corpoFinal }
+            headers: { Authorization: `Bearer ${session?.access_token}` },
+            body: { para: emailCliente, assunto: assuntoFinal, corpo: corpoFinal }
         });
 
         if (error) console.error("Erro ao chamar Edge Function:", error);
