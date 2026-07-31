@@ -47,7 +47,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <!-- CSS -->
-    <link rel="stylesheet" href="css/style.css?v=7.1">
+    <link rel="stylesheet" href="css/style.css?v=7.2">
     <link rel="stylesheet" href="css/anamnese.css?v=2.0">
 
     <style>
@@ -152,7 +152,14 @@
             <button onclick="abrirCheckoutStripe(event)" style="width:100%; padding:16px; background:linear-gradient(135deg,#D4AF37,#b8960f); border:none; border-radius:8px; color:#000; font-weight:700; font-size:1.05rem; cursor:pointer; margin-bottom:14px;">
                 <i class="fas fa-credit-card"></i> Assinar por R$ 29,99/mês
             </button>
-            <p style="color:#555; font-size:0.8rem; margin:0;">Cancele quando quiser. Sem taxa de adesão.</p>
+            <p style="color:#555; font-size:0.8rem; margin:0 0 22px;">Cancele quando quiser. Sem taxa de adesão.</p>
+
+            <div style="border-top:1px solid #2e2e2e; padding-top:18px;">
+                <p id="planoExpiradoConta" style="color:#666; font-size:0.78rem; margin:0 0 12px; word-break:break-all;"></p>
+                <button type="button" class="btn-sair-expirado" onclick="fazerLogout(event)">
+                    <i class="fas fa-sign-out-alt"></i> Sair da conta
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1459,7 +1466,7 @@
     <script src="js/popular-dados.js?v=15.0"></script>
     <script src="js/app-anamnese.js?v=18.0"></script>
     <script src="js/perfil.js?v=17.0"></script>
-    <script src="js/app.js?v=15.5"></script>
+    <script src="js/app.js?v=15.6"></script>
     <script src="js/tour.js?v=1.0"></script>
     <script>
         window.fazerLogout = async function(event) {

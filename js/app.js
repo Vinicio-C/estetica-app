@@ -2941,6 +2941,13 @@ function aplicarEstadoPlano(plano) {
     if (plano === 'expirado') {
         banner.style.display = 'none';
         modal.style.display = 'flex';
+
+        // O modal cobre a tela inteira, então mostramos de qual conta ela sairia
+        // ao clicar em "Sair" — sem isso, trocar de conta seria às cegas.
+        _supabase.auth.getUser().then(({ data }) => {
+            const alvo = document.getElementById('planoExpiradoConta');
+            if (alvo && data?.user?.email) alvo.textContent = `Conectada como ${data.user.email}`;
+        }).catch(() => {});
         return;
     }
 
