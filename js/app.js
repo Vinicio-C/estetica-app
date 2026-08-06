@@ -2099,11 +2099,20 @@ async function uploadFotoPerfil(event) {
     const iconDiv = document.getElementById('avatarDefaultIcon');
     iconDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // Loading
 
+    // Guarda a foto atual para apagar depois que a nova entrar no lugar
+    let fotoAnterior = null;
     try {
-        // 2. Nome do arquivo único (evita cache)
-        // Cria: avatar_IDDOUSUARIO_TIMESTAMP.png
+        const { data: perfilAtual } = await _supabase
+            .from('profiles').select('foto_url').eq('id', user.id).maybeSingle();
+        fotoAnterior = perfilAtual?.foto_url || null;
+    } catch (_) { /* seguir mesmo assim */ }
+
+    try {
+        // 2. Sempre dentro da pasta da própria usuária: é isso que as policies
+        // do bucket checam para ninguém sobrescrever a foto de outra.
+        // O timestamp evita cache do navegador.
         const fileExt = file.name.split('.').pop();
-        const fileName = `avatar_${user.id}_${Date.now()}.${fileExt}`;
+        const fileName = `${user.id}/avatar_${Date.now()}.${fileExt}`;
 
         // 3. Envia para o Supabase Storage
         const { error: uploadError } = await _supabase.storage
@@ -2131,6 +2140,19 @@ async function uploadFotoPerfil(event) {
         // 6. Atualiza a tela imediatamente
         atualizarAvatarNaTela(publicUrl);
         showToast('Foto atualizada com sucesso!', 'success');
+
+        // 7. Apaga a foto antiga. Sem isso cada troca deixa mais um arquivo
+        // público no bucket, para sempre. Falha aqui não atrapalha o upload.
+        if (fotoAnterior && fotoAnterior !== publicUrl) {
+            const marcador = '/avatars/';
+            const corte = fotoAnterior.indexOf(marcador);
+            if (corte !== -1) {
+                const caminhoAntigo = decodeURIComponent(fotoAnterior.slice(corte + marcador.length).split('?')[0]);
+                _supabase.storage.from('avatars').remove([caminhoAntigo])
+                    .then(({ error }) => error && console.warn('Foto antiga não removida:', error.message))
+                    .catch(() => {});
+            }
+        }
 
     } catch (error) {
         console.error("Erro no upload:", error);
