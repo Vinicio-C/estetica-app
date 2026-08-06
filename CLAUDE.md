@@ -58,6 +58,31 @@ Leitura é feita via `createSignedUrl` (1h) — nunca URL pública.
 - Página pública (`agendar.html`) opera sem login via `?ref=user_id`
 - O `fetchAPI` chama `select('*')` sem filtro — o isolamento é feito pelo RLS no banco
 
+## Página pública — acesso via RPC (não mexer sem ler isto)
+Migrações: `agenda_publica_rpcs`, `agenda_publica_criar_agendamento`, `rls_fecha_leitura_anonima`
+
+O anônimo **não tem mais SELECT/INSERT/UPDATE em nenhuma tabela**. Antes existiam policies com `USING ((auth.uid() IS NULL) OR (auth.uid() = user_id))` — o primeiro ramo significa "se não estiver logado, veja tudo", e com a chave publicável (visível no fonte da página) dava para ler 78 clientes com CPF, 519 agendamentos e o `zapi_token` das profissionais.
+
+`agendar.html` usa só estas funções `SECURITY DEFINER`, todas escopadas ao `?ref=`:
+
+| Função | Devolve |
+|---|---|
+| `agenda_perfil_publico(user_id)` | nome, especialidade, endereço — **nunca** zapi_token/Stripe |
+| `agenda_servicos_publicos(user_id)` | serviços daquela profissional |
+| `agenda_disponibilidade_publica(user_id, dia_semana)` | regra do dia |
+| `agenda_horarios_ocupados(user_id, data)` | só `hora` e `duracao` |
+| `agenda_buscar_cliente(user_id, email)` | reconhece cliente, dentro do tenant |
+| `agenda_criar_agendamento(...)` | cria cliente + agendamento |
+
+`agenda_criar_agendamento` valida o serviço, recusa horário ocupado e tira `valor`/`duracao` do cadastro — o navegador não define preço.
+
+## Proteção do plano (`profiles`)
+Migração: `profiles_protege_campos_de_assinatura`
+
+Trigger `profiles_protege_assinatura` reverte `plano_status`, `trial_expira_em`, `stripe_customer_id` e `stripe_subscription_id` quando quem edita é `authenticated`. Service role (webhook do Stripe) e acesso via SQL passam.
+
+**Por que trigger e não policy:** existia `profiles_update_own` tentando isso, mas era PERMISSIVE e convivia com `Doutora gerencia seu perfil` (ALL, também PERMISSIVE). Postgres faz **OR** entre policies permissivas — bastava uma autorizar, e a profissional conseguia se dar plano vitalício. A policy foi removida por criar confiança falsa.
+
 ## RLS — estado atual (após correções desta sessão)
 Migração aplicada: `fix_rls_multitenant_isolation`
 

@@ -47,12 +47,9 @@ async function carregarServicos() {
     if(!container) return;
     
     try {
-        let query = _supabase.from('servicos').select('*').order('nome');
-        if (state.doutoraId) {
-            query = query.eq('user_id', state.doutoraId);
-        }
-
-        const { data, error } = await query;
+        // Via RPC: o anônimo não tem mais leitura direta das tabelas
+        const { data, error } = await _supabase
+            .rpc('agenda_servicos_publicos', { p_user_id: state.doutoraId });
         if (error) throw error;
 
         container.innerHTML = '';
@@ -96,19 +93,14 @@ async function carregarHorariosDisponiveis() {
         // ------------------------------------------------
 
         // 1. Busca regra de horário (Filtrando pela Doutora)
-        let queryRegra = _supabase
-            .from('disponibilidade')
-            .select('*')
-            .eq('dia_semana', diaSemana); // Usa a variável diaSemana aqui
-
-        if (state.doutoraId) {
-            queryRegra = queryRegra.eq('user_id', state.doutoraId);
-        }
-
-        // Usa maybeSingle para não dar erro se não achar regra
-        const { data: regra, error: errRegra } = await queryRegra.maybeSingle();
+        const { data: regras, error: errRegra } = await _supabase
+            .rpc('agenda_disponibilidade_publica', {
+                p_user_id: state.doutoraId,
+                p_dia_semana: diaSemana
+            });
 
         if (errRegra) throw errRegra;
+        const regra = regras && regras[0];
 
         // Se não tiver regra ou estiver fechado (ativo = false)
         if (!regra || !regra.ativo) {
@@ -116,18 +108,13 @@ async function carregarHorariosDisponiveis() {
             return;
         }
 
-        // 2. Busca agendamentos ocupados com duração (Filtrando pela Doutora)
-        let queryOcup = _supabase
-            .from('agendamentos')
-            .select('hora, duracao')
-            .eq('data', state.dataSelecionada)
-            .neq('status', 'cancelado');
-
-        if (state.doutoraId) {
-            queryOcup = queryOcup.eq('user_id', state.doutoraId);
-        }
-
-        const { data: ocupados, error: errOcup } = await queryOcup;
+        // 2. Busca agendamentos ocupados com duração (Filtrando pela Doutora).
+        // A RPC devolve só hora e duração — quem visita não vê de quem é o horário.
+        const { data: ocupados, error: errOcup } = await _supabase
+            .rpc('agenda_horarios_ocupados', {
+                p_user_id: state.doutoraId,
+                p_data: state.dataSelecionada
+            });
         if (errOcup) throw errOcup;
 
         // Duração do serviço que o cliente está selecionando
@@ -215,14 +202,15 @@ async function verificarEmail() {
     feedback.textContent = 'Verificando cadastro...';
 
     try {
-        // Busca cliente por email
-        const { data, error } = await _supabase
-            .from('clientes')
-            .select('*')
-            .eq('email', email)
-            .maybeSingle();
+        // Busca cliente por email, apenas entre as clientes desta profissional
+        const { data: achados, error } = await _supabase
+            .rpc('agenda_buscar_cliente', {
+                p_user_id: state.doutoraId,
+                p_email: email
+            });
 
         if (error) throw error;
+        const data = achados && achados[0];
 
         if (data) {
             // ENCONTROU! Preenche os dados
@@ -268,66 +256,24 @@ async function finalizarAgendamento(e) {
     const cpf = document.getElementById('clienteCpf').value.trim();
     const nascimento = document.getElementById('clienteNascimento').value;
     
-    // Verifica se já temos um ID vindo da verificação de email
-    let clienteId = document.getElementById('clienteIdExistente').value;
-
     try {
         if (!state.servicoSelecionado) throw new Error("Serviço inválido.");
 
-        // A. Gestão do Cliente
-        if (clienteId) {
-            // Cliente JÁ EXISTE: Atualiza os dados (caso ela tenha mudado o telefone)
-            await _supabase.from('clientes').update({ 
-                telefone, nome, cpf, data_nascimento: nascimento || null 
-            }).eq('id', clienteId);
-        } else {
-            // Cliente NOVO: Cria do zero
-            // Tenta buscar por telefone antes, só por segurança
-            const { data: clienteTel } = await _supabase
-                .from('clientes').select('id').eq('telefone', telefone).maybeSingle();
+        // Cadastro da cliente e agendamento são feitos numa única chamada no
+        // servidor. O valor e a duração vêm do cadastro do serviço, e não daqui —
+        // e o anônimo não precisa mais de acesso direto às tabelas.
+        const { error: erroAgenda } = await _supabase.rpc('agenda_criar_agendamento', {
+            p_user_id:    state.doutoraId,
+            p_servico_id: state.servicoSelecionado.id,
+            p_data:       state.dataSelecionada,
+            p_hora:       state.horaSelecionada,
+            p_nome:       nome,
+            p_telefone:   telefone,
+            p_email:      email || null,
+            p_cpf:        cpf || null,
+            p_nascimento: nascimento || null
+        });
 
-            if (clienteTel) {
-                clienteId = clienteTel.id;
-                // Atualiza com o novo email
-                await _supabase.from('clientes').update({ email, nome, cpf, data_nascimento: nascimento || null }).eq('id', clienteId);
-            } else {
-                const { data: novo, error: errCriar } = await _supabase
-                    .from('clientes')
-                    .insert({ 
-                        nome, email, telefone, cpf, 
-                        data_nascimento: nascimento || null,
-                        user_id: state.doutoraId // <--- IMPORTANTE
-                    })
-                    .select().single();
-                
-                if (errCriar) throw errCriar;
-                clienteId = novo.id;
-            }
-        }
-
-        // B. Cria o Agendamento
-        const payload = {
-            cliente_id: clienteId,
-            servico_id: state.servicoSelecionado.id,
-            user_id: state.doutoraId,
-            
-            // Dados Textuais (Backup)
-            cliente_nome: nome,
-            servico_nome: state.servicoSelecionado.nome,
-            tipo: 'servico',
-            
-            // Financeiro
-            valor: state.servicoSelecionado.valor,
-            status: 'pendente',
-            status_pagamento: 'pendente',
-            
-            // Agenda
-            data: state.dataSelecionada,
-            hora: state.horaSelecionada,
-            observacoes: 'Agendamento pelo Site'
-        };
-
-        const { error: erroAgenda } = await _supabase.from('agendamentos').insert(payload);
         if (erroAgenda) throw erroAgenda;
 
         // B2. Avisa a profissional por email. Sem await e com catch próprio:
@@ -361,11 +307,11 @@ async function finalizarAgendamento(e) {
 // --- 5. LOCALIZAÇÃO DA PROFISSIONAL ---
 async function carregarPerfilProfissional() {
     try {
-        const { data: perfil } = await _supabase
-            .from('profiles')
-            .select('nome, especialidade, cep, endereco, numero, complemento, bairro, cidade, estado')
-            .eq('id', state.doutoraId)
-            .maybeSingle();
+        // RPC devolve só os campos públicos — nunca zapi_token ou dados do Stripe
+        const { data: perfis } = await _supabase
+            .rpc('agenda_perfil_publico', { p_user_id: state.doutoraId });
+
+        const perfil = perfis && perfis[0];
 
         if (perfil) {
             if (perfil.nome) {
