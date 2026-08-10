@@ -1,4 +1,4 @@
-const APP_CACHE = 'estetica-app-v6';
+const APP_CACHE = 'estetica-app-v7';
 const CDN_CACHE = 'estetica-cdn-v1';
 
 // Arquivos locais do app — ficam em cache para funcionar offline
@@ -8,6 +8,9 @@ const APP_ASSETS = [
     './css/style.css',
     './css/anamnese.css',
     './js/app.js',
+    './js/financeiro-core.js',
+    './js/app-relatorios.js',
+    './js/perfil.js',
     './js/app-agenda.js',
     './js/app-anamnese.js',
     './js/supabase-client.js',

@@ -400,6 +400,26 @@
         white-space: nowrap;
     }
     .print-section ul { margin: 0 0 0 18px; }
+
+    /* Tabelas do relatório impresso */
+    .print-tabela {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10pt;
+    }
+    .print-tabela th {
+        text-align: left;
+        border-bottom: 1.5px solid #333;
+        padding: 5px 6px;
+        font-size: 9.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .print-tabela td {
+        padding: 4px 6px;
+        border-bottom: 1px solid #ddd;
+    }
+    .print-tabela tr { break-inside: avoid; page-break-inside: avoid; }
     .legal-text-small { font-size: 9pt; font-style: italic; }
 
     /* Cabeçalho: profissional à esquerda, nome da ficha à direita */

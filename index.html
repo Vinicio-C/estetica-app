@@ -453,7 +453,7 @@
                         </select>
                         <input type="number" id="relatorioAno" value="2026" onchange="carregarRelatorios()">
                     </div>
-                    <button class="btn-primary" onclick="window.print()">
+                    <button class="btn-primary" onclick="imprimirRelatorio()">
                         <i class="fas fa-file-pdf"></i> Imprimir
                     </button>
                 </div>
@@ -1220,97 +1220,12 @@
                 <p id="printSubtitulo">Ficha de Avaliação e Anamnese</p>
             </div>
             <div class="print-meta">
-                <span class="pm-campo pm-cliente"><strong>Cliente:</strong><span id="printNomeCliente"></span></span>
-                <span class="pm-campo pm-data"><strong>Data:</strong><span id="printDataFicha"></span></span>
+                <span class="pm-campo pm-cliente"><strong id="printRotuloCliente">Cliente:</strong><span id="printNomeCliente"></span></span>
+                <span class="pm-campo pm-data"><strong id="printRotuloData">Data:</strong><span id="printDataFicha"></span></span>
             </div>
         </div>
         <!-- Conteúdo gerado dinamicamente pelo app-anamnese.js -->
         <div id="printBodyDinamico" class="print-body"></div>
-    </div>
-
-    <!-- Modal Agendamento -->
-    <div id="modalAgendamento" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Novo Agendamento</h2>
-                <button class="modal-close" onclick="fecharModal('modalAgendamento')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form id="formAgendamento" class="modal-form">
-                <input type="hidden" id="agendamentoId">
-                
-                <div class="form-group">
-                    <label>TIPO DE AGENDAMENTO *</label>
-                        <div class="radio-group">
-                            <label class="radio-label">
-                                <input type="radio" name="tipoAgendamento" value="servico" checked onclick="toggleTipoAgendamento()">
-                                <span>Serviço</span>
-                            </label>
-
-                            <label class="radio-label">
-                                <input type="radio" name="tipoAgendamento" value="evento" onclick="toggleTipoAgendamento()">
-                                <span>Evento Pessoal</span>
-                            </label>
-                        </div>
-                </div>
-                
-                <div id="camposServico">
-                    <div class="form-group">
-                        <label for="agendamentoCliente">Cliente *</label>
-                        <select id="agendamentoCliente" onchange="selectCliente()"></select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="agendamentoServico">Serviço *</label>
-                        <select id="agendamentoServico" onchange="selectServico()"></select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="agendamentoValor">Valor *</label>
-                        <input type="text" id="agendamentoValor" readonly>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="agendamentoStatusPagamento">Status Pagamento *</label>
-                        <select id="agendamentoStatusPagamento">
-                            <option value="pendente">Pendente</option>
-                            <option value="pago">Pago</option>
-                            <option value="devendo">Devendo</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div id="camposEvento" style="display: none;">
-                    <div class="form-group">
-                        <label for="eventoNome">Nome do Evento *</label>
-                        <input type="text" id="eventoNome" placeholder="Ex: Palestra de Técnicas Avançadas">
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="agendamentoData">Data *</label>
-                        <input type="date" id="agendamentoData" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="agendamentoHora">Hora *</label>
-                        <input type="time" id="agendamentoHora" required>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="agendamentoObservacoes">Observações</label>
-                    <textarea id="agendamentoObservacoes" rows="3"></textarea>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="button" class="btn-secondary" onclick="fecharModal('modalAgendamento')">Cancelar</button>
-                    <button type="submit" class="btn-primary">Agendar</button>
-                </div>
-            </form>
-        </div>
     </div>
 
     <!-- Modal Serviço -->
@@ -1461,12 +1376,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
     <script src="js/supabase-client.js?v=15.0"></script>
+    <!-- financeiro-core: helpers de data/calculo. Precisa vir antes de quem usa. -->
+    <script src="js/financeiro-core.js?v=1.0"></script>
     <script src="js/app-agenda.js?v=15.0"></script>
-    <script src="js/app-relatorios.js?v=15.0"></script>
+    <script src="js/app-relatorios.js?v=16.0"></script>
     <script src="js/popular-dados.js?v=15.0"></script>
     <script src="js/app-anamnese.js?v=18.0"></script>
     <script src="js/perfil.js?v=17.0"></script>
-    <script src="js/app.js?v=15.7"></script>
+    <script src="js/app.js?v=16.0"></script>
     <script src="js/tour.js?v=1.0"></script>
     <script>
         window.fazerLogout = async function(event) {

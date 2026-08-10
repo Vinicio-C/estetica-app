@@ -162,7 +162,10 @@ function setupEventListeners() {
     const fCliente = document.getElementById('formCliente');
     if (fCliente) fCliente.addEventListener('submit', salvarCliente);
 
-    document.querySelectorAll('#formAgendamento').forEach(f => f.addEventListener('submit', salvarAgendamento));
+    // Era querySelectorAll porque existiam dois #formAgendamento no HTML (o
+    // segundo era um modal legado, já removido). Com id único, getElementById.
+    const fAgendamento = document.getElementById('formAgendamento');
+    if (fAgendamento) fAgendamento.addEventListener('submit', salvarAgendamento);
 
     const fServico = document.getElementById('formServico');
     if (fServico) fServico.addEventListener('submit', salvarServico);
@@ -280,7 +283,7 @@ async function carregarDashboard() {
     
     // 1. Agendamentos HOJE (Só conta dia 02/02 se for hoje)
     const agendamentosHoje = appState.agendamentos.filter(a => {
-        const d = new Date(a.data);
+        const d = parseDataLocal(a.data);
         return d >= hoje && d < amanha && a.status !== 'cancelado';
     });
     
@@ -321,8 +324,9 @@ async function carregarDashboard() {
 function renderizarListasDashboard() {
     console.log('🔄 Iniciando renderização das listas do Dashboard...');
     
-    // Data de hoje (sem horas) para comparação segura
-    const hojeStr = new Date().toISOString().split('T')[0];
+    // Data de hoje (sem horas) para comparação segura.
+    // hojeISO() usa componentes locais: toISOString() adianta um dia após as 21h.
+    const hojeStr = hojeISO();
 
     // 1. PRÓXIMOS AGENDAMENTOS
     const listaAgenda = document.getElementById('dashAgendamentosList');
@@ -442,7 +446,7 @@ function renderizarLembretesAmanha() {
 
     const amanha = new Date();
     amanha.setDate(amanha.getDate() + 1);
-    const amanhaStr = amanha.toISOString().split('T')[0]; // YYYY-MM-DD
+    const amanhaStr = dataParaISO(amanha); // YYYY-MM-DD no fuso local
 
     const agendamentosAmanha = appState.agendamentos
         .filter(a => a.data === amanhaStr && a.status !== 'cancelado' && a.status !== 'concluido')
@@ -819,7 +823,7 @@ async function abrirDetalhesCliente(clienteId) {
         if (error) throw error;
 
         // --- 4. SEPARAÇÃO E CÁLCULOS ---
-        const hoje = new Date().toISOString().split('T')[0]; 
+        const hoje = hojeISO();
 
         // Histórico recebe: passados OU concluídos OU cancelados
         const historicoList = agendamentosReais.filter(a => a.data < hoje || a.status === 'concluido' || a.status === 'cancelado');
@@ -884,7 +888,7 @@ async function abrirDetalhesCliente(clienteId) {
         if (agendadosList.length === 0) {
             containerFuturo.innerHTML = '<div class="empty-state" style="padding:10px"><p>Nenhum agendamento futuro</p></div>';
         } else {
-            agendadosList.sort((a, b) => new Date(a.data) - new Date(b.data));
+            agendadosList.sort((a, b) => parseDataLocal(a.data) - parseDataLocal(b.data));
 
             containerFuturo.innerHTML = agendadosList.map(a => `
                 <div class="agendamento-item" onclick="fecharModal('modalDetalhesCliente'); abrirModalAgendamento('${a.id}')" style="margin-bottom: 10px; padding: 12px; border-left: 3px solid var(--gold); background: rgba(212, 175, 55, 0.05); border-radius: 4px; cursor: pointer; transition: 0.3s;" onmouseover="this.style.background='rgba(212, 175, 55, 0.1)'" onmouseout="this.style.background='rgba(212, 175, 55, 0.05)'">
@@ -1435,7 +1439,7 @@ async function atualizarNotificacoes() {
 
     // --- 0. AGENDAMENTOS PELO SITE (pendentes, a partir de hoje) ---
     try {
-        const hojeStr = hoje.toISOString().split('T')[0];
+        const hojeStr = dataParaISO(hoje);
         const { data: agendSite } = await _supabase
             .from('agendamentos')
             .select('id, cliente_nome, servico_nome, data, hora')
@@ -1502,7 +1506,7 @@ async function atualizarNotificacoes() {
 
     // --- 3. Alerta de Contas a Receber (Atrasadas) ---
     agendamentos.forEach(a => {
-        const dataServico = new Date(a.data);
+        const dataServico = parseDataLocal(a.data);
         // Se já passou (ontem pra trás), foi concluído e ainda deve
         if (dataServico < hoje && a.status === 'concluido' && a.status_pagamento === 'devendo') {
             count++;
@@ -1905,7 +1909,7 @@ async function abrirModalAgendamento(id = null) {
     } else {
         // --- MODO NOVO ---
         document.getElementById('modalAgendamentoTitle').textContent = 'Novo Agendamento';
-        document.getElementById('agendamentoData').value = new Date().toISOString().split('T')[0];
+        document.getElementById('agendamentoData').value = hojeISO();
     }
 
     modal.classList.add('active');
@@ -2761,8 +2765,11 @@ async function concluirAgendamento(agendamentoId) {
         const agendamento = appState.agendamentos.find(a => a.id === agendamentoId);
         if (!agendamento) throw new Error("Agendamento não encontrado.");
 
-        // 1. Muda para CANCELADO (Isso impede o robô de auto-concluir ele de novo)
-        await _supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', agendamentoId);
+        // 1. Marca como CONCLUÍDO. Gravava 'cancelado' aqui, o que fazia o
+        // atendimento sumir do faturamento — todo relatório filtra
+        // `status !== 'cancelado'`. O robô também não reprocessa: o
+        // autoConcluirPassados só pega quem está 'pendente'.
+        await _supabase.from('agendamentos').update({ status: 'concluido' }).eq('id', agendamentoId);
 
         // 2. Baixa Estoque
         if (agendamento.servico_id) {
@@ -2799,7 +2806,10 @@ async function concluirAgendamento(agendamentoId) {
 // ==============================================================
 
 async function autoConcluirPassados() {
-    const hojeStr = new Date().toISOString().split('T')[0];
+    // hojeISO() usa os componentes locais. Com toISOString() isto virava a data
+    // de amanhã depois das 21h (UTC-3) e o robô concluía os atendimentos do
+    // próprio dia, baixando o estoque antes da hora — todo dia.
+    const hojeStr = hojeISO();
     
     // Procura agendamentos que a data é menor que hoje e ainda estão pendentes
     const passadosPendentes = appState.agendamentos.filter(a => a.data < hojeStr && a.status === 'pendente');
@@ -2841,7 +2851,15 @@ async function reverterConclusao(agendamentoId) {
         const agendamento = appState.agendamentos.find(a => a.id === agendamentoId);
         if (!agendamento) return;
 
-        // 1. Muda para CANCELADO (Isso impede o robô de auto-concluir ele de novo)
+        // Só estorna o que está concluído. Sem isto, dois cliques ou uma tela
+        // desatualizada devolvem o produto ao estoque duas vezes — o loop abaixo
+        // soma sem nenhum teto.
+        if (agendamento.status !== 'concluido') {
+            showToast('Este atendimento não está concluído.', 'warning');
+            return;
+        }
+
+        // 1. Volta para CANCELADO (o confirm avisa: "Cancelado/Falta")
         await _supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', agendamentoId);
 
         // 2. Devolve para o Estoque
