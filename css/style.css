@@ -2728,6 +2728,36 @@ canvas {
 .btn-whatsapp-todos:hover { background: rgba(37, 211, 102, 0.28); }
 .btn-whatsapp-todos:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Faixa de resumo do estoque: valor imobilizado e alertas */
+.estoque-resumo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+.estoque-resumo-item {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.estoque-resumo-item span {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+}
+.estoque-resumo-item strong {
+    font-size: 1.35rem;
+    color: var(--gold);
+    font-weight: 700;
+}
+.estoque-resumo-item.alerta { border-color: rgba(255, 167, 38, 0.45); }
+.estoque-resumo-item.alerta strong { color: #FFA726; }
+
 /* Sair da conta na tela de plano expirado.
    Discreto de propósito: não deve competir com o botão de assinar. */
 .btn-sair-expirado {

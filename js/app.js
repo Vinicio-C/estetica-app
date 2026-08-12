@@ -264,8 +264,20 @@ async function carregarDadosIniciais() {
         appState.agendamentos = agendamentos.data || [];
         appState.pagamentos = pagamentos.data || [];
 
-        await autoConcluirPassados();
-        
+        // A auto-conclusão agora acontece no banco. Antes ela mutava o appState
+        // em memória junto; sem isso, um atendimento recém-concluído continuaria
+        // aparecendo como pendente até a próxima navegação. Se mudou algo,
+        // relê só as duas tabelas afetadas.
+        const concluidos = await autoConcluirPassados();
+        if (concluidos > 0) {
+            const [ag, est] = await Promise.all([
+                fetchAPI('tables/agendamentos?limit=1000'),
+                fetchAPI('tables/estoque?limit=1000')
+            ]);
+            appState.agendamentos = ag.data || [];
+            appState.estoque = est.data || [];
+        }
+
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
     }
@@ -1224,24 +1236,65 @@ function renderizarEstoque(produtos) {
         return;
     }
 
+    // Valor imobilizado: quanto de dinheiro está parado em produto. Para uma
+    // clínica de estética é o principal investimento, e até agora não aparecia
+    // em lugar nenhum do sistema.
+    const totalImobilizado = produtos.reduce(
+        (s, p) => s + (Number(p.quantidade) || 0) * (Number(p.custo_medio) || 0), 0);
+    const abaixoDoMinimo = produtos.filter(p => Number(p.quantidade) <= Number(p.quantidade_minima)).length;
+
+    const faixa = document.getElementById('estoqueResumo');
+    if (faixa) {
+        faixa.innerHTML = `
+            <div class="estoque-resumo-item">
+                <span>Valor imobilizado</span>
+                <strong>${formatCurrency(totalImobilizado)}</strong>
+            </div>
+            <div class="estoque-resumo-item">
+                <span>Produtos cadastrados</span>
+                <strong>${produtos.length}</strong>
+            </div>
+            <div class="estoque-resumo-item ${abaixoDoMinimo ? 'alerta' : ''}">
+                <span>Abaixo do mínimo</span>
+                <strong>${abaixoDoMinimo}</strong>
+            </div>`;
+    }
+
+    const num = (v) => {
+        const n = Number(v) || 0;
+        // Mostra decimal só quando existe (0,5 ml aparece; 5 un. não vira 5,000)
+        return Number.isInteger(n) ? String(n) : n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+    };
+
     container.innerHTML = produtos.map(p => {
+        const qtd = Number(p.quantidade) || 0;
+        const custo = Number(p.custo_medio) || 0;
+
         let corStatus = '#66BB6A'; // Verde
-        if (p.quantidade <= p.quantidade_minima) corStatus = '#FFA726'; // Laranja
-        if (p.quantidade === 0) corStatus = '#EF5350'; // Vermelho
+        if (qtd <= Number(p.quantidade_minima)) corStatus = '#FFA726'; // Laranja
+        if (qtd <= 0) corStatus = '#EF5350'; // Vermelho (inclui negativo)
 
         return `
             <div class="estoque-card" style="border-left: 4px solid ${corStatus}; padding: 1.5rem; border-radius: 12px; background: #1E1E1E; margin-bottom: 0;">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                     <h4 style="color: #fff; margin: 0; font-size: 1.1rem;">${p.nome}</h4>
-                    <span style="background: ${corStatus}20; color: ${corStatus}; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.9rem;">
-                        ${p.quantidade} un.
+                    <span style="background: ${corStatus}20; color: ${corStatus}; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.9rem; white-space: nowrap;">
+                        ${num(qtd)} ${p.unidade || 'un.'}
                     </span>
                 </div>
-                
-                <div style="color: #888; font-size: 0.9rem; margin-bottom: 15px;">
-                    Mínimo ideal: ${p.quantidade_minima}
+
+                <div style="color: #888; font-size: 0.85rem; margin-bottom: 4px;">
+                    Mínimo ideal: ${num(p.quantidade_minima)}
                 </div>
-                
+                <div style="color: #888; font-size: 0.85rem; margin-bottom: 15px;">
+                    Custo unitário: <strong style="color:#bbb;">${formatCurrency(custo)}</strong>
+                    ${qtd > 0 ? ` &nbsp;·&nbsp; Em estoque: <strong style="color:var(--gold);">${formatCurrency(qtd * custo)}</strong>` : ''}
+                </div>
+
+                ${qtd < 0 ? `<div style="background:rgba(239,83,80,0.12); border:1px solid rgba(239,83,80,0.4); color:#EF5350; border-radius:6px; padding:7px 10px; font-size:0.8rem; margin-bottom:12px;">
+                    Saldo negativo: houve consumo sem entrada registrada.
+                </div>` : ''}
+
                 <div style="display: flex; gap: 10px;">
                     <button onclick="abrirModalEstoque('${p.id}')" class="action-btn btn-edit">
                         <i class="fas fa-edit"></i> Editar
@@ -1278,14 +1331,25 @@ function abrirModalEstoque(produtoId = null) {
             hiddenInput.value = produto.id;
             document.getElementById('estoqueNome').value = produto.nome;
             document.getElementById('estoqueDescricao').value = produto.descricao || '';
-            document.getElementById('estoqueValor').value = produto.valor_unitario;
+            document.getElementById('estoqueCusto').value = produto.custo_medio ?? produto.valor_unitario ?? '';
             document.getElementById('estoqueQuantidade').value = produto.quantidade;
             document.getElementById('estoqueQuantidadeMinima').value = produto.quantidade_minima;
         }
     } else {
         document.getElementById('modalEstoqueTitle').textContent = 'Novo Produto';
     }
-    
+
+    // Na edição, a quantidade passa a ser resultado dos movimentos: editá-la aqui
+    // sobrescreveria uma baixa automática ocorrida com o modal aberto. Para mudar
+    // o saldo existe o botão "Ajustar", que registra o motivo no razão.
+    const campoQtd = document.getElementById('estoqueQuantidade');
+    const avisoQtd = document.getElementById('estoqueQuantidadeAviso');
+    if (campoQtd) {
+        campoQtd.readOnly = !!produtoId;
+        campoQtd.style.opacity = produtoId ? '0.6' : '1';
+    }
+    if (avisoQtd) avisoQtd.style.display = produtoId ? 'block' : 'none';
+
     modal.classList.add('active');
     document.getElementById('overlay').classList.add('active');
 }
@@ -1293,28 +1357,55 @@ function abrirModalEstoque(produtoId = null) {
 async function salvarEstoque(e) {
     e.preventDefault();
     const id = document.getElementById('estoqueId').value;
+
+    const custo = parseFloat(document.getElementById('estoqueCusto').value) || 0;
     const dados = {
         nome: document.getElementById('estoqueNome').value,
         descricao: document.getElementById('estoqueDescricao').value,
-        valor_unitario: parseFloat(document.getElementById('estoqueValor').value),
-        quantidade: parseInt(document.getElementById('estoqueQuantidade').value),
-        quantidade_minima: parseInt(document.getElementById('estoqueQuantidadeMinima').value)
+        quantidade_minima: parseFloat(document.getElementById('estoqueQuantidadeMinima').value) || 0
     };
 
     try {
         if (id) {
+            // `quantidade` fica de fora de propósito: quem manda no saldo é o
+            // razão. Enviar daqui apagaria uma baixa feita enquanto o modal
+            // estava aberto — era exatamente a corrida que existia antes.
+            dados.custo_medio = custo;
             const { error } = await _supabase.from('estoque').update(dados).eq('id', id);
             if (error) throw error;
         } else {
-            const { error } = await _supabase.from('estoque').insert([dados]);
+            // Produto novo entra zerado e o saldo inicial vira um movimento,
+            // para o histórico começar explicando de onde veio a quantidade.
+            const qtdInicial = parseFloat(document.getElementById('estoqueQuantidade').value) || 0;
+            dados.quantidade = 0;
+            dados.custo_medio = 0;
+
+            const { data: novo, error } = await _supabase
+                .from('estoque').insert([dados]).select('id').single();
             if (error) throw error;
+
+            if (qtdInicial !== 0) {
+                const { error: erroMov } = await _supabase.from('estoque_movimentos').insert([{
+                    estoque_id: novo.id,
+                    tipo: 'ajuste',
+                    origem: 'inventario',
+                    quantidade_delta: qtdInicial,
+                    custo_unitario: custo || null,
+                    observacao: 'Saldo inicial do cadastro'
+                }]);
+                if (erroMov) throw erroMov;
+            } else if (custo > 0) {
+                // Sem quantidade não há movimento, mas o custo precisa ficar gravado
+                await _supabase.from('estoque').update({ custo_medio: custo }).eq('id', novo.id);
+            }
         }
+
         showToast('Produto salvo com sucesso!', 'success');
         fecharModal('modalEstoque');
         await carregarEstoque();
     } catch (err) {
         console.error(err);
-        showToast('Erro ao salvar produto.', 'error');
+        showToast('Erro ao salvar produto: ' + (err.message || ''), 'error');
     }
 }
 
@@ -2765,28 +2856,28 @@ async function concluirAgendamento(agendamentoId) {
         const agendamento = appState.agendamentos.find(a => a.id === agendamentoId);
         if (!agendamento) throw new Error("Agendamento não encontrado.");
 
-        // 1. Marca como CONCLUÍDO. Gravava 'cancelado' aqui, o que fazia o
-        // atendimento sumir do faturamento — todo relatório filtra
-        // `status !== 'cancelado'`. O robô também não reprocessa: o
-        // autoConcluirPassados só pega quem está 'pendente'.
-        await _supabase.from('agendamentos').update({ status: 'concluido' }).eq('id', agendamentoId);
+        // Status + baixa de estoque numa chamada só, no servidor. O loop que
+        // ficava aqui não tinha guarda nenhuma: dois cliques ou duas abas
+        // debitavam o estoque de novo. A RPC usa `where estoque_baixado = false`,
+        // então o lock de linha do Postgres resolve isso de vez.
+        // Cada saída também vira um movimento no razão, com o custo do momento.
+        const { data: r, error } = await _supabase
+            .rpc('registrar_consumo_agendamento', { p_agendamento_id: agendamentoId });
 
-        // 2. Baixa Estoque
-        if (agendamento.servico_id) {
-            const servico = appState.servicos.find(s => s.id === agendamento.servico_id);
-            if (servico && servico.produtos_vinculados) {
-                for (const prodUsado of servico.produtos_vinculados) {
-                    const itemEstoque = appState.estoque.find(e => e.id === prodUsado.estoque_id);
-                    if (itemEstoque) {
-                        let novaQtd = itemEstoque.quantidade - prodUsado.quantidade;
-                        if (novaQtd < 0) novaQtd = 0;
-                        await _supabase.from('estoque').update({ quantidade: novaQtd }).eq('id', itemEstoque.id);
-                    }
-                }
+        if (error) throw error;
+
+        if (r?.ja_baixado) {
+            showToast('Este atendimento já havia sido concluído.', 'info');
+        } else {
+            const itens = r?.itens || [];
+            const negativos = itens.filter(i => Number(i.saldo_apos) < 0);
+            showToast('Atendimento concluído! 📦', 'success');
+            // Saldo negativo = consumiu produto sem entrada registrada. Antes
+            // isso era escondido travando em zero.
+            if (negativos.length) {
+                showToast(`Estoque negativo em: ${negativos.map(i => i.nome).join(', ')}. Registre a compra.`, 'warning', 8000);
             }
         }
-
-        if(typeof showToast === 'function') showToast('Atendimento concluído! 📦', 'success');
 
         // 3. RECARREGA TELA DO CLIENTE
         if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
@@ -2806,38 +2897,21 @@ async function concluirAgendamento(agendamentoId) {
 // ==============================================================
 
 async function autoConcluirPassados() {
-    // hojeISO() usa os componentes locais. Com toISOString() isto virava a data
-    // de amanhã depois das 21h (UTC-3) e o robô concluía os atendimentos do
-    // próprio dia, baixando o estoque antes da hora — todo dia.
-    const hojeStr = hojeISO();
-    
-    // Procura agendamentos que a data é menor que hoje e ainda estão pendentes
-    const passadosPendentes = appState.agendamentos.filter(a => a.data < hojeStr && a.status === 'pendente');
-
-    if (passadosPendentes.length === 0) return;
-    console.log(`⚡ Auto-concluindo ${passadosPendentes.length} agendamentos antigos...`);
-
-    for (const agenda of passadosPendentes) {
-        try {
-            await _supabase.from('agendamentos').update({ status: 'concluido' }).eq('id', agenda.id);
-
-            if (agenda.servico_id) {
-                const servico = appState.servicos.find(s => s.id === agenda.servico_id);
-                if (servico && servico.produtos_vinculados) {
-                    for (const prod of servico.produtos_vinculados) {
-                        const itemEstoque = appState.estoque.find(e => e.id === prod.estoque_id);
-                        if (itemEstoque) {
-                            let novaQtd = itemEstoque.quantidade - prod.quantidade;
-                            if (novaQtd < 0) novaQtd = 0;
-                            
-                            await _supabase.from('estoque').update({ quantidade: novaQtd }).eq('id', itemEstoque.id);
-                            itemEstoque.quantidade = novaQtd; 
-                        }
-                    }
-                }
-            }
-            agenda.status = 'concluido'; 
-        } catch(e) { console.error("Erro na auto-conclusão:", e); }
+    // Uma chamada só. Antes eram 1 + N*M requisições, refeitas a cada navegação
+    // de página — e a data de corte era calculada no navegador com toISOString(),
+    // que depois das 21h já apontava para amanhã. Agora quem decide o "hoje" é o
+    // banco, no fuso de São Paulo.
+    try {
+        const { data, error } = await _supabase.rpc('auto_concluir_passados');
+        if (error) throw error;
+        if (data?.concluidos > 0) {
+            console.log(`⚡ Auto-concluídos ${data.concluidos} agendamentos antigos.`);
+            // O appState em memória ficou defasado; quem chamou recarrega.
+        }
+        return data?.concluidos || 0;
+    } catch (e) {
+        console.error("Erro na auto-conclusão:", e);
+        return 0;
     }
 }
 
@@ -2851,32 +2925,21 @@ async function reverterConclusao(agendamentoId) {
         const agendamento = appState.agendamentos.find(a => a.id === agendamentoId);
         if (!agendamento) return;
 
-        // Só estorna o que está concluído. Sem isto, dois cliques ou uma tela
-        // desatualizada devolvem o produto ao estoque duas vezes — o loop abaixo
-        // soma sem nenhum teto.
-        if (agendamento.status !== 'concluido') {
-            showToast('Este atendimento não está concluído.', 'warning');
-            return;
+        // A RPC devolve o produto a partir dos MOVIMENTOS originais, não do
+        // vínculo atual do serviço: se as quantidades do serviço forem editadas
+        // entre concluir e estornar, devolver pelo vínculo atual criaria um furo
+        // de estoque silencioso. E estornar duas vezes é impossível, porque a
+        // condição é `where estoque_baixado = true`.
+        const { data: r, error } = await _supabase
+            .rpc('estornar_consumo_agendamento', { p_agendamento_id: agendamentoId });
+
+        if (error) throw error;
+
+        if (r?.ja_estornado) {
+            showToast('Este atendimento não estava concluído.', 'warning');
+        } else {
+            showToast('Conclusão desfeita e estoque estornado!', 'info');
         }
-
-        // 1. Volta para CANCELADO (o confirm avisa: "Cancelado/Falta")
-        await _supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', agendamentoId);
-
-        // 2. Devolve para o Estoque
-        if (agendamento.servico_id) {
-            const servico = appState.servicos.find(s => s.id === agendamento.servico_id);
-            if (servico && servico.produtos_vinculados) {
-                for (const prod of servico.produtos_vinculados) {
-                    const itemEstoque = appState.estoque.find(e => e.id === prod.estoque_id);
-                    if (itemEstoque) {
-                        let novaQtd = itemEstoque.quantidade + prod.quantidade; 
-                        await _supabase.from('estoque').update({ quantidade: novaQtd }).eq('id', itemEstoque.id);
-                    }
-                }
-            }
-        }
-
-        if(typeof showToast === 'function') showToast('Conclusão desfeita e estoque estornado!', 'info');
         
         // 3. RECARREGA TELA DO CLIENTE
         if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
