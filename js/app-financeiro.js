@@ -52,7 +52,7 @@ window.carregarFinanceiro = async function() {
             .select('id, descricao, categoria, valor, data, forma, fornecedor')
             .gte('data', inicio).lte('data', fim).order('data', { ascending: false }),
         _supabase.from('compras')
-            .select('id, fornecedor, documento, data_compra, valor_total, forma_pagamento')
+            .select('id, fornecedor, documento, data_compra, valor_total, forma_pagamento, xml_path')
             .gte('data_compra', inicio).lte('data_compra', fim).order('data_compra', { ascending: false })
     ]);
 
@@ -132,6 +132,9 @@ function renderizarFinanceiro() {
             <button class="fin-aba" data-aba="despesas" onclick="trocarAbaFinanceiro('despesas')">
                 <i class="fas fa-arrow-up"></i> Despesas
             </button>
+            <button class="fin-aba" data-aba="compras" onclick="trocarAbaFinanceiro('compras')">
+                <i class="fas fa-file-invoice"></i> Compras
+            </button>
             <button class="fin-aba" data-aba="fechamento" onclick="trocarAbaFinanceiro('fechamento')">
                 <i class="fas fa-scale-balanced"></i> Fechamento
             </button>
@@ -139,6 +142,7 @@ function renderizarFinanceiro() {
 
         <div id="finAbaRecebimentos" class="fin-painel ativo">${htmlRecebimentos()}</div>
         <div id="finAbaDespesas" class="fin-painel">${htmlDespesas()}</div>
+        <div id="finAbaCompras" class="fin-painel">${htmlCompras()}</div>
         <div id="finAbaFechamento" class="fin-painel">${htmlFechamento(r)}</div>
     `;
 }
@@ -204,6 +208,41 @@ function htmlDespesas() {
         </table>`;
 }
 
+function htmlCompras() {
+    const lista = dadosFinanceiro.compras;
+    if (lista.length === 0) {
+        return `<p class="fin-vazio">Nenhuma compra registrada neste período.</p>`;
+    }
+
+    return `
+        <table class="fin-tabela">
+            <thead><tr>
+                <th>Data</th><th>Fornecedor</th><th>Nota</th>
+                <th style="text-align:right">Valor</th><th>Forma</th><th style="text-align:right">XML</th>
+            </tr></thead>
+            <tbody>
+                ${lista.map(c => `
+                    <tr>
+                        <td>${dataCurtaBR(c.data_compra)}</td>
+                        <td>${c.fornecedor || '—'}</td>
+                        <td>${c.documento || '—'}</td>
+                        <td style="text-align:right; font-weight:600">${formatCurrency(c.valor_total)}</td>
+                        <td>${c.forma_pagamento ? `<span class="fin-forma">${FORMAS[c.forma_pagamento] || c.forma_pagamento}</span>` : '—'}</td>
+                        <td style="text-align:right">
+                            ${c.xml_path
+                                ? `<button class="fin-xml" onclick="baixarXmlCompra('${c.id}')" title="Baixar o XML arquivado"><i class="fas fa-file-code"></i> XML</button>`
+                                : '<span style="color:#555; font-size:0.78rem">manual</span>'}
+                        </td>
+                    </tr>`).join('')}
+            </tbody>
+        </table>
+        <p class="fin-nota" style="grid-column:auto; margin-top:16px;">
+            O XML original de cada nota importada fica arquivado. Serve para conferir com o contador
+            e para reconferir um vínculo de produto que tenha ficado errado — o que costuma só aparecer
+            semanas depois, olhando o custo médio.
+        </p>`;
+}
+
 function htmlFechamento(r) {
     const linha = (rotulo, valor, classe = '') =>
         `<div class="fin-linha ${classe}"><span>${rotulo}</span><strong>${formatCurrency(valor)}</strong></div>`;
@@ -255,6 +294,142 @@ function dataCurtaBR(iso) {
 
 // ─── RECEBIMENTO ────────────────────────────────────────────────────────────
 
+// ─── BUSCA DE CLIENTE NO RECEBIMENTO ────────────────────────────────────────
+//
+// Consulta o banco em vez do appState: a lista em memória vem do fetchAPI, que
+// tem teto de 1000 linhas do PostgREST, e conforme a base cresce a busca
+// começaria a não achar cliente sem dar nenhum aviso.
+//
+// Selecionar a cliente carrega os débitos em aberto dela. Isso é o que fecha o
+// ciclo: um recebimento solto, sem vínculo com atendimento, não quita nada —
+// o trigger que atualiza status_pagamento depende do agendamento_id.
+
+let buscaClienteTimer = null;
+
+window.buscarClienteRecebimento = function() {
+    clearTimeout(buscaClienteTimer);
+    // Debounce: sem isso seria uma consulta por tecla digitada
+    buscaClienteTimer = setTimeout(executarBuscaCliente, 250);
+};
+
+async function executarBuscaCliente() {
+    const input = document.getElementById('recebimentoBuscaCliente');
+    const dropdown = document.getElementById('recebimentoDropdownClientes');
+    if (!input || !dropdown) return;
+
+    const termo = input.value.trim();
+    dropdown.style.display = 'block';
+
+    // Digitar sem escolher da lista é válido: fica só o nome, sem vínculo.
+    document.getElementById('recebimentoClienteId').value = '';
+
+    if (termo.length < 2) {
+        dropdown.innerHTML = '<div class="rec-drop-vazio">Digite ao menos 2 letras para buscar.</div>';
+        return;
+    }
+
+    dropdown.innerHTML = '<div class="rec-drop-vazio">Buscando...</div>';
+
+    const { data, error } = await _supabase
+        .from('clientes')
+        .select('id, nome, telefone')
+        .ilike('nome', `%${termo}%`)
+        .order('nome')
+        .limit(20);
+
+    if (error) {
+        dropdown.innerHTML = `<div class="rec-drop-vazio erro">Erro ao buscar: ${error.message}</div>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        dropdown.innerHTML = '<div class="rec-drop-vazio">Nenhuma cliente encontrada. O nome digitado será usado assim mesmo.</div>';
+        return;
+    }
+
+    dropdown.innerHTML = data.map(c => `
+        <div class="rec-drop-item" onclick="selecionarClienteRecebimento('${c.id}', ${JSON.stringify(c.nome)})">
+            <strong>${c.nome}</strong>
+            ${c.telefone ? `<small>${c.telefone}</small>` : ''}
+        </div>`).join('');
+}
+
+window.selecionarClienteRecebimento = async function(id, nome) {
+    document.getElementById('recebimentoClienteId').value = id;
+    document.getElementById('recebimentoBuscaCliente').value = nome;
+    document.getElementById('recebimentoDropdownClientes').style.display = 'none';
+    await carregarDebitosDaCliente(id);
+};
+
+/**
+ * Lista os atendimentos em aberto da cliente para quitar.
+ * Sem escolher um, o recebimento entra como avulso e não baixa débito nenhum.
+ */
+async function carregarDebitosDaCliente(clienteId) {
+    const box = document.getElementById('recebimentoDebitos');
+    if (!box) return;
+
+    box.style.display = 'block';
+    box.innerHTML = '<p class="rec-debitos-vazio">Carregando atendimentos em aberto...</p>';
+
+    const { data, error } = await _supabase
+        .from('agendamentos')
+        .select('id, servico_nome, evento_nome, data, valor, status_pagamento')
+        .eq('cliente_id', clienteId)
+        .in('status_pagamento', ['devendo', 'pendente'])
+        .neq('status', 'cancelado')
+        .order('data', { ascending: false })
+        .limit(20);
+
+    if (error) {
+        box.innerHTML = `<p class="rec-debitos-vazio erro">Erro ao buscar atendimentos: ${error.message}</p>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        box.innerHTML = '<p class="rec-debitos-vazio">Esta cliente não tem atendimentos em aberto. O recebimento será registrado como avulso.</p>';
+        return;
+    }
+
+    // Quanto já foi pago em cada um, para sugerir só o que falta
+    const ids = data.map(a => a.id);
+    const { data: pagos } = await _supabase
+        .from('pagamentos').select('agendamento_id, valor').in('agendamento_id', ids);
+
+    const pagoPor = {};
+    (pagos || []).forEach(p => {
+        pagoPor[p.agendamento_id] = (pagoPor[p.agendamento_id] || 0) + Number(p.valor);
+    });
+
+    box.innerHTML = `
+        <p class="rec-debitos-titulo">Atendimentos em aberto — escolha qual está quitando:</p>
+        <div class="rec-debitos-lista">
+            ${data.map(a => {
+                const total = Number(a.valor) || 0;
+                const pago = pagoPor[a.id] || 0;
+                const falta = Math.max(0, total - pago);
+                return `
+                <button type="button" class="rec-debito" onclick="escolherDebito('${a.id}', ${falta})">
+                    <span class="rec-debito-nome">${a.servico_nome || a.evento_nome || 'Atendimento'}</span>
+                    <span class="rec-debito-data">${dataCurtaBR(a.data)}</span>
+                    <span class="rec-debito-valor">${formatCurrency(falta)}${pago > 0 ? `<small>de ${formatCurrency(total)}</small>` : ''}</span>
+                </button>`;
+            }).join('')}
+        </div>`;
+}
+
+window.escolherDebito = function(agendamentoId, falta) {
+    document.getElementById('recebimentoAgendamentoId').value = agendamentoId;
+    document.getElementById('recebimentoValor').value = falta.toFixed(2);
+
+    document.querySelectorAll('.rec-debito').forEach(b => b.classList.remove('escolhido'));
+    if (window.event?.currentTarget) window.event.currentTarget.classList.add('escolhido');
+    // Marca pelo id, sem depender do event (que é frágil)
+    document.querySelectorAll('.rec-debito').forEach(b => {
+        if (b.getAttribute('onclick')?.includes(agendamentoId)) b.classList.add('escolhido');
+    });
+};
+
 window.abrirModalRecebimento = function(agendamentoId = null) {
     const form = document.getElementById('formRecebimento');
     form.reset();
@@ -269,7 +444,8 @@ window.abrirModalRecebimento = function(agendamentoId = null) {
         if (ag) {
             const jaPago = 0; // buscado abaixo
             document.getElementById('recebimentoValor').value = ag.valor || '';
-            document.getElementById('recebimentoClienteNome').value = ag.cliente_nome || '';
+            document.getElementById('recebimentoBuscaCliente').value = ag.cliente_nome || '';
+            document.getElementById('recebimentoClienteId').value = ag.cliente_id || '';
             contexto.style.display = 'block';
             contexto.innerHTML = `<strong>${ag.cliente_nome || 'Cliente'}</strong>
                 <small>${ag.servico_nome || 'Atendimento'} · ${dataCurtaBR(ag.data)} · total ${formatCurrency(ag.valor || 0)}</small>`;
@@ -287,7 +463,8 @@ window.abrirModalRecebimento = function(agendamentoId = null) {
         }
     } else {
         contexto.style.display = 'none';
-        document.getElementById('recebimentoClienteNome').value = '';
+        document.getElementById('recebimentoBuscaCliente').value = '';
+        document.getElementById('recebimentoClienteId').value = '';
     }
 
     document.getElementById('modalRecebimento').classList.add('active');
@@ -306,8 +483,11 @@ window.salvarRecebimento = async function(e) {
 
         const { error } = await _supabase.from('pagamentos').insert([{
             agendamento_id: agendamentoId,
-            cliente_id: ag?.cliente_id || null,
-            cliente_nome: document.getElementById('recebimentoClienteNome').value || ag?.cliente_nome || null,
+            // Vem da busca quando ela escolheu da lista; do agendamento quando
+            // o modal foi aberto por um debito. Nome digitado sem escolher fica
+            // gravado assim mesmo, sem vinculo.
+            cliente_id: document.getElementById('recebimentoClienteId').value || ag?.cliente_id || null,
+            cliente_nome: document.getElementById('recebimentoBuscaCliente').value || ag?.cliente_nome || null,
             valor: parseFloat(document.getElementById('recebimentoValor').value),
             forma: document.getElementById('recebimentoForma').value,
             parcelas: parseInt(document.getElementById('recebimentoParcelas').value) || 1,

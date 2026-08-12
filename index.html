@@ -48,7 +48,7 @@
     
     <!-- CSS -->
     <link rel="stylesheet" href="css/style.css?v=7.3">
-    <link rel="stylesheet" href="css/anamnese.css?v=5.0">
+    <link rel="stylesheet" href="css/anamnese.css?v=6.0">
 
     <style>
     /* ===== PLANO CARD — VISUAL STATES ===== */
@@ -1389,6 +1389,8 @@
 
                 <div id="recebimentoContexto" class="fin-contexto" style="display:none;"></div>
 
+                <div id="recebimentoDebitos" class="rec-debitos" style="display:none;"></div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="recebimentoValor">Valor recebido (R$) *</label>
@@ -1425,8 +1427,15 @@
                         <small>Quanto a maquininha desconta. Fica de fora do que entrou de verdade.</small>
                     </div>
                     <div class="form-group">
-                        <label for="recebimentoClienteNome">Cliente</label>
-                        <input type="text" id="recebimentoClienteNome" placeholder="Opcional">
+                        <label for="recebimentoBuscaCliente">Cliente</label>
+                        <div class="rec-busca-wrap">
+                            <input type="text" id="recebimentoBuscaCliente" placeholder="Digite o nome para buscar..."
+                                   autocomplete="off" oninput="buscarClienteRecebimento()"
+                                   onfocus="buscarClienteRecebimento()">
+                            <input type="hidden" id="recebimentoClienteId">
+                            <div id="recebimentoDropdownClientes" class="rec-dropdown" style="display:none;"></div>
+                        </div>
+                        <small>Escolher da lista permite quitar um atendimento em aberto.</small>
                     </div>
                 </div>
 
@@ -1756,8 +1765,8 @@
     <script src="js/app-anamnese.js?v=18.0"></script>
     <script src="js/perfil.js?v=17.0"></script>
     <script src="js/app.js?v=18.1"></script>
-    <script src="js/app-compras.js?v=1.1"></script>
-    <script src="js/app-financeiro.js?v=1.0"></script>
+    <script src="js/app-compras.js?v=1.2"></script>
+    <script src="js/app-financeiro.js?v=1.1"></script>
     <script src="js/tour.js?v=1.0"></script>
     <script>
         window.fazerLogout = async function(event) {

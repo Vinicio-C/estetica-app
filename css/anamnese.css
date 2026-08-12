@@ -1040,3 +1040,95 @@
 
 .margem-tabela td, .margem-tabela th { white-space: nowrap; }
 .margem-tabela td:first-child, .margem-tabela th:first-child { white-space: normal; }
+
+/* --- Busca de cliente e debitos no recebimento --- */
+
+.rec-busca-wrap { position: relative; }
+
+.rec-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #222;
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    z-index: 1000;
+    max-height: 220px;
+    overflow-y: auto;
+    margin-top: 4px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+}
+.rec-drop-item {
+    padding: 11px 14px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.rec-drop-item:last-child { border-bottom: none; }
+.rec-drop-item:hover { background: #2e2e2e; }
+.rec-drop-item strong { display: block; color: var(--text-primary); font-size: 0.9rem; font-weight: 600; }
+.rec-drop-item small { display: block; color: #888; font-size: 0.78rem; margin-top: 2px; }
+.rec-drop-vazio { padding: 14px; color: #888; font-size: 0.84rem; text-align: center; }
+.rec-drop-vazio.erro { color: #EF5350; }
+
+.rec-debitos {
+    background: #181818;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+}
+.rec-debitos-titulo {
+    color: var(--gold);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 700;
+    margin: 0 0 10px;
+}
+.rec-debitos-vazio { color: #888; font-size: 0.84rem; margin: 0; line-height: 1.5; }
+.rec-debitos-vazio.erro { color: #EF5350; }
+.rec-debitos-lista { display: flex; flex-direction: column; gap: 7px; }
+
+.rec-debito {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    background: #1f1f1f;
+    border: 1px solid #383838;
+    border-radius: 8px;
+    padding: 10px 13px;
+    cursor: pointer;
+    text-align: left;
+    transition: 0.15s;
+}
+.rec-debito:hover { border-color: #555; }
+.rec-debito.escolhido {
+    border-color: var(--gold);
+    background: rgba(212,175,55,0.09);
+}
+.rec-debito-nome { flex: 1; color: var(--text-primary); font-size: 0.88rem; }
+.rec-debito-data { color: #888; font-size: 0.78rem; white-space: nowrap; }
+.rec-debito-valor {
+    color: var(--gold);
+    font-weight: 700;
+    font-size: 0.92rem;
+    white-space: nowrap;
+    text-align: right;
+}
+.rec-debito-valor small { display: block; color: #777; font-weight: 400; font-size: 0.72rem; }
+
+.fin-xml {
+    background: rgba(212,175,55,0.1);
+    border: 1px solid rgba(212,175,55,0.4);
+    color: var(--gold);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.76rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.2s;
+}
+.fin-xml:hover { background: rgba(212,175,55,0.22); }

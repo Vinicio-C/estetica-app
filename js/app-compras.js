@@ -116,6 +116,9 @@ window.importarXmlNfe = async function(event) {
     try {
         const conteudo = await file.text();
         notaImportada = lerXmlNfe(conteudo);
+        // Guardado para subir ao bucket só depois que a importação for confirmada
+        notaImportada._arquivo = file;
+        notaImportada._conteudo = conteudo;
 
         // Já importou essa nota antes?
         if (notaImportada.chave) {
@@ -268,7 +271,30 @@ window.confirmarImportacaoNfe = async function(botao) {
     if (botao) { botao.disabled = true; botao.textContent = 'Importando...'; }
 
     try {
-        // 1. A nota
+        // 1. Guarda o XML original. Vem antes da compra de propósito: se o
+        // upload falhar, nada foi gravado e ela pode tentar de novo sem gerar
+        // uma compra órfã sem o documento.
+        let xmlPath = null;
+        try {
+            const { data: { user } } = await _supabase.auth.getUser();
+            if (user) {
+                const nomeArquivo = (n.chave || `sem-chave-${Date.now()}`) + '.xml';
+                const caminho = `${user.id}/${nomeArquivo}`;
+                const { error: erroUp } = await _supabase.storage
+                    .from('nfe-xml')
+                    .upload(caminho, new Blob([n._conteudo], { type: 'application/xml' }),
+                            { upsert: true, contentType: 'application/xml' });
+                if (erroUp) throw erroUp;
+                xmlPath = caminho;
+            }
+        } catch (erroXml) {
+            // Não impede a importação: perder o arquivo é ruim, perder a compra
+            // é pior. Avisa e segue.
+            console.warn('XML não foi arquivado:', erroXml.message);
+            showToast('A nota foi importada, mas não consegui arquivar o XML.', 'warning', 7000);
+        }
+
+        // 2. A nota
         const { data: compra, error: erroCompra } = await _supabase
             .from('compras')
             .insert([{
@@ -279,6 +305,8 @@ window.confirmarImportacaoNfe = async function(botao) {
                 data_compra: n.data,
                 frete: n.frete,
                 desconto: n.desconto,
+                xml_path: xmlPath,
+                xml_nome: n._arquivo ? n._arquivo.name : null,
                 observacao: 'Importado do XML da NF-e'
             }])
             .select('id').single();
@@ -337,6 +365,39 @@ window.confirmarImportacaoNfe = async function(botao) {
         showToast('Erro ao importar: ' + (err.message || ''), 'error', 8000);
     } finally {
         if (botao) { botao.disabled = false; botao.textContent = 'Importar nota'; }
+    }
+};
+
+/**
+ * Abre o XML arquivado da nota. O bucket é privado (a nota tem CNPJ, valores e
+ * dados do fornecedor), então o acesso é por URL assinada de 1 hora.
+ */
+window.baixarXmlCompra = async function(compraId) {
+    try {
+        const { data: compra, error } = await _supabase
+            .from('compras').select('xml_path, xml_nome, documento').eq('id', compraId).maybeSingle();
+
+        if (error) throw error;
+        if (!compra?.xml_path) {
+            showToast('Esta compra não tem XML arquivado (foi lançada manualmente).', 'info');
+            return;
+        }
+
+        const { data, error: erroUrl } = await _supabase.storage
+            .from('nfe-xml').createSignedUrl(compra.xml_path, 3600);
+        if (erroUrl) throw erroUrl;
+
+        // download força salvar em vez de abrir o XML cru no navegador
+        const a = document.createElement('a');
+        a.href = data.signedUrl;
+        a.download = compra.xml_nome || `nota-${compra.documento || compraId}.xml`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+    } catch (err) {
+        console.error(err);
+        showToast('Não consegui abrir o XML: ' + (err.message || ''), 'error');
     }
 };
 
