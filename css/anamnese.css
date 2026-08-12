@@ -978,3 +978,65 @@
     transition: 0.2s;
 }
 .btn-receber:hover { background: rgba(102,187,106,0.25); }
+
+/* --- Resultado do periodo (DRE) e margem por servico --- */
+
+.dre-bloco {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+}
+.dre-bloco h3 {
+    color: var(--gold);
+    font-size: 0.95rem;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+.dre-linhas { display: flex; flex-direction: column; }
+.dre-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 14px;
+    padding: 9px 0;
+    font-size: 0.92rem;
+    border-bottom: 1px solid #262626;
+}
+.dre-linha:last-child { border-bottom: none; }
+.dre-linha span { color: var(--text-secondary); }
+.dre-linha strong { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
+.dre-linha.custo strong { color: #EF5350; }
+.dre-linha.subtotal { background: rgba(255,255,255,0.02); }
+.dre-linha.subtotal span { color: var(--text-primary); font-weight: 600; }
+.dre-linha.subtotal strong { color: var(--gold); }
+.dre-linha.subtotal em {
+    font-style: normal;
+    font-size: 0.8rem;
+    color: #888;
+    margin-left: 6px;
+}
+.dre-linha.total {
+    border-top: 2px solid #333;
+    margin-top: 4px;
+    padding-top: 13px;
+}
+.dre-linha.total span { color: var(--text-primary); font-weight: 700; }
+.dre-linha.total strong { color: #66BB6A; font-size: 1.25rem; }
+.dre-linha.total.negativo strong { color: #EF5350; }
+
+.dre-aviso {
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid #2a2a2a;
+    color: #888;
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+.dre-aviso.erro { color: #EF5350; border-top-color: rgba(239,83,80,0.3); }
+
+.margem-tabela td, .margem-tabela th { white-space: nowrap; }
+.margem-tabela td:first-child, .margem-tabela th:first-child { white-space: normal; }

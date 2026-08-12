@@ -4,9 +4,63 @@
 
 let chartFaturamento = null;
 let chartQuantidade = null;
+let chartMargem = null;
 
 // Último recorte calculado, reaproveitado pela impressão
 let ultimoRelatorio = null;
+
+/**
+ * Custo dos produtos consumidos no período, do livro-razão.
+ *
+ * Usa `custo_unitario` gravado NO MOVIMENTO, e não `estoque.custo_medio` atual —
+ * é isso que torna o resultado de um mês fechado imutável. Se ela comprar mais
+ * caro em setembro, o CMV de agosto não pode mudar.
+ *
+ * Devolve { total, porAgendamento: {id: custo}, porProduto: [{nome, qtd, custo}] }
+ */
+async function carregarCustosDoPeriodo(mes, ano) {
+    const vazio = { total: 0, porAgendamento: {}, porProduto: [], erro: null };
+    const { inicio, fim } = intervaloDoMes(mes, ano);
+
+    // Direto no _supabase: o fetchAPI engole erro e devolve lista vazia, o que
+    // aqui viraria "custo zero" e um lucro inventado.
+    const { data, error } = await _supabase
+        .from('estoque_movimentos')
+        .select('agendamento_id, quantidade_delta, custo_total, estoque_id, origem')
+        .eq('origem', 'atendimento')
+        .gte('data', inicio).lte('data', fim);
+
+    if (error) {
+        console.warn('Não consegui ler os custos do período:', error.message);
+        return { ...vazio, erro: error.message };
+    }
+
+    const porAgendamento = {};
+    const porProdutoMap = {};
+    let total = 0;
+
+    (data || []).forEach(m => {
+        const custo = Number(m.custo_total) || 0;
+        total += custo;
+
+        if (m.agendamento_id) {
+            porAgendamento[m.agendamento_id] = (porAgendamento[m.agendamento_id] || 0) + custo;
+        }
+
+        const prod = (appState.estoque || []).find(p => p.id === m.estoque_id);
+        const nome = prod ? prod.nome : 'Produto removido';
+        if (!porProdutoMap[nome]) porProdutoMap[nome] = { nome, qtd: 0, custo: 0 };
+        porProdutoMap[nome].qtd += Math.abs(Number(m.quantidade_delta) || 0);
+        porProdutoMap[nome].custo += custo;
+    });
+
+    return {
+        total,
+        porAgendamento,
+        porProduto: Object.values(porProdutoMap).sort((a, b) => b.custo - a.custo),
+        erro: null
+    };
+}
 
 async function carregarRelatorios() {
     // 1. Garante dados atualizados
@@ -30,6 +84,11 @@ async function carregarRelatorios() {
 
     const mes = parseInt(elMes.value);
     const ano = parseInt(elAno.value);
+
+    // 2b. Custos do período. Vem do livro-razão, não do custo atual do produto:
+    // cada saída guardou o custo do momento, então um mês fechado não muda
+    // quando o preço de compra sobe depois.
+    const custos = await carregarCustosDoPeriodo(mes, ano);
 
     // 3. Filtrar Dados do Mês (TUDO que não foi cancelado)
     // ehDoMes() trata a data como local. Com new Date("2026-08-01") o dia 1
@@ -55,16 +114,42 @@ async function carregarRelatorios() {
 
     // --- CÁLCULOS PARA GRÁFICOS E RANKING ---
     
-    // A. Agrupar por Serviço (Valor e Quantidade)
+    // A. Agrupar por Serviço (Valor, Quantidade e agora CUSTO)
     const statsServicos = {};
     dadosDoMes.forEach(a => {
         const nome = a.servico_nome || a.evento_nome || 'Outros';
         if (!statsServicos[nome]) {
-            statsServicos[nome] = { qtd: 0, valor: 0 };
+            statsServicos[nome] = { qtd: 0, valor: 0, custo: 0 };
         }
         statsServicos[nome].qtd += 1;
         statsServicos[nome].valor += (Number(a.valor) || 0);
+        // Custo real daquele atendimento, do razão
+        statsServicos[nome].custo += (custos.porAgendamento[a.id] || 0);
     });
+
+    // Margem por serviço: a informação que o app nunca teve. Responde qual
+    // procedimento realmente dá lucro, e não apenas qual fatura mais.
+    const margemPorServico = Object.entries(statsServicos)
+        .map(([nome, s]) => ({
+            nome, qtd: s.qtd, receita: s.valor, custo: s.custo,
+            margem: s.valor - s.custo,
+            margemPct: s.valor > 0 ? ((s.valor - s.custo) / s.valor) * 100 : 0
+        }))
+        .sort((a, b) => b.margem - a.margem);
+
+    const lucroBruto = faturamentoReal - custos.total;
+    const margemGeralPct = faturamentoReal > 0 ? (lucroBruto / faturamentoReal) * 100 : 0;
+
+    // Despesas do período, para chegar no lucro líquido
+    const { inicio: iniDesp, fim: fimDesp } = intervaloDoMes(mes, ano);
+    let totalDespesas = 0;
+    try {
+        const { data: desp } = await _supabase.from('despesas')
+            .select('valor').gte('data', iniDesp).lte('data', fimDesp);
+        totalDespesas = (desp || []).reduce((s, d) => s + Number(d.valor || 0), 0);
+    } catch (_) { /* sem despesas, lucro liquido = bruto */ }
+
+    const lucroLiquido = lucroBruto - totalDespesas;
 
     const labelsServicos = Object.keys(statsServicos);
     const dataValor = labelsServicos.map(k => statsServicos[k].valor);
@@ -115,6 +200,39 @@ async function carregarRelatorios() {
             </div>
         </div>
 
+        <!-- Resultado: o que sobra depois do custo do produto e das despesas.
+             É o que faturamento sozinho nunca respondeu. -->
+        <div class="dre-bloco">
+            <h3><i class="fas fa-scale-balanced"></i> Resultado do Período</h3>
+            <div class="dre-linhas">
+                <div class="dre-linha">
+                    <span>Receita dos atendimentos</span>
+                    <strong>${formatCurrency(faturamentoReal)}</strong>
+                </div>
+                <div class="dre-linha custo">
+                    <span>(−) Custo dos produtos usados</span>
+                    <strong>${formatCurrency(custos.total)}</strong>
+                </div>
+                <div class="dre-linha subtotal">
+                    <span>= Lucro bruto</span>
+                    <strong>${formatCurrency(lucroBruto)} <em>${margemGeralPct.toFixed(1)}%</em></strong>
+                </div>
+                <div class="dre-linha custo">
+                    <span>(−) Despesas do período</span>
+                    <strong>${formatCurrency(totalDespesas)}</strong>
+                </div>
+                <div class="dre-linha total ${lucroLiquido >= 0 ? '' : 'negativo'}">
+                    <span>= Lucro líquido</span>
+                    <strong>${formatCurrency(lucroLiquido)}</strong>
+                </div>
+            </div>
+            ${custos.erro
+                ? `<p class="dre-aviso erro">Não consegui ler os custos: ${custos.erro}. O lucro acima está incompleto.</p>`
+                : custos.total === 0
+                    ? `<p class="dre-aviso">Nenhum produto foi baixado no período. Vincule produtos aos serviços em Serviços para o custo aparecer aqui.</p>`
+                    : ''}
+        </div>
+
         <div class="charts-row">
             <div class="chart-card">
                 <h3><i class="fas fa-chart-pie"></i> Faturamento por Serviço (R$)</h3>
@@ -129,6 +247,39 @@ async function carregarRelatorios() {
                     <canvas id="chartQuantidadeServicos"></canvas>
                 </div>
             </div>
+        </div>
+
+        <!-- Margem por serviço: qual procedimento dá lucro, e não só qual fatura -->
+        <div class="chart-card" style="height:auto; margin-bottom:20px;">
+            <h3><i class="fas fa-percent"></i> Margem por Serviço</h3>
+            ${margemPorServico.length === 0
+                ? '<p style="color:#666; text-align:center; padding:20px;">Sem atendimentos no período.</p>'
+                : `<div class="table-responsive">
+                    <table class="relatorio-table margem-tabela">
+                        <thead><tr>
+                            <th>Serviço</th>
+                            <th style="text-align:center">Qtd</th>
+                            <th style="text-align:right">Receita</th>
+                            <th style="text-align:right">Custo</th>
+                            <th style="text-align:right">Margem</th>
+                            <th style="text-align:right">%</th>
+                        </tr></thead>
+                        <tbody>
+                            ${margemPorServico.map(s => {
+                                const cor = s.margemPct >= 70 ? '#66BB6A' : s.margemPct >= 40 ? '#FFA726' : '#EF5350';
+                                return `<tr>
+                                    <td>${s.nome}</td>
+                                    <td style="text-align:center">${s.qtd}</td>
+                                    <td style="text-align:right">${formatCurrency(s.receita)}</td>
+                                    <td style="text-align:right; color:#888">${formatCurrency(s.custo)}</td>
+                                    <td style="text-align:right; font-weight:600">${formatCurrency(s.margem)}</td>
+                                    <td style="text-align:right; color:${cor}; font-weight:700">${s.margemPct.toFixed(0)}%</td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                   </div>
+                   <p class="dre-aviso">O custo vem dos produtos que saíram do estoque naquele atendimento. Serviço sem produto vinculado aparece com 100% de margem — o que significa "custo não medido", não "sem custo".</p>`}
         </div>
 
         <div class="charts-row">
@@ -198,7 +349,9 @@ async function carregarRelatorios() {
     // Guarda o recorte atual para a impressão não precisar recalcular
     ultimoRelatorio = {
         mes, ano, dadosDoMes, statsServicos, rankingClientes,
-        faturamentoReal, faturamentoPrevisto, totalReceberGeral
+        faturamentoReal, faturamentoPrevisto, totalReceberGeral,
+        custoTotal: custos.total, lucroBruto, totalDespesas, lucroLiquido,
+        margemGeralPct, margemPorServico, produtosConsumidos: custos.porProduto
     };
 }
 
@@ -273,6 +426,32 @@ window.imprimirRelatorio = async function() {
                 <tr><td>Atendimentos no período</td><td style="text-align:right">${r.dadosDoMes.length}</td></tr>
             </table>
         </div>
+
+        <div class="print-section">
+            <h3>Resultado</h3>
+            <table class="print-tabela">
+                <tr><td>Receita dos atendimentos</td><td style="text-align:right">${formatCurrency(r.faturamentoReal)}</td></tr>
+                <tr><td>(−) Custo dos produtos usados</td><td style="text-align:right">${formatCurrency(r.custoTotal || 0)}</td></tr>
+                <tr><td><strong>= Lucro bruto</strong></td><td style="text-align:right"><strong>${formatCurrency(r.lucroBruto || 0)} (${(r.margemGeralPct || 0).toFixed(1)}%)</strong></td></tr>
+                <tr><td>(−) Despesas do período</td><td style="text-align:right">${formatCurrency(r.totalDespesas || 0)}</td></tr>
+                <tr><td><strong>= Lucro líquido</strong></td><td style="text-align:right"><strong>${formatCurrency(r.lucroLiquido || 0)}</strong></td></tr>
+            </table>
+        </div>
+
+        ${(r.margemPorServico || []).length ? `
+        <div class="print-section">
+            <h3>Margem por Serviço</h3>
+            <table class="print-tabela">
+                <thead><tr><th>Serviço</th><th style="text-align:center">Qtd</th><th style="text-align:right">Receita</th><th style="text-align:right">Custo</th><th style="text-align:right">Margem</th></tr></thead>
+                <tbody>${r.margemPorServico.map(s => `<tr>
+                    <td>${s.nome}</td>
+                    <td style="text-align:center">${s.qtd}</td>
+                    <td style="text-align:right">${formatCurrency(s.receita)}</td>
+                    <td style="text-align:right">${formatCurrency(s.custo)}</td>
+                    <td style="text-align:right">${formatCurrency(s.margem)} (${s.margemPct.toFixed(0)}%)</td>
+                </tr>`).join('')}</tbody>
+            </table>
+        </div>` : ''}
 
         <div class="print-section">
             <h3>Por Serviço</h3>
