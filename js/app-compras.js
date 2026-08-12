@@ -454,7 +454,180 @@ window.salvarAjusteEstoque = async function(e) {
     }
 };
 
+// ─── COMPRA MANUAL ──────────────────────────────────────────────────────────
+//
+// Nem toda compra vem com XML: farmácia, fornecedor pequeno, compra avulsa.
+// E o fluxo aqui é o oposto da NF-e — ela tem a caixa na mão, não um arquivo.
+// Por isso os campos seguem o que ela sabe: quantas embalagens, quantas unidades
+// vêm em cada uma e quanto pagou. O sistema faz a conta.
+//
+// Isto é diferente de "Ajustar": ajuste corrige contagem (inventário, perda) e
+// não tem dinheiro envolvido. Compra tem custo, e é o custo que alimenta o CMV.
+
+let itensCompraManual = [];
+
+window.abrirModalCompra = function() {
+    itensCompraManual = [];
+    document.getElementById('formCompra').reset();
+    document.getElementById('compraData').value = hojeISO();
+    document.getElementById('compraItemEmbalagens').value = '1';
+    document.getElementById('compraItemPorEmbalagem').value = '1';
+    document.getElementById('compraItemPrevia').textContent = '';
+
+    const sel = document.getElementById('compraItemProduto');
+    if (sel) sel.innerHTML = '<option value="">— escolher produto —</option>' + opcoesProdutos(null);
+
+    renderizarItensCompraManual();
+    document.getElementById('modalCompra').classList.add('active');
+    document.getElementById('overlay').classList.add('active');
+};
+
+window.adicionarItemCompra = function() {
+    const estoqueId   = document.getElementById('compraItemProduto').value;
+    const embalagens  = parseFloat(document.getElementById('compraItemEmbalagens').value);
+    const porEmbalagem= parseFloat(document.getElementById('compraItemPorEmbalagem').value);
+    const valorPago   = parseFloat(document.getElementById('compraItemValor').value);
+
+    if (!estoqueId)         { showToast('Escolha o produto.', 'warning'); return; }
+    if (!(embalagens > 0))  { showToast('Informe quantas embalagens entraram.', 'warning'); return; }
+    if (!(porEmbalagem > 0)){ showToast('Informe quantas unidades vêm em cada embalagem.', 'warning'); return; }
+    if (!(valorPago >= 0))  { showToast('Informe quanto você pagou.', 'warning'); return; }
+
+    const produto = (appState.estoque || []).find(p => p.id === estoqueId);
+    const totalUnidades = embalagens * porEmbalagem;
+
+    itensCompraManual.push({
+        estoque_id: estoqueId,
+        nome: produto ? produto.nome : 'Produto',
+        unidade: (produto && produto.unidade) || 'un',
+        embalagens,
+        por_embalagem: porEmbalagem,
+        quantidade: totalUnidades,
+        valor_pago: valorPago,
+        custo_unitario: valorPago / totalUnidades
+    });
+
+    document.getElementById('compraItemProduto').value = '';
+    document.getElementById('compraItemEmbalagens').value = '1';
+    document.getElementById('compraItemPorEmbalagem').value = '1';
+    document.getElementById('compraItemValor').value = '';
+    document.getElementById('compraItemPrevia').textContent = '';
+    document.getElementById('compraItemProduto').focus();
+
+    renderizarItensCompraManual();
+};
+
+window.removerItemCompra = function(idx) {
+    itensCompraManual.splice(idx, 1);
+    renderizarItensCompraManual();
+};
+
+// Prévia enquanto ela digita. Mesmo princípio da tela de NF-e: a conversão
+// precisa ficar visível ANTES de gravar, senão o erro passa despercebido.
+window.previverItemCompra = function() {
+    const emb = parseFloat(document.getElementById('compraItemEmbalagens').value);
+    const por = parseFloat(document.getElementById('compraItemPorEmbalagem').value);
+    const val = parseFloat(document.getElementById('compraItemValor').value);
+    const alvo = document.getElementById('compraItemPrevia');
+    if (!alvo) return;
+
+    if (emb > 0 && por > 0) {
+        const total = emb * por;
+        const unit = val >= 0 ? val / total : null;
+        alvo.innerHTML = `Entra <strong>${total.toLocaleString('pt-BR')}</strong> no estoque` +
+            (unit !== null ? `, a <strong>${formatCurrency(unit)}</strong> cada` : '');
+    } else {
+        alvo.textContent = '';
+    }
+};
+
+function renderizarItensCompraManual() {
+    const lista = document.getElementById('compraItensLista');
+    const totalEl = document.getElementById('compraTotalItens');
+    if (!lista) return;
+
+    if (itensCompraManual.length === 0) {
+        lista.innerHTML = '<p class="compra-vazio">Nenhum item ainda. Adicione o primeiro acima.</p>';
+        if (totalEl) totalEl.textContent = formatCurrency(0);
+        return;
+    }
+
+    lista.innerHTML = itensCompraManual.map((i, idx) => `
+        <div class="compra-item">
+            <div class="compra-item-info">
+                <strong>${i.nome}</strong>
+                <small>${i.embalagens} × ${i.por_embalagem} = <b>${i.quantidade.toLocaleString('pt-BR')} ${i.unidade}</b> · ${formatCurrency(i.custo_unitario)} cada</small>
+            </div>
+            <div class="compra-item-valor">${formatCurrency(i.valor_pago)}</div>
+            <button type="button" class="compra-item-remover" onclick="removerItemCompra(${idx})" title="Remover">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>`).join('');
+
+    const soma = itensCompraManual.reduce((s, i) => s + i.valor_pago, 0);
+    if (totalEl) totalEl.textContent = formatCurrency(soma);
+}
+
+window.salvarCompra = async function(e) {
+    e.preventDefault();
+
+    if (itensCompraManual.length === 0) {
+        showToast('Adicione ao menos um item à compra.', 'warning');
+        return;
+    }
+
+    const botao = e.submitter || document.querySelector('#formCompra button[type="submit"]');
+    if (botao) { botao.disabled = true; botao.dataset.txt = botao.innerHTML; botao.innerHTML = 'Salvando...'; }
+
+    try {
+        const { data: compra, error: erroCompra } = await _supabase
+            .from('compras')
+            .insert([{
+                fornecedor: document.getElementById('compraFornecedor').value || null,
+                documento: document.getElementById('compraDocumento').value || null,
+                data_compra: document.getElementById('compraData').value || hojeISO(),
+                frete: parseFloat(document.getElementById('compraFrete').value) || 0,
+                desconto: parseFloat(document.getElementById('compraDesconto').value) || 0,
+                forma_pagamento: document.getElementById('compraFormaPagamento').value || null,
+                observacao: document.getElementById('compraObservacao').value || null
+            }])
+            .select('id').single();
+
+        if (erroCompra) throw erroCompra;
+
+        // O trigger transforma cada item em entrada no razão e recalcula o
+        // custo médio ponderado do produto.
+        const linhas = itensCompraManual.map(i => ({
+            compra_id: compra.id,
+            estoque_id: i.estoque_id,
+            quantidade: i.quantidade,
+            custo_unitario: i.custo_unitario,
+            descricao_fornecedor: `${i.embalagens} embalagem(ns) de ${i.por_embalagem}`,
+            qtd_fornecedor: i.embalagens,
+            unidade_fornecedor: 'embalagem'
+        }));
+
+        const { error: erroItens } = await _supabase.from('compra_itens').insert(linhas);
+        if (erroItens) throw erroItens;
+
+        showToast(`Compra registrada: ${linhas.length} produto(s) deram entrada.`, 'success');
+        fecharModal('modalCompra');
+        itensCompraManual = [];
+
+        if (typeof carregarEstoque === 'function') await carregarEstoque();
+
+    } catch (err) {
+        console.error(err);
+        showToast('Erro ao salvar compra: ' + (err.message || ''), 'error', 8000);
+    } finally {
+        if (botao) { botao.disabled = false; botao.innerHTML = botao.dataset.txt || 'Salvar compra'; }
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
-    const f = document.getElementById('formAjusteEstoque');
-    if (f) f.addEventListener('submit', salvarAjusteEstoque);
+    const fAjuste = document.getElementById('formAjusteEstoque');
+    if (fAjuste) fAjuste.addEventListener('submit', salvarAjusteEstoque);
+
+    const fCompra = document.getElementById('formCompra');
+    if (fCompra) fCompra.addEventListener('submit', salvarCompra);
 });

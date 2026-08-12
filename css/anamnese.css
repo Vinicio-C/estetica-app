@@ -654,3 +654,127 @@
     .nfe-item-vinculo label,
     .nfe-fator { flex-basis: 100% !important; }
 }
+
+/* --- Compra manual --- */
+
+.compra-adicionar {
+    background: #181818;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 15px 16px;
+    margin-bottom: 16px;
+}
+.compra-titulo {
+    color: var(--gold);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    margin: 0 0 6px;
+}
+.compra-ajuda {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    margin: 0 0 14px;
+}
+
+.compra-linha {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+.compra-linha label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 96px;
+    margin: 0;
+    text-transform: none;
+}
+.compra-campo-produto { flex: 2.4 !important; min-width: 180px !important; }
+.compra-linha label span {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #888;
+}
+.compra-linha input,
+.compra-linha select {
+    background: #111;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 9px 10px;
+    font-size: 0.88rem;
+    width: 100%;
+}
+.compra-add {
+    flex: 0 0 auto !important;
+    padding: 9px 15px !important;
+    align-self: flex-end;
+}
+
+.compra-previa {
+    margin: 10px 0 0;
+    font-size: 0.83rem;
+    color: #aaa;
+    min-height: 1.2em;
+}
+.compra-previa strong { color: var(--gold); }
+
+.compra-itens-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.compra-vazio {
+    color: #666;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 14px;
+    margin: 0;
+}
+.compra-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 13px;
+}
+.compra-item-info { flex: 1; min-width: 0; }
+.compra-item-info strong { display: block; color: var(--text-primary); font-size: 0.9rem; }
+.compra-item-info small { display: block; color: #888; font-size: 0.78rem; margin-top: 2px; }
+.compra-item-info b { color: #bbb; }
+.compra-item-valor { color: var(--gold); font-weight: 700; white-space: nowrap; }
+.compra-item-remover {
+    background: none;
+    border: none;
+    color: #EF5350;
+    cursor: pointer;
+    padding: 4px 6px;
+}
+
+.compra-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: rgba(212, 175, 55, 0.07);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 8px;
+    margin-bottom: 18px;
+}
+.compra-total span { color: var(--text-secondary); font-size: 0.85rem; }
+.compra-total strong { color: var(--gold); font-size: 1.15rem; }
+
+@media (max-width: 640px) {
+    .compra-linha label,
+    .compra-campo-produto { flex-basis: 100% !important; }
+    .compra-add { width: 100%; }
+}
