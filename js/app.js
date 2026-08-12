@@ -1295,11 +1295,16 @@ function renderizarEstoque(produtos) {
                     Saldo negativo: houve consumo sem entrada registrada.
                 </div>` : ''}
 
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <button onclick="abrirModalEstoque('${p.id}')" class="action-btn btn-edit">
                         <i class="fas fa-edit"></i> Editar
                     </button>
-
+                    <button onclick="abrirModalAjusteEstoque('${p.id}')" class="action-btn btn-edit">
+                        <i class="fas fa-sliders-h"></i> Ajustar
+                    </button>
+                    <button onclick="abrirHistoricoProduto('${p.id}')" class="action-btn btn-edit">
+                        <i class="fas fa-clock-rotate-left"></i> Histórico
+                    </button>
                     <button onclick="excluirProduto('${p.id}')" class="action-btn btn-delete">
                         <i class="fas fa-trash"></i> Excluir
                     </button>

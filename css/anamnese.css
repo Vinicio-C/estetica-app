@@ -503,3 +503,154 @@
         width: 90%;
     }
 }
+
+
+/* =======================================================
+   COMPRAS — importação de NF-e, histórico e ajuste
+   ======================================================= */
+
+.nfe-cabecalho {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+}
+.nfe-cabecalho strong { display: block; color: var(--gold); font-size: 1.05rem; }
+.nfe-cabecalho small { display: block; color: #888; font-size: 0.82rem; margin-top: 3px; }
+
+.nfe-explicacao {
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+    line-height: 1.55;
+    margin-bottom: 16px;
+}
+
+.nfe-itens {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 48vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.nfe-item {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-left: 3px solid #555;
+    border-radius: 10px;
+    padding: 13px 15px;
+}
+.nfe-item.vinculado { border-left-color: #66BB6A; }
+
+.nfe-item-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 11px;
+}
+.nfe-item-topo strong { display: block; color: var(--text-primary); font-size: 0.92rem; }
+.nfe-item-topo small { display: block; color: #888; font-size: 0.78rem; margin-top: 3px; }
+
+.nfe-badge {
+    background: rgba(102, 187, 106, 0.15);
+    border: 1px solid rgba(102, 187, 106, 0.4);
+    color: #66BB6A;
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+.nfe-item-vinculo {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+.nfe-item-vinculo label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 170px;
+    margin: 0;
+    text-transform: none;
+}
+.nfe-item-vinculo label span {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #888;
+}
+.nfe-item-vinculo select,
+.nfe-item-vinculo input {
+    background: #111;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.87rem;
+    width: 100%;
+}
+.nfe-fator { flex: 0 0 150px !important; min-width: 130px !important; }
+
+.nfe-item-resultado {
+    margin-top: 10px;
+    padding-top: 9px;
+    border-top: 1px solid #2c2c2c;
+    font-size: 0.83rem;
+    color: #aaa;
+}
+.nfe-item-resultado strong { color: var(--gold); }
+.nfe-item-resultado.pendente { color: #FFA726; }
+
+.nfe-aviso {
+    margin: 14px 0 0;
+    font-size: 0.84rem;
+    color: #66BB6A;
+}
+.nfe-aviso.pendente { color: #FFA726; }
+
+/* Histórico do produto */
+.hist-tabela { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.hist-tabela th {
+    text-align: left;
+    color: #888;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #333;
+    position: sticky;
+    top: 0;
+    background: #1E1E1E;
+}
+.hist-tabela td {
+    padding: 9px 10px;
+    border-bottom: 1px solid #2a2a2a;
+    color: var(--text-primary);
+    vertical-align: top;
+}
+.hist-tabela small { font-size: 0.75rem; }
+
+/* Ajuste de saldo */
+.ajuste-resumo {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 13px 15px;
+    margin-bottom: 18px;
+}
+.ajuste-resumo span { display: block; color: var(--text-primary); font-weight: 600; }
+.ajuste-resumo small { display: block; color: #888; font-size: 0.82rem; margin-top: 4px; }
+.ajuste-resumo strong { color: var(--gold); }
+
+@media (max-width: 600px) {
+    .nfe-item-vinculo label,
+    .nfe-fator { flex-basis: 100% !important; }
+}

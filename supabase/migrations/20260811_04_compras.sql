@@ -1,0 +1,14 @@
+-- Migração: compras, fornecedores e de-para para importação de NF-e
+-- Fase 3 do módulo financeiro. Aplicada via MCP em 11/08/2026.
+--
+-- A entrada de estoque deixa de ser "digitar um número novo" e passa a ser o
+-- registro de uma compra: quanto custou, de quem, quando.
+--
+-- O ponto delicado é a tabela `estoque_fornecedor_ref`. O fornecedor escreve
+-- "AGULHA 30G 13MM CX/100" e vende 2 CAIXAS; ela cadastrou "Agulha cinza" e
+-- controla em UNIDADES. Sem o fator de conversão, o estoque subiria 2 em vez de
+-- 200 e o custo unitário ficaria 100 vezes errado. A tabela memoriza o vínculo
+-- por (CNPJ, código do produto), então da segunda nota em diante é automático.
+--
+-- O conteúdo exato está no histórico do banco; ver também
+-- 20260811_05_compras_triggers.sql

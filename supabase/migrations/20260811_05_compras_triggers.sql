@@ -1,0 +1,11 @@
+-- Migração: triggers de compra
+-- Fase 3. Aplicada via MCP em 11/08/2026.
+--
+-- compra_item_gera_movimento: cada item vira uma entrada no razão; o trigger do
+-- razão cuida do saldo e recalcula o custo médio ponderado.
+--
+-- recalcular_total_compra: total = soma dos itens + frete - desconto.
+--
+-- Testado com RLS ativo, em transação revertida: 150 un a R$0,23 + 200 un a
+-- R$0,40 resultou em 350 un e custo médio R$0,3271, que é
+-- (150*0,23 + 200*0,40)/350. Total da nota R$95,00 com frete de R$15.
