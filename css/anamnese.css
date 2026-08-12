@@ -1132,3 +1132,118 @@
     transition: 0.2s;
 }
 .fin-xml:hover { background: rgba(212,175,55,0.22); }
+
+/* =======================================================
+   MODAIS — densidade e responsividade
+   Os modais foram desenhados para desktop: titulo de 2rem, padding de 2.5rem
+   e rotulos em caixa alta. Num telefone de 390px isso vira titulo em tres
+   linhas, formulario interminavel e o botao de salvar fora da tela.
+   ======================================================= */
+
+/* .form-row era usado em 18 lugares do HTML e NAO existia no CSS: os campos
+   nunca ficavam lado a lado, nem no desktop. */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+.form-row > .form-group { margin-bottom: 0; }
+
+/* Cabecalho fixo: o titulo e o X acompanham a rolagem do formulario */
+.modal-content > .modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #1E1E1E;
+    margin: 0 0 18px;
+}
+/* Sem isto o titulo passa por baixo do X quando o padding diminui */
+.modal-header h2 { padding-right: 42px; }
+
+@media (max-width: 768px) {
+    .modal { padding: 0.5rem; align-items: flex-start; }
+
+    .modal-content {
+        padding: 1.15rem 1.15rem 0;
+        max-height: calc(100vh - 1rem);
+        max-height: calc(100dvh - 1rem);   /* dvh evita o corte pela barra do navegador */
+        border-radius: 14px;
+        margin-top: 0.5rem;
+    }
+
+    .modal-header h2 {
+        font-size: 1.3rem;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.7rem;
+        padding-right: 38px;
+        line-height: 1.25;
+    }
+    .modal-close { top: 14px; right: 14px; font-size: 1.35rem; }
+
+    /* Rotulo em caixa alta ocupa muito espaco e quebra linha */
+    .modal-content label {
+        font-size: 0.72rem;
+        letter-spacing: 0.3px;
+        margin-bottom: 5px;
+    }
+    .modal-content .form-group { margin-bottom: 14px; }
+    .modal-content .form-group small {
+        font-size: 0.74rem;
+        line-height: 1.4;
+        display: block;
+        margin-top: 5px;
+    }
+
+    /* font-size fica em 16px (regra existente) para o iOS nao dar zoom;
+       so o padding vertical diminui */
+    .modal-content input,
+    .modal-content select,
+    .modal-content textarea { padding: 11px 13px; }
+    .modal-content textarea { min-height: 76px; }
+
+    /* Duas colunas viram uma */
+    .form-row { grid-template-columns: 1fr; gap: 0; margin-bottom: 0; }
+    .form-row > .form-group { margin-bottom: 14px; }
+
+    /* Botoes colados no rodape: o principal fica sempre alcancavel,
+       sem precisar rolar ate o fim do formulario */
+    .modal-content .form-actions,
+    .modal-content .modal-buttons {
+        position: sticky;
+        bottom: 0;
+        background: #1E1E1E;
+        border-top: 1px solid #333;
+        padding: 13px 0 calc(13px + env(safe-area-inset-bottom));
+        margin: 18px 0 0;
+        display: flex;
+        gap: 10px;
+        z-index: 5;
+    }
+    .modal-content .form-actions button,
+    .modal-content .modal-buttons button { flex: 1; padding: 13px; }
+
+    /* Listas dentro de modal nao podem ter altura fixa de desktop */
+    .editor-lista-campos,
+    .nfe-itens { max-height: 40vh; }
+}
+
+/* Telas bem estreitas */
+@media (max-width: 380px) {
+    .modal-content { padding: 0.95rem 0.95rem 0; }
+    .modal-header h2 { font-size: 1.18rem; }
+    .compra-linha label, .nfe-item-vinculo label { min-width: 100% !important; }
+}
+
+/* Tabelas largas do financeiro rolam na horizontal em vez de espremer */
+@media (max-width: 768px) {
+    .fin-tabela, .hist-tabela, .relatorio-table { min-width: 520px; }
+    .fin-painel, #histProdutoCorpo { overflow-x: auto; }
+    .fin-cards { grid-template-columns: 1fr; }
+    .fin-abas { overflow-x: auto; flex-wrap: nowrap; }
+    .fin-aba { white-space: nowrap; padding: 10px 12px; font-size: 0.83rem; }
+    .estoque-resumo { grid-template-columns: 1fr; }
+    .dre-linha { font-size: 0.86rem; }
+    .header-controls { flex-wrap: wrap; gap: 8px; }
+    .header-controls button { flex: 1; min-width: 140px; }
+}

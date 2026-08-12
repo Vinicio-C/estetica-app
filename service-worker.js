@@ -1,4 +1,4 @@
-const APP_CACHE = 'estetica-app-v14';
+const APP_CACHE = 'estetica-app-v15';
 const CDN_CACHE = 'estetica-cdn-v1';
 
 // Arquivos locais do app — ficam em cache para funcionar offline
