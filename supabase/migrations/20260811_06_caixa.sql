@@ -1,0 +1,20 @@
+-- Migracao: caixa (recebimentos e despesas)
+-- Fase 4 do modulo financeiro. Aplicada via MCP em 11/08/2026.
+--
+-- pagamentos foi RECRIADA: a tabela antiga existia, era lida no boot e nunca
+-- usada (zero inserts no projeto), e estava vazia. Ganhou forma de pagamento,
+-- parcelas, taxa da maquininha e valor_liquido gerado.
+--
+-- O ponto de compatibilidade e o trigger sincronizar_status_pagamento: ele
+-- transforma agendamentos.status_pagamento em CACHE derivado da soma dos
+-- recebimentos. Assim as ~10 comparacoes de string exata espalhadas por
+-- app.js, app-relatorios.js e app-agenda.js, mais o CSS .status-badge,
+-- continuam funcionando sem alteracao.
+--
+-- Nao existe status 'parcial' de proposito: cria-lo quebraria todas elas.
+-- Recebimento parcial mantem 'devendo' e so aparece detalhado na tela
+-- Financeiro. Testado: metade paga -> 'devendo'; quitado -> 'pago'.
+--
+-- despesas cobre o que nao e estoque (aluguel, energia, marketing...).
+-- Compra de material NAO entra aqui: vira ativo e so afeta o resultado como
+-- CMV quando o produto e usado.

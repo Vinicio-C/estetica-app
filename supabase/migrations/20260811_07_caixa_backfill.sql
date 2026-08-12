@@ -1,0 +1,13 @@
+-- Migracao: backfill dos recebimentos historicos
+-- Fase 4. Aplicada via MCP em 11/08/2026. 29 registros, R$ 3.170,00.
+--
+-- Excecao deliberada a regra "nao reprocessar historico": sem ele a tela
+-- mostraria "entrada por forma de pagamento: R$ 0,00" ao lado de "faturamento
+-- realizado: R$ 3.170,00" -- dois numeros discordando na mesma tela destroem a
+-- confianca no modulo logo no primeiro uso.
+--
+-- A forma fica 'outro' porque e honestamente desconhecida: o app nunca
+-- perguntou. Tem `where not exists` como cinto de seguranca, ja que sem chave
+-- natural rodar duas vezes duplicaria tudo.
+--
+-- Conferido apos: soma dos pagamentos = soma dos agendamentos pagos = 3.170,00.

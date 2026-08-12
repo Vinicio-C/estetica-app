@@ -778,3 +778,203 @@
     .compra-campo-produto { flex-basis: 100% !important; }
     .compra-add { width: 100%; }
 }
+
+/* =======================================================
+   FINANCEIRO — caixa, recebimentos e despesas
+   ======================================================= */
+
+.fin-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+.fin-card {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-left: 4px solid #555;
+    border-radius: 10px;
+    padding: 15px 17px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.fin-card span {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+}
+.fin-card strong { font-size: 1.5rem; font-weight: 700; }
+.fin-card small { font-size: 0.76rem; color: #777; margin-top: 2px; }
+.fin-card.entrada { border-left-color: #66BB6A; }
+.fin-card.entrada strong { color: #66BB6A; }
+.fin-card.saida { border-left-color: #EF5350; }
+.fin-card.saida strong { color: #EF5350; }
+.fin-card.positivo { border-left-color: var(--gold); }
+.fin-card.positivo strong { color: var(--gold); }
+.fin-card.negativo { border-left-color: #EF5350; }
+.fin-card.negativo strong { color: #EF5350; }
+
+.fin-abas {
+    display: flex;
+    gap: 6px;
+    border-bottom: 1px solid #333;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+.fin-aba {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #888;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: 0.2s;
+}
+.fin-aba:hover { color: var(--text-primary); }
+.fin-aba.ativa { color: var(--gold); border-bottom-color: var(--gold); font-weight: 600; }
+
+.fin-painel { display: none; }
+.fin-painel.ativo { display: block; animation: fadeIn 0.25s; }
+
+.fin-tabela { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+.fin-tabela th {
+    text-align: left;
+    color: #888;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 9px 10px;
+    border-bottom: 1px solid #333;
+}
+.fin-tabela td {
+    padding: 11px 10px;
+    border-bottom: 1px solid #2a2a2a;
+    color: var(--text-primary);
+    vertical-align: top;
+}
+.fin-tabela small { display: block; color: #777; font-size: 0.76rem; margin-top: 2px; }
+
+.fin-forma, .fin-categoria {
+    display: inline-block;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid #3a3a3a;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+}
+
+.fin-excluir {
+    background: none;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    padding: 4px 6px;
+    transition: color 0.2s;
+}
+.fin-excluir:hover { color: #EF5350; }
+
+.fin-vazio {
+    color: #666;
+    text-align: center;
+    padding: 30px 16px;
+    font-size: 0.9rem;
+}
+.fin-erro {
+    background: rgba(239,83,80,0.1);
+    border: 1px solid rgba(239,83,80,0.4);
+    color: #EF5350;
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Fechamento */
+.fin-fechamento {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+.fin-bloco {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 16px 18px;
+}
+.fin-bloco h4 {
+    color: var(--gold);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 12px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid #333;
+}
+.fin-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 7px 0;
+    font-size: 0.88rem;
+}
+.fin-linha span { color: var(--text-secondary); }
+.fin-linha strong { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
+.fin-linha.negativa strong { color: #EF5350; }
+.fin-linha.compra strong { color: #FFA726; }
+.fin-linha.total {
+    border-top: 1px solid #333;
+    margin-top: 6px;
+    padding-top: 11px;
+}
+.fin-linha.total span { color: var(--text-primary); font-weight: 600; }
+.fin-linha.total strong { color: var(--gold); font-size: 1.1rem; }
+.fin-bloco.saldo { border-color: rgba(212,175,55,0.35); }
+.fin-bloco.saldo.negativo { border-color: rgba(239,83,80,0.4); }
+.fin-bloco.saldo.negativo .fin-linha.total strong { color: #EF5350; }
+
+.fin-nota {
+    grid-column: 1 / -1;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    background: rgba(255,255,255,0.02);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 8px 8px 0;
+    padding: 13px 16px;
+    margin: 4px 0 0;
+}
+.fin-nota strong { color: var(--gold); }
+
+/* Contexto no modal de recebimento */
+.fin-contexto {
+    background: #181818;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+}
+.fin-contexto strong { display: block; color: var(--text-primary); }
+.fin-contexto small { display: block; color: #888; font-size: 0.79rem; margin-top: 3px; }
+.fin-contexto .fin-parcial { color: #FFA726; margin-top: 6px; }
+
+/* Botao de receber nas listas */
+.btn-receber {
+    background: rgba(102,187,106,0.12);
+    border: 1px solid rgba(102,187,106,0.45);
+    color: #66BB6A;
+    border-radius: 6px;
+    padding: 5px 11px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.2s;
+}
+.btn-receber:hover { background: rgba(102,187,106,0.25); }

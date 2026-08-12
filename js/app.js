@@ -224,6 +224,7 @@ function navigateTo(page) {
         agenda: 'Agenda',
         servicos: 'Serviços',
         estoque: 'Estoque',
+        financeiro: 'Financeiro',
         relatorios: 'Relatórios',
         automacoes: 'Automações'
     };
@@ -237,6 +238,7 @@ function navigateTo(page) {
         case 'agenda': if(typeof carregarAgenda === 'function') carregarAgenda(); break;
         case 'servicos': if(typeof carregarServicos === 'function') carregarServicos(); break;
         case 'estoque': if(typeof carregarEstoque === 'function') carregarEstoque(); break;
+        case 'financeiro': if(typeof carregarFinanceiro === 'function') carregarFinanceiro(); break;
         case 'relatorios': if(typeof carregarRelatorios === 'function') carregarRelatorios(); break;
         case 'automacoes': if(typeof carregarAutomacoes === 'function') carregarAutomacoes(); break;
         case 'perfil': if(typeof carregarDadosPerfil === 'function') carregarDadosPerfil(); break;
@@ -434,14 +436,19 @@ function renderizarListasDashboard() {
         if (devedores.length === 0) {
             listaContas.innerHTML = '<div class="empty-state-small success" style="padding:15px; text-align:center; color:#888;">Nenhum débito.</div>';
         } else {
+            // O botão de receber fica aqui porque é onde a dor está: ela vê o
+            // débito e resolve na hora, sem abrir a ficha da cliente.
             listaContas.innerHTML = devedores.map(a => `
-                <div class="dash-list-item danger" onclick="abrirDetalhesCliente('${a.cliente_id}')">
-                    <div class="dash-item-icon"><i class="fas fa-exclamation-circle"></i></div>
-                    <div class="dash-item-info">
+                <div class="dash-list-item danger">
+                    <div class="dash-item-icon" onclick="abrirDetalhesCliente('${a.cliente_id}')"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="dash-item-info" onclick="abrirDetalhesCliente('${a.cliente_id}')">
                         <h4>${a.cliente_nome}</h4>
                         <p>${formatDate(a.data)}</p>
                     </div>
                     <div class="dash-item-value">${formatCurrency(a.valor)}</div>
+                    <button class="btn-receber" onclick="event.stopPropagation(); abrirModalRecebimento('${a.id}')">
+                        <i class="fas fa-hand-holding-dollar"></i> Receber
+                    </button>
                 </div>
             `).join('');
         }
@@ -878,6 +885,12 @@ async function abrirDetalhesCliente(clienteId) {
                         <span>${formatDate(a.data)} • <span style="color: ${corStatus}; font-weight: bold;">${statusStr}</span></span>
                         
                         <div style="display:flex; gap: 5px;">
+                            ${a.status_pagamento === 'devendo' || a.status_pagamento === 'pendente' ? `
+                                <button onclick="event.stopPropagation(); fecharModal('modalDetalhesCliente'); abrirModalRecebimento('${a.id}')" class="btn-receber" title="Registrar recebimento">
+                                    <i class="fas fa-hand-holding-dollar"></i> Receber
+                                </button>
+                            ` : ''}
+
                             ${a.status === 'concluido' ? `
                                 <button onclick="event.stopPropagation(); reverterConclusao('${a.id}')" style="background:transparent; border:1px solid #ff4444; color:#ff4444; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 0.75rem;" title="Desfazer e devolver estoque">
                                     <i class="fas fa-undo"></i> Estornar

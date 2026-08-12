@@ -48,7 +48,7 @@
     
     <!-- CSS -->
     <link rel="stylesheet" href="css/style.css?v=7.3">
-    <link rel="stylesheet" href="css/anamnese.css?v=3.1">
+    <link rel="stylesheet" href="css/anamnese.css?v=4.0">
 
     <style>
     /* ===== PLANO CARD — VISUAL STATES ===== */
@@ -190,6 +190,10 @@
             <li class="menu-item" data-page="estoque">
                 <i class="fas fa-boxes"></i>
                 <span>Estoque</span>
+            </li>
+            <li class="menu-item" data-page="financeiro">
+                <i class="fas fa-cash-register"></i>
+                <span>Financeiro</span>
             </li>
             <li class="menu-item" data-page="relatorios">
                 <i class="fas fa-chart-pie"></i>
@@ -439,6 +443,30 @@
                 </div>
                 <div id="estoqueResumo" class="estoque-resumo"></div>
                 <div id="estoqueGrid" class="estoque-grid"></div>
+            </div>
+
+            <div id="financeiroPage" class="page">
+                <div class="header-controls">
+                    <div class="relatorio-date-picker">
+                        <label>Período:</label>
+                        <select id="financeiroMes" onchange="carregarFinanceiro()">
+                            <option value="0">Janeiro</option><option value="1">Fevereiro</option>
+                            <option value="2">Março</option><option value="3">Abril</option>
+                            <option value="4">Maio</option><option value="5">Junho</option>
+                            <option value="6">Julho</option><option value="7">Agosto</option>
+                            <option value="8">Setembro</option><option value="9">Outubro</option>
+                            <option value="10">Novembro</option><option value="11">Dezembro</option>
+                        </select>
+                        <input type="number" id="financeiroAno" value="2026" onchange="carregarFinanceiro()">
+                    </div>
+                    <button class="btn-secondary" onclick="abrirModalDespesa()">
+                        <i class="fas fa-arrow-up"></i> Nova Despesa
+                    </button>
+                    <button class="btn-primary" onclick="abrirModalRecebimento()">
+                        <i class="fas fa-arrow-down"></i> Registrar Recebimento
+                    </button>
+                </div>
+                <div id="financeiroConteudo"></div>
             </div>
 
             <div id="relatoriosPage" class="page">
@@ -1353,6 +1381,154 @@
         </div>
     </div>
 
+    <!-- Registrar recebimento -->
+    <div id="modalRecebimento" class="modal">
+        <div class="modal-content" style="max-width:560px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-arrow-down"></i> Registrar Recebimento</h2>
+                <button class="modal-close" onclick="fecharModal(&#39;modalRecebimento&#39;)"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="formRecebimento" class="modal-form">
+                <input type="hidden" id="recebimentoAgendamentoId">
+
+                <div id="recebimentoContexto" class="fin-contexto" style="display:none;"></div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="recebimentoValor">Valor recebido (R$) *</label>
+                        <input type="number" id="recebimentoValor" required min="0.01" step="0.01" placeholder="0,00">
+                    </div>
+                    <div class="form-group">
+                        <label for="recebimentoData">Data *</label>
+                        <input type="date" id="recebimentoData" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="recebimentoForma">Forma de pagamento *</label>
+                        <select id="recebimentoForma" required>
+                            <option value="dinheiro">Dinheiro</option>
+                            <option value="pix">Pix</option>
+                            <option value="debito">D&eacute;bito</option>
+                            <option value="credito">Cr&eacute;dito</option>
+                            <option value="transferencia">Transfer&ecirc;ncia</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="recebimentoParcelas">Parcelas</label>
+                        <input type="number" id="recebimentoParcelas" min="1" value="1">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="recebimentoTaxa">Taxa da maquininha (R$)</label>
+                        <input type="number" id="recebimentoTaxa" min="0" step="0.01" placeholder="0,00">
+                        <small>Quanto a maquininha desconta. Fica de fora do que entrou de verdade.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="recebimentoClienteNome">Cliente</label>
+                        <input type="text" id="recebimentoClienteNome" placeholder="Opcional">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="recebimentoObservacao">Observa&ccedil;&atilde;o</label>
+                    <input type="text" id="recebimentoObservacao" placeholder="Opcional">
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="fecharModal(&#39;modalRecebimento&#39;)">Cancelar</button>
+                    <button type="submit" class="btn-primary">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Registrar despesa -->
+    <div id="modalDespesa" class="modal">
+        <div class="modal-content" style="max-width:560px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-arrow-up"></i> Nova Despesa</h2>
+                <button class="modal-close" onclick="fecharModal(&#39;modalDespesa&#39;)"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="formDespesa" class="modal-form">
+                <div class="form-group">
+                    <label for="despesaDescricao">Descri&ccedil;&atilde;o *</label>
+                    <input type="text" id="despesaDescricao" required placeholder="Ex: Aluguel de agosto">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="despesaCategoria">Categoria *</label>
+                        <select id="despesaCategoria" required>
+                            <option value="aluguel">Aluguel</option>
+                            <option value="energia">Energia</option>
+                            <option value="agua">&Aacute;gua</option>
+                            <option value="internet">Internet</option>
+                            <option value="telefone">Telefone</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="salario">Sal&aacute;rio</option>
+                            <option value="impostos">Impostos</option>
+                            <option value="equipamento">Equipamento</option>
+                            <option value="manutencao">Manuten&ccedil;&atilde;o</option>
+                            <option value="contabilidade">Contabilidade</option>
+                            <option value="software">Software</option>
+                            <option value="transporte">Transporte</option>
+                            <option value="educacao">Cursos e capacita&ccedil;&atilde;o</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="despesaValor">Valor (R$) *</label>
+                        <input type="number" id="despesaValor" required min="0.01" step="0.01" placeholder="0,00">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="despesaData">Data *</label>
+                        <input type="date" id="despesaData" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="despesaForma">Forma de pagamento</label>
+                        <select id="despesaForma">
+                            <option value="">N&atilde;o informar</option>
+                            <option value="dinheiro">Dinheiro</option>
+                            <option value="pix">Pix</option>
+                            <option value="debito">D&eacute;bito</option>
+                            <option value="credito">Cr&eacute;dito</option>
+                            <option value="boleto">Boleto</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="despesaFornecedor">Fornecedor</label>
+                    <input type="text" id="despesaFornecedor" placeholder="Opcional">
+                </div>
+
+                <div class="form-group">
+                    <label class="switch-notificacao">
+                        <input type="checkbox" id="despesaRecorrente">
+                        <span>
+                            <strong>Despesa recorrente</strong>
+                            <small>Marca que ela se repete todo m&ecirc;s. Ajuda a identificar os custos fixos.</small>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="fecharModal(&#39;modalDespesa&#39;)">Cancelar</button>
+                    <button type="submit" class="btn-primary">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Compra manual: para quando nao ha XML (farmacia, fornecedor pequeno) -->
     <div id="modalCompra" class="modal">
         <div class="modal-content" style="max-width:720px;">
@@ -1583,8 +1759,9 @@
     <script src="js/popular-dados.js?v=15.0"></script>
     <script src="js/app-anamnese.js?v=18.0"></script>
     <script src="js/perfil.js?v=17.0"></script>
-    <script src="js/app.js?v=17.1"></script>
+    <script src="js/app.js?v=18.0"></script>
     <script src="js/app-compras.js?v=1.1"></script>
+    <script src="js/app-financeiro.js?v=1.0"></script>
     <script src="js/tour.js?v=1.0"></script>
     <script>
         window.fazerLogout = async function(event) {
