@@ -549,11 +549,7 @@ function renderizarGraficos(labels, dataValor, dataQtd) {
     }
 }
 
-// Inicializador
-document.addEventListener('DOMContentLoaded', () => {
-    const elMes = document.getElementById('relatorioMes');
-    if (elMes) {
-        carregarRelatorios();
-    }
-});
-
+// Sem inicializador no DOMContentLoaded: ele rodava carregarRelatorios() no boot
+// com a pagina invisivel, disparando um carregarDadosIniciais() completo e
+// montando graficos que ninguem veria — possivelmente antes de a sessao do
+// Supabase ser restaurada. O navigateTo() ja chama a funcao ao abrir a pagina.

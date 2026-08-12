@@ -2026,23 +2026,6 @@ async function abrirModalAgendamento(id = null) {
 }
 
 // Helper para atualizar o preço quando troca o serviço no select
-function updateValorServico() {
-    const sel = document.getElementById('agendamentoServico');
-    if (!sel || sel.selectedIndex < 0) return;
-    
-    const opt = sel.options[sel.selectedIndex];
-    const valor = opt.getAttribute('data-valor');
-    
-    // Se você tiver um input visual de valor (opcional)
-    const inputValor = document.getElementById('agendamentoValor'); 
-    if (inputValor && valor) {
-        inputValor.value = "R$ " + parseFloat(valor).toFixed(2).replace('.', ',');
-    }
-}
-
-// Adiciona o evento de troca de serviço para atualizar valor
-const selServicoRef = document.getElementById('agendamentoServico');
-if (selServicoRef) selServicoRef.addEventListener('change', updateValorServico);
 
 
 // ========================================
@@ -2067,11 +2050,6 @@ window.carregarDashboard = carregarDashboard;
 // ========================================
 
 // 2. Função vazia para o Cliente (só para parar o erro)
-window.selectCliente = function() {
-    // Por enquanto não precisamos fazer nada automático ao selecionar cliente
-    // Mas a função precisa existir para o HTML não quebrar
-    console.log("Cliente selecionado"); 
-};
 
 // ========================================
 // FUNÇÃO DE COMPARTILHAR LINK (FIXA NO FINAL DO APP.JS)

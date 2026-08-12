@@ -27,9 +27,12 @@ PWA de gestão para clínicas de estética. Sistema multi-tenant: cada profissio
 | `js/app-anamnese.js` | Lógica de anamneses |
 | `js/app-relatorios.js` | Lógica de relatórios |
 | `js/perfil.js` | Lógica do perfil da profissional |
+| `js/financeiro-core.js` | Helpers puros de data (`parseDataLocal`, `hojeISO`, `ehDoMes`). **Carregar antes** dos demais |
+| `js/app-compras.js` | Compras: importação de NF-e, compra manual, histórico e ajuste de estoque |
+| `js/app-financeiro.js` | Caixa: recebimentos, despesas e fechamento do período |
 
 ## Tabelas no Supabase
-`clientes`, `servicos`, `estoque`, `agendamentos`, `pagamentos`, `anamneses`, `anamnese_templates`, `disponibilidade`, `profiles`
+`clientes`, `servicos`, `estoque`, `estoque_movimentos`, `compras`, `compra_itens`, `estoque_fornecedor_ref`, `agendamentos`, `pagamentos`, `despesas`, `anamneses`, `anamnese_templates`, `disponibilidade`, `profiles`
 
 Todas com RLS habilitado. Cada tabela tem `user_id` que referencia o usuário dono dos dados.
 
@@ -88,7 +91,7 @@ Migração aplicada: `fix_rls_multitenant_isolation`
 
 Regra geral:
 - **Autenticado:** vê e gerencia apenas `WHERE user_id = auth.uid()`
-- **Não autenticado (página pública):** pode ler o necessário para agendamento (horários, serviços, clientes por telefone) e criar/atualizar clientes e agendamentos
+- **Não autenticado:** **nenhum acesso direto a tabela.** A página pública usa só as funções `agenda_*` (ver seção acima). A descrição antiga — "pode ler o necessário e criar/atualizar clientes e agendamentos" — foi o que permitiu ler 78 clientes com CPF com a chave publicável.
 
 Tabelas corrigidas:
 - `agendamentos`: removida política `qual: true` que expunha tudo
@@ -113,6 +116,76 @@ Migração aplicada: `fix_profiles_cascade_delete`
 - Já configurado e funcionando (password reset entrega OK)
 - Se email aparecer como "Suppressed" no Resend → ir em **Resend → Suppressions** e remover o endereço
 - Confirmação de email está **ativada** no Supabase (não desativar)
+
+## Módulo financeiro (não mexer sem ler isto)
+Migrações: `20260811_01` a `20260811_07` em `supabase/migrations/`
+
+### O saldo do estoque é derivado, não digitado
+`estoque.quantidade` é mantido pelo **trigger** de `estoque_movimentos`, que faz
+`SELECT ... FOR UPDATE` no produto, aplica o delta e recalcula o **custo médio ponderado**.
+
+Nunca escreva `quantidade` direto em `estoque` — isso apaga movimentos e quebra a conciliação.
+Para conferir se o razão fecha:
+
+```sql
+select e.nome, e.quantidade,
+       (select sum(m.quantidade_delta) from estoque_movimentos m where m.estoque_id = e.id) as soma
+from estoque e;
+```
+
+**Saldo negativo é permitido de propósito.** O código antigo travava em zero, o que fazia
+`sum(movimentos) ≠ quantidade`. Negativo significa "consumiu sem entrada registrada" e a tela
+mostra em vermelho.
+
+### Custo: snapshot, não valor atual
+Cada movimento de **saída** grava `custo_unitario` com o custo médio daquele momento. O CMV dos
+relatórios usa esse valor gravado, **nunca** `estoque.custo_medio` atual — é isso que torna um mês
+fechado imutável quando o preço de compra sobe depois.
+
+`estoque.valor_unitario` está **DEPRECADO** (migrado para `custo_medio`); mantido por um release
+como rede de segurança.
+
+### Baixa de estoque por atendimento
+Sempre via RPC, nunca por loop no navegador:
+`registrar_consumo_agendamento(id)` / `estornar_consumo_agendamento(id)` / `auto_concluir_passados()`.
+
+São `SECURITY INVOKER` (a RLS da usuária continua valendo). A idempotência vem de
+`update ... where estoque_baixado = false` — o lock de linha do Postgres resolve dois cliques,
+duas abas e retry de rede. **O estorno lê as quantidades dos movimentos originais**, não de
+`servicos.produtos_vinculados`: editar o serviço entre concluir e estornar devolveria quantidade
+errada.
+
+### Compra ≠ despesa
+Compra de material vira **ativo** (estoque) e só afeta o resultado como CMV quando o produto é
+usado. Lançar compra como despesa afundaria o lucro no mês da compra e o inflaria nos seguintes.
+No **caixa** ela aparece como saída, porque o dinheiro saiu de fato. Por isso Financeiro e
+Relatórios mostram números diferentes — de propósito.
+
+### `status_pagamento` é cache derivado
+O trigger `sincronizar_status_pagamento` recalcula `agendamentos.status_pagamento` a partir da soma
+de `pagamentos`. Isso mantém funcionando as ~10 comparações de string exata em `app.js`,
+`app-relatorios.js`, `app-agenda.js` e o CSS `.status-badge`.
+
+**Não crie o status `parcial`** — quebraria todas elas. Recebimento parcial mantém `devendo`;
+o detalhe aparece só na tela Financeiro.
+
+### Importação de NF-e
+`lerXmlNfe()` usa `DOMParser` nativo, comparando por `localName` (alguns emissores usam prefixo
+de namespace). Ler a **chave de acesso** não serve: a consulta pública sem certificado digital
+devolve só o resumo, sem itens.
+
+O ponto crítico é `estoque_fornecedor_ref`: o fornecedor vende "CX/100" e ela controla em unidades.
+O `fator_conversao` memorizado por (CNPJ, código) evita que o estoque suba 2 em vez de 200 e que o
+custo unitário fique 100× errado. A tela mostra o resultado da conversão **antes** de confirmar.
+
+## ⚠️ Teto de 1000 linhas no `fetchAPI`
+`js/supabase-client.js:59` **descarta** o `?limit=1000` da URL e a linha 75 faz `select('*')` sem
+`.limit()` nem `.range()` — vale o `max-rows` do PostgREST (1000). Com mais de 1000 agendamentos,
+`carregarDadosIniciais` trunca **em silêncio** e todo relatório fica errado sem aviso.
+
+O `fetchAPI` também engole erro e devolve `{data: []}` (linhas 106-118): uma policy quebrada vira
+"R$ 0,00" em vez de erro. **As telas financeiras não usam `fetchAPI`** por causa disso — consultam
+`_supabase.from(...)` direto e tratam `error`.
 
 ## Intenção de venda
 O projeto será vendido como SaaS para clínicas de estética. Modelo: **mensalidade** (não vitalício). Motivo: custos recorrentes de infra (Supabase) e necessidade de manutenção contínua.
