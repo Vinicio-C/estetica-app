@@ -2670,12 +2670,14 @@ window.dispararWhatsAppAutomatico = async function(agendamento, cliente) {
         if (!cliente?.telefone) return;
 
         const { data: { user } } = await _supabase.auth.getUser();
+        // O token nao e mais lido aqui: a Edge Function le do perfil no servidor.
+        // Antes ele trafegava do navegador a cada envio, exposto no devtools.
         const { data: perfil } = await _supabase.from('profiles')
-            .select('zapi_ativo, zapi_token, mensagem_whatsapp')
+            .select('zapi_ativo, mensagem_whatsapp')
             .eq('id', user.id)
             .maybeSingle();
 
-        if (!perfil?.zapi_ativo || !perfil?.zapi_token) return;
+        if (!perfil?.zapi_ativo) return;
 
         let numLimpo = String(cliente.telefone).replace(/\D/g, '');
         if (numLimpo.startsWith('0')) numLimpo = numLimpo.substring(1);
@@ -2691,9 +2693,12 @@ window.dispararWhatsAppAutomatico = async function(agendamento, cliente) {
             .replace(/{data}/g, agendamento.data || '')
             .replace(/{hora}/g, agendamento.hora || '');
 
-        // Chama via Edge Function (evita bloqueio de CORS do browser)
+        // Chama via Edge Function (evita bloqueio de CORS do browser).
+        // A funcao exige sessao e busca o token do gateway no proprio perfil.
+        const { data: { session } } = await _supabase.auth.getSession();
         const { error: errWpp } = await _supabase.functions.invoke('enviar-whatsapp', {
-            body: { telefone: numLimpo, mensagem, token: perfil.zapi_token }
+            headers: { Authorization: `Bearer ${session?.access_token}` },
+            body: { telefone: numLimpo, mensagem }
         });
         if (errWpp) console.error('Erro ao enviar WhatsApp:', errWpp);
         else console.log('✅ WhatsApp automático enviado via Fonnte!');
