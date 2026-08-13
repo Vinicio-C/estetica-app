@@ -35,7 +35,12 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
     }
-</style>
+
+        /* Campo que a profissional ja tem no cadastro: fica vazio de proposito,
+           o valor nunca volta para o navegador. */
+        .campo-ja-cadastrado { background: #f6f6f6; }
+        .campo-ja-cadastrado::placeholder { color: #4CAF50; font-style: italic; }
+    </style>
 </head>
 <body>
 
@@ -119,7 +124,7 @@
                 <div class="form-row-split">
                     <div class="input-group">
                         <label>CPF (Opcional)</label>
-                        <input type="text" id="clienteCpf" placeholder="000.000.000-00">
+                        <input type="text" id="clienteCpf" placeholder="000.000.000-00" data-placeholder-original="000.000.000-00">
                     </div>
                     <div class="input-group">
                         <label>Data Nascimento</label>

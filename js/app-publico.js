@@ -188,6 +188,23 @@ function selecionarHorario(hora, elemento) {
 }
 
 // --- 3. IDENTIFICAÇÃO INTELIGENTE (NOVO) ---
+
+// Avisa que o dado ja esta no cadastro sem mostrar o dado. Deixar o campo
+// vazio e correto: agenda_criar_agendamento so preenche o que estiver em
+// branco no banco, entao nada se perde.
+function marcarComoJaCadastrado(idCampo, jaTem) {
+    const campo = document.getElementById(idCampo);
+    if (!campo) return;
+    if (jaTem) {
+        campo.value = '';
+        campo.placeholder = 'Já cadastrado — pode deixar em branco';
+        campo.classList.add('campo-ja-cadastrado');
+    } else {
+        campo.placeholder = campo.dataset.placeholderOriginal || '';
+        campo.classList.remove('campo-ja-cadastrado');
+    }
+}
+
 async function verificarEmail() {
     const emailInput = document.getElementById('clienteEmail');
     const feedback = document.getElementById('emailFeedback');
@@ -213,23 +230,27 @@ async function verificarEmail() {
         const data = achados && achados[0];
 
         if (data) {
-            // ENCONTROU! Preenche os dados
+            // ENCONTROU. A funcao devolve so o primeiro nome e quais campos ja
+            // existem -- nao devolve CPF, telefone nem nascimento. Esta pagina e
+            // publica: quem soubesse o e-mail de uma cliente levaria o CPF dela
+            // junto. O que ja esta gravado permanece; campo em branco aqui nao
+            // apaga nada la.
             state.clienteIdentificado = data;
             document.getElementById('clienteIdExistente').value = data.id;
-            
-            document.getElementById('clienteNome').value = data.nome || '';
-            document.getElementById('clienteTelefone').value = data.telefone || '';
-            document.getElementById('clienteCpf').value = data.cpf || '';
-            document.getElementById('clienteNascimento').value = data.data_nascimento || '';
+
+            marcarComoJaCadastrado('clienteCpf', data.tem_cpf);
+            marcarComoJaCadastrado('clienteNascimento', data.tem_nascimento);
 
             feedback.style.color = '#4CAF50'; // Verde
-            feedback.innerHTML = `<i class="fas fa-check-circle"></i> Olá de volta, ${data.nome.split(' ')[0]}!`;
+            feedback.innerHTML = `<i class="fas fa-check-circle"></i> Olá de volta, ${data.primeiro_nome}! Confirme seu nome e telefone.`;
         } else {
             // NÃO ENCONTROU (Novo Cliente)
             state.clienteIdentificado = null;
             document.getElementById('clienteIdExistente').value = '';
             // Não limpa os campos para não apagar o que ela já digitou se errou o email
-            
+            marcarComoJaCadastrado('clienteCpf', false);
+            marcarComoJaCadastrado('clienteNascimento', false);
+
             feedback.style.color = '#D4AF37'; // Dourado
             feedback.textContent = 'Primeiro acesso? Preencha seus dados abaixo.';
         }
