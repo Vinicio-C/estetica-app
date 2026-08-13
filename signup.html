@@ -176,6 +176,40 @@
             text-decoration: none;
         }
         .modal-box .btn-modal:hover { opacity: 0.9; }
+
+        /* Aceite dos termos. O checkbox precisa de tamanho explicito porque a
+           regra de input desta pagina define largura cheia. */
+        .aceite-termos {
+            display: flex;
+            align-items: flex-start;
+            gap: 11px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 13px 15px;
+            margin-bottom: 18px;
+            cursor: pointer;
+            text-align: left;
+        }
+        .aceite-termos input[type="checkbox"] {
+            flex: 0 0 17px;
+            width: 17px;
+            height: 17px;
+            min-width: 17px;
+            margin: 2px 0 0;
+            padding: 0;
+            accent-color: #D4AF37;
+            cursor: pointer;
+        }
+        .aceite-termos span { font-size: 0.87rem; color: #ccc; line-height: 1.45; }
+        .aceite-termos a { color: #D4AF37; text-decoration: underline; }
+        .aceite-termos small {
+            display: block;
+            margin-top: 7px;
+            font-size: 0.76rem;
+            color: #8a8a8a;
+            line-height: 1.45;
+        }
     </style>
 </head>
 <body>
@@ -210,6 +244,20 @@
                 <input type="password" id="passwordConfirm" required placeholder="Repita a senha" autocomplete="new-password">
             </div>
 
+            <label class="aceite-termos">
+                <input type="checkbox" id="aceiteTermos" required>
+                <span>
+                    Li e concordo com os
+                    <a href="legal.html#termos" target="_blank" rel="noopener">Termos de Uso</a>
+                    e a
+                    <a href="legal.html#privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.
+                    <small>
+                        Você é a responsável pelos dados das suas clientes. As fichas de anamnese contêm dados de
+                        saúde e exigem consentimento específico da cliente — a política explica como isso funciona.
+                    </small>
+                </span>
+            </label>
+
             <button type="submit" class="btn-primary" id="btnSignup">
                 <i class="fas fa-user-plus"></i> CRIAR MINHA CONTA
             </button>
@@ -243,6 +291,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-client.js"></script>
     <script>
+        // Mantenha igual ao numero exibido em legal.html. Ao publicar uma versao
+        // nova, esta constante muda e passa a ser gravada nos aceites seguintes.
+        const VERSAO_TERMOS = '2.0';
+
         document.getElementById('formSignup').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -294,7 +346,12 @@
                     const { error: errPerfil } = await window._supabase.from('profiles').upsert({
                         id: user.id,
                         nome,
-                        especialidade
+                        especialidade,
+                        // Registra COM O QUE ela concordou, nao so que concordou:
+                        // quando o documento mudar, e preciso saber qual versao cada
+                        // pessoa aceitou.
+                        termos_aceitos_em: new Date().toISOString(),
+                        termos_versao: VERSAO_TERMOS
                     });
                     if (errPerfil) console.warn('Aviso ao criar perfil:', errPerfil.message);
                 }

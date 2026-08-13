@@ -4,85 +4,297 @@
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="icons/logo.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Termos e Privacidade - Estética Premium</title>
+    <title>Termos de Uso e Política de Privacidade — Estética Premium</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #121212;
             color: #e0e0e0;
-            line-height: 1.6;
+            line-height: 1.65;
             margin: 0;
             padding: 0;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
-        h1, h2 {
-            color: #D4AF37; /* Dourado */
-        }
-        h1 { border-bottom: 1px solid #333; padding-bottom: 20px; }
-        h2 { margin-top: 40px; }
+        .container { max-width: 820px; margin: 0 auto; padding: 40px 20px 60px; }
+        h1, h2 { color: #D4AF37; }
+        h1 { border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 8px; }
+        h2 { margin-top: 0; font-size: 1.5rem; }
+        h3 { color: #e8e8e8; margin-top: 28px; font-size: 1.06rem; }
         .box {
             background-color: #1a1a1a;
-            padding: 30px;
+            padding: 28px 30px;
             border-radius: 8px;
             border: 1px solid #333;
             margin-bottom: 30px;
         }
         a { color: #D4AF37; text-decoration: none; }
         a:hover { text-decoration: underline; }
-        .footer {
-            text-align: center;
-            margin-top: 50px;
-            color: #666;
-            font-size: 0.9em;
+        ul { padding-left: 20px; }
+        li { margin-bottom: 7px; }
+        table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.93rem; }
+        th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #333; vertical-align: top; }
+        th { color: #aaa; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.4px; }
+        .aviso {
+            background: rgba(212,175,55,0.08);
+            border-left: 3px solid #D4AF37;
+            padding: 14px 18px;
+            border-radius: 0 6px 6px 0;
+            margin: 20px 0;
         }
+        .pendente {
+            background: rgba(239,83,80,0.12);
+            border: 1px dashed #EF5350;
+            color: #ff8a85;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.88em;
+        }
+        .indice { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 0 0 30px; }
+        .indice a { font-size: 0.93rem; }
+        .footer { text-align: center; margin-top: 44px; color: #666; font-size: 0.9em; }
+        .atualizado { color: #888; font-size: 0.9rem; margin-top: 0; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <header>
-            <h1>Política Legal - Estética Premium</h1>
-            <p>Última atualização: 2026</p>
-        </header>
+<div class="container">
+    <header>
+        <h1>Termos de Uso e Política de Privacidade</h1>
+        <p class="atualizado">Estética Premium · Versão 2.0 · Vigente desde 12 de agosto de 2026</p>
+    </header>
 
-        <div id="privacidade" class="box">
-            <h2>Política de Privacidade</h2>
-            <p>A sua privacidade é importante para nós. É política do <strong>Estética Premium</strong> respeitar a sua privacidade em relação a qualquer informação sua que possamos coletar no site e app.</p>
+    <div class="indice">
+        <a href="#quem">Quem somos</a>
+        <a href="#privacidade">Política de Privacidade</a>
+        <a href="#papeis">Nossos papéis</a>
+        <a href="#dados">Dados tratados</a>
+        <a href="#saude">Dados de saúde</a>
+        <a href="#suboperadores">Com quem compartilhamos</a>
+        <a href="#retencao">Prazos e exclusão</a>
+        <a href="#direitos">Seus direitos</a>
+        <a href="#termos">Termos de Uso</a>
+        <a href="#pagamento">Pagamento e cancelamento</a>
+        <a href="#responsabilidade">Responsabilidades</a>
+    </div>
 
-            <h3>1. Uso de Dados do Google (Google Calendar)</h3>
-            <p>Nosso aplicativo utiliza a integração com o Google Calendar para facilitar o agendamento de serviços.</p>
-            <ul>
-                <li><strong>O que acessamos:</strong> Acessamos apenas os eventos do seu calendário para verificar disponibilidade e criar novos agendamentos de serviços estéticos.</li>
-                <li><strong>Como usamos:</strong> Os dados são usados estritamente para bloquear horários na sua agenda profissional e evitar conflitos de horário.</li>
-                <li><strong>Armazenamento:</strong> Não armazenamos o conteúdo dos seus eventos pessoais em nossos servidores, apenas os horários de início e fim para cálculo de disponibilidade.</li>
-                <li><strong>Compartilhamento:</strong> Seus dados do Google Calendar <strong>nunca</strong> são compartilhados com terceiros ou usados para publicidade.</li>
-            </ul>
+    <!-- ================= IDENTIFICAÇÃO ================= -->
+    <div class="box" id="quem">
+        <h2>1. Quem somos</h2>
+        <p>O <strong>Estética Premium</strong> é um software de gestão para profissionais e clínicas de estética,
+        oferecido pela internet no endereço <a href="https://esteticaapp.com.br">esteticaapp.com.br</a>.</p>
 
-            <h3>2. Coleta de Dados</h3>
-            <p>Solicitamos informações pessoais apenas quando realmente precisamos delas para lhe fornecer um serviço (ex: Nome, Telefone para contato). Fazemo-lo por meios justos e legais, com o seu conhecimento e consentimento.</p>
-        </div>
+        <table>
+            <tr><th>Razão social</th><td><span class="pendente">[RAZÃO SOCIAL]</span></td></tr>
+            <tr><th>CNPJ</th><td><span class="pendente">[CNPJ]</span></td></tr>
+            <tr><th>Endereço</th><td><span class="pendente">[ENDEREÇO COMPLETO]</span></td></tr>
+            <tr><th>E-mail de contato</th><td><a href="mailto:contato@esteticaapp.com.br">contato@esteticaapp.com.br</a></td></tr>
+            <tr><th>Encarregado de dados (LGPD)</th><td><a href="mailto:privacidade@esteticaapp.com.br">privacidade@esteticaapp.com.br</a></td></tr>
+        </table>
 
-        <div id="termos" class="box">
-            <h2>Termos de Uso</h2>
-            <h3>1. Termos</h3>
-            <p>Ao acessar o aplicativo <strong>Estética Premium</strong>, você concorda em cumprir estes termos de serviço, todas as leis e regulamentos aplicáveis.</p>
-
-            <h3>2. Uso de Licença</h3>
-            <p>É concedida permissão para usar o software para gestão de clínica estética pessoal ou empresarial. Esta é a concessão de uma licença, não uma transferência de título.</p>
-
-            <h3>3. Isenção de responsabilidade</h3>
-            <p>Os materiais no site da Estética Premium são fornecidos 'como estão'. Não oferecemos garantias, expressas ou implícitas, e, por este meio, isenta e nega todas as outras garantias.</p>
-        </div>
-
-        <div class="footer">
-            <p>&copy; 2026 Estética Premium. Todos os direitos reservados.</p>
-            <p><a href="index.html">Voltar para o Sistema</a></p>
+        <div class="aviso">
+            <strong>Documento em preenchimento.</strong> Os campos destacados serão completados assim que a
+            constituição da empresa for concluída. Até lá, o contato é feito pelos e-mails acima.
         </div>
     </div>
+
+    <!-- ================= PRIVACIDADE ================= -->
+    <div class="box" id="privacidade">
+        <h2>2. Política de Privacidade</h2>
+        <p>Esta política explica quais dados pessoais tratamos, por que tratamos e o que você pode exigir de nós.
+        Ela segue a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 — LGPD).</p>
+
+        <h3 id="papeis">2.1. Dois tipos de dado, dois papéis diferentes</h3>
+        <p>Esta é a parte mais importante de entender, porque muda quem responde por quê:</p>
+        <ul>
+            <li><strong>Dados da profissional que assina o serviço</strong> (nome, e-mail, telefone, endereço,
+            dados de cobrança). Aqui <strong>nós somos os controladores</strong>: decidimos como esses dados
+            são usados, e respondemos por eles.</li>
+            <li><strong>Dados das clientes atendidas pela profissional</strong> (nome, contato, CPF, histórico
+            de atendimentos, fichas de anamnese). Aqui <strong>a profissional é a controladora</strong> — foi ela
+            quem coletou e quem decide o que fazer com eles. <strong>Nós somos apenas operadores</strong>:
+            guardamos e processamos sob as instruções dela.</li>
+        </ul>
+        <p>Na prática: nós não acessamos, não vendemos, não analisamos e não usamos para publicidade os dados das
+        clientes de ninguém. Eles existem no sistema para que a profissional os utilize no atendimento dela.</p>
+
+        <h3 id="dados">2.2. Quais dados tratamos</h3>
+        <table>
+            <tr><th>Categoria</th><th>Dados</th><th>Para quê</th><th>Base legal</th></tr>
+            <tr>
+                <td>Conta da profissional</td>
+                <td>Nome, e-mail, senha (criptografada), especialidade, telefone, endereço</td>
+                <td>Criar e manter a conta, autenticar o acesso, exibir a página pública de agendamento</td>
+                <td>Execução de contrato (art. 7º, V)</td>
+            </tr>
+            <tr>
+                <td>Assinatura</td>
+                <td>Identificadores de cobrança, situação do plano, histórico de pagamento</td>
+                <td>Cobrar a mensalidade e controlar o acesso</td>
+                <td>Execução de contrato e obrigação legal (art. 7º, V e II)</td>
+            </tr>
+            <tr>
+                <td>Clientes da profissional</td>
+                <td>Nome, telefone, e-mail, CPF, data de nascimento, endereço</td>
+                <td>Agendar e registrar atendimentos</td>
+                <td>Definida pela profissional, que é a controladora</td>
+            </tr>
+            <tr>
+                <td>Fichas de anamnese</td>
+                <td>Histórico de saúde, alergias, medicamentos, procedimentos, imagens anexadas</td>
+                <td>Registro clínico do atendimento</td>
+                <td>Ver item 2.3</td>
+            </tr>
+            <tr>
+                <td>Uso do sistema</td>
+                <td>Registros técnicos de acesso e erro</td>
+                <td>Segurança, diagnóstico de falhas e cumprimento do Marco Civil</td>
+                <td>Obrigação legal e legítimo interesse (art. 7º, II e IX)</td>
+            </tr>
+        </table>
+        <p>Não usamos cookies de publicidade nem de rastreamento de terceiros. O aplicativo guarda no seu navegador
+        apenas o necessário para manter você conectada e lembrar preferências de uso.</p>
+
+        <h3 id="saude">2.3. Dados de saúde merecem cuidado maior</h3>
+        <p>As fichas de anamnese contêm <strong>dados pessoais sensíveis</strong> na definição do art. 5º, II da LGPD.
+        Isso significa regras mais rígidas, e é assim que tratamos:</p>
+        <ul>
+            <li>Ficam <strong>isolados por profissional</strong> no banco de dados. Uma profissional nunca enxerga
+            ficha de cliente de outra — isso é garantido por regra no próprio banco, não apenas pela tela.</li>
+            <li>Arquivos anexados (fichas escaneadas, fotos) ficam em <strong>armazenamento privado</strong>, acessível
+            somente por link temporário gerado para a profissional dona. Não existe endereço público para eles.</li>
+            <li>Nossa equipe não acessa esse conteúdo. Acesso técnico só ocorre em investigação de falha,
+            quando indispensável, e sob sigilo.</li>
+            <li>Cabe à profissional obter da cliente o <strong>consentimento específico e destacado</strong> exigido
+            pelo art. 11 da LGPD, ou apoiar-se em outra base legal aplicável — como a tutela da saúde, quando
+            cabível. Nós fornecemos a ferramenta; a relação com a paciente é dela.</li>
+        </ul>
+
+        <h3 id="suboperadores">2.4. Com quem compartilhamos</h3>
+        <p>Não vendemos dados. Compartilhamos apenas com fornecedores necessários para o serviço funcionar:</p>
+        <table>
+            <tr><th>Fornecedor</th><th>Para quê</th><th>Onde ficam os dados</th></tr>
+            <tr><td>Supabase</td><td>Banco de dados, autenticação e arquivos</td><td>Brasil (São Paulo)</td></tr>
+            <tr><td>Cloudflare</td><td>Hospedagem e entrega do site</td><td>Rede global</td></tr>
+            <tr><td>Stripe</td><td>Processamento da mensalidade</td><td>Exterior</td></tr>
+            <tr><td>Resend</td><td>Envio de e-mails do sistema</td><td>Exterior</td></tr>
+        </table>
+        <p>Quando há transferência internacional, ela ocorre para prestação do serviço contratado, nos termos do
+        art. 33 da LGPD. Podemos também fornecer dados a autoridades quando obrigados por lei ou ordem judicial.</p>
+        <p>Os dados de cartão <strong>não passam por nós</strong>: o pagamento acontece dentro do ambiente do Stripe,
+        e não temos acesso ao número do cartão.</p>
+
+        <h3 id="retencao">2.5. Por quanto tempo guardamos</h3>
+        <ul>
+            <li><strong>Enquanto a conta existir:</strong> todos os dados permanecem disponíveis para uso.</li>
+            <li><strong>Após o cancelamento:</strong> mantemos os dados por <strong>90 dias</strong>, para que você
+            possa reativar ou exportar. Depois desse prazo, são excluídos.</li>
+            <li><strong>Exclusão a pedido:</strong> você pode pedir a exclusão antes disso, a qualquer momento.</li>
+            <li><strong>Exceções:</strong> registros de acesso são guardados por 6 meses (Marco Civil da Internet,
+            art. 15) e informações fiscais pelo prazo da legislação tributária, mesmo após a exclusão da conta.</li>
+        </ul>
+
+        <h3 id="direitos">2.6. Seus direitos</h3>
+        <p>A LGPD garante a você, a qualquer momento e sem custo: confirmação de que tratamos seus dados, acesso a
+        eles, correção, anonimização ou exclusão, portabilidade, informação sobre compartilhamentos, e revogação
+        do consentimento.</p>
+        <p>Para exercer qualquer um deles, escreva para
+        <a href="mailto:privacidade@esteticaapp.com.br">privacidade@esteticaapp.com.br</a>. Respondemos em até
+        15 dias. Se a solicitação for de uma <strong>cliente atendida por uma profissional</strong>, vamos encaminhá-la
+        à profissional responsável, porque é ela quem controla aqueles dados.</p>
+
+        <h3>2.7. Segurança</h3>
+        <p>Tráfego criptografado, senhas armazenadas com algoritmo de hash, isolamento por profissional aplicado no
+        banco de dados, e arquivos sensíveis em armazenamento privado com acesso por link temporário.</p>
+        <p>Nenhum sistema é infalível. Em caso de incidente com risco relevante, comunicaremos os titulares afetados
+        e a ANPD, conforme o art. 48 da LGPD.</p>
+    </div>
+
+    <!-- ================= TERMOS ================= -->
+    <div class="box" id="termos">
+        <h2>3. Termos de Uso</h2>
+
+        <h3>3.1. O que contratamos</h3>
+        <p>Damos a você uma licença de uso do software, pessoal e intransferível, enquanto a assinatura estiver ativa.
+        O software é fornecido como serviço: você não recebe o código nem a propriedade dele.</p>
+
+        <h3>3.2. Sua conta</h3>
+        <p>Você é responsável por manter a senha em sigilo e por tudo que for feito na sua conta. Os dados do cadastro
+        devem ser verdadeiros e atualizados. É preciso ter 18 anos ou mais.</p>
+
+        <h3 id="pagamento">3.3. Período de teste, preço e cobrança</h3>
+        <ul>
+            <li>O teste é de <strong>14 dias</strong> e não exige cartão de crédito.</li>
+            <li>Ao fim do teste, o acesso é bloqueado até a assinatura. <strong>Nada é cobrado automaticamente</strong>
+            — a cobrança só existe se você contratar.</li>
+            <li>A mensalidade é de <strong>R$ 29,99</strong>, renovada a cada 30 dias enquanto não houver cancelamento.</li>
+            <li>Mudanças de preço serão avisadas com pelo menos 30 dias de antecedência e valerão só na renovação seguinte.</li>
+        </ul>
+
+        <h3>3.4. Arrependimento e cancelamento</h3>
+        <div class="aviso">
+            <strong>Direito de arrependimento (art. 49 do CDC).</strong> Como a contratação é feita pela internet,
+            você pode desistir em até <strong>7 dias corridos</strong> contados da primeira cobrança, e receber a
+            devolução integral do valor pago. Basta escrever para
+            <a href="mailto:contato@esteticaapp.com.br">contato@esteticaapp.com.br</a>.
+        </div>
+        <p>Fora desse prazo, o cancelamento pode ser pedido a qualquer momento e passa a valer ao fim do período já
+        pago — sem multa e sem fidelidade. Não há reembolso proporcional de período já iniciado, salvo o caso de
+        arrependimento acima ou falha nossa que impeça o uso.</p>
+        <p>Antes de cancelar, exporte seus dados. Após 90 dias do cancelamento, eles são excluídos.</p>
+
+        <h3>3.5. O que você se compromete a fazer</h3>
+        <ul>
+            <li>Usar o sistema conforme a lei e as normas do seu conselho profissional.</li>
+            <li>Ter base legal para tratar os dados das suas clientes — inclusive o consentimento específico para
+            dados de saúde, quando for o caso. <strong>Você é a controladora desses dados.</strong></li>
+            <li>Não inserir dados de terceiros sem autorização, nem conteúdo ilícito.</li>
+            <li>Não tentar burlar limites técnicos, acessar dados de outras contas, nem automatizar acessos de forma
+            a prejudicar o serviço.</li>
+        </ul>
+
+        <h3>3.6. O que nós nos comprometemos a fazer</h3>
+        <ul>
+            <li>Manter o serviço disponível e corrigir falhas em prazo razoável.</li>
+            <li>Não usar os dados das suas clientes para finalidade própria.</li>
+            <li>Avisar sobre mudanças relevantes nestes termos com 30 dias de antecedência.</li>
+            <li>Permitir a exportação dos seus dados enquanto a conta existir.</li>
+        </ul>
+        <p>Não prometemos disponibilidade ininterrupta: pode haver manutenção programada, e dependemos de fornecedores
+        de infraestrutura. Também não garantimos resultado comercial — o sistema é ferramenta de organização, não
+        promessa de faturamento.</p>
+
+        <h3 id="responsabilidade">3.7. Limites de responsabilidade</h3>
+        <p>O sistema é uma ferramenta de apoio. As decisões clínicas, os procedimentos realizados e a relação com as
+        pacientes são de responsabilidade exclusiva da profissional. Não respondemos por conduta profissional, erro
+        de indicação, resultado de procedimento nem por informação incorreta lançada no sistema.</p>
+        <p>Salvo dolo ou culpa grave, e no limite permitido pela lei, nossa responsabilidade por perdas fica limitada
+        ao valor pago por você nos 12 meses anteriores ao fato. Nada aqui afasta direitos que o Código de Defesa do
+        Consumidor garanta de forma inafastável.</p>
+        <p>Recomendamos manter cópia própria das informações essenciais do seu negócio.</p>
+
+        <h3>3.8. Encerramento pela nossa parte</h3>
+        <p>Podemos suspender ou encerrar a conta em caso de falta de pagamento, uso ilícito, ou violação destes termos —
+        com aviso prévio e prazo para regularização, salvo quando a gravidade exigir ação imediata.</p>
+
+        <h3>3.9. Alterações destes termos</h3>
+        <p>Podemos atualizar este documento. Mudanças relevantes serão comunicadas por e-mail e avisadas dentro do
+        aplicativo com 30 dias de antecedência. Continuar usando após a vigência significa concordância. Se não
+        concordar, você pode cancelar sem custo.</p>
+
+        <h3>3.10. Lei aplicável e foro</h3>
+        <p>Aplica-se a lei brasileira. Fica eleito o foro do domicílio do consumidor para resolver conflitos, conforme
+        o Código de Defesa do Consumidor.</p>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2026 Estética Premium. Todos os direitos reservados.</p>
+        <p>
+            <a href="landing.html">Página inicial</a> ·
+            <a href="index.html">Acessar o sistema</a> ·
+            <a href="mailto:privacidade@esteticaapp.com.br">Falar sobre privacidade</a>
+        </p>
+    </div>
+</div>
 
 </body>
 </html>
