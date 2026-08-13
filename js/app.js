@@ -233,7 +233,12 @@ function navigateTo(page) {
     
     // Carregar dados da página
     switch(page) {
-        case 'dashboard': if(typeof carregarDashboard === 'function') carregarDashboard(); break;
+        case 'dashboard':
+            if(typeof carregarDashboard === 'function') carregarDashboard();
+            // Reavalia o roteiro: ela pode ter acabado de cadastrar o serviço
+            // que faltava e voltado para cá
+            if(typeof carregarPrimeirosPassos === 'function') carregarPrimeirosPassos();
+            break;
         case 'clientes': if(typeof carregarClientes === 'function') carregarClientes(); break;
         case 'agenda': if(typeof carregarAgenda === 'function') carregarAgenda(); break;
         case 'servicos': if(typeof carregarServicos === 'function') carregarServicos(); break;

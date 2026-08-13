@@ -1247,3 +1247,65 @@
     .header-controls { flex-wrap: wrap; gap: 8px; }
     .header-controls button { flex: 1; min-width: 140px; }
 }
+
+/* ==========================================================================
+   PRIMEIROS PASSOS — roteiro de configuração no dashboard
+   Aparece só enquanto falta serviço ou horário; sem os dois o link público
+   da profissional não mostra horário nenhum para a cliente.
+   ========================================================================== */
+.primeiros-passos {
+    background: linear-gradient(135deg, #1a1a1a, #141414);
+    border: 1px solid #2e2716;
+    border-left: 3px solid var(--gold, #D4AF37);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 22px;
+}
+.pp-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.pp-topo h3 { font-size: 1.02rem; color: var(--gold, #D4AF37); margin: 0 0 4px; }
+.pp-topo p { font-size: 0.82rem; color: #999; margin: 0; }
+.pp-fechar {
+    background: none; border: none; color: #555; font-size: 1.4rem;
+    cursor: pointer; line-height: 1; padding: 0 4px;
+}
+.pp-fechar:hover { color: #999; }
+
+.pp-barra { height: 4px; background: #262626; border-radius: 3px; margin: 14px 0 6px; overflow: hidden; }
+.pp-barra-fill {
+    height: 100%; width: 0;
+    background: linear-gradient(90deg, #b8960f, #D4AF37);
+    border-radius: 3px; transition: width .4s ease;
+}
+
+.pp-lista { display: flex; flex-direction: column; }
+.pp-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 2px; border-bottom: 1px solid #222;
+}
+.pp-item:last-child { border-bottom: none; }
+.pp-check {
+    width: 34px; height: 34px; flex: 0 0 34px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: #232323; color: #777; font-size: 0.85rem;
+}
+.pp-feito .pp-check { background: rgba(76, 175, 80, .14); color: #4CAF50; }
+.pp-texto { flex: 1; min-width: 0; }
+.pp-texto strong { display: block; font-size: 0.9rem; color: #eee; font-weight: 600; }
+.pp-texto span { display: block; font-size: 0.78rem; color: #888; margin-top: 2px; }
+.pp-feito .pp-texto strong { color: #888; text-decoration: line-through; }
+.pp-ok { font-size: 0.75rem; color: #4CAF50; font-weight: 600; flex-shrink: 0; }
+.pp-btn {
+    flex-shrink: 0; padding: 8px 15px; border: none; border-radius: 8px;
+    background: linear-gradient(135deg, #D4AF37, #b8960f);
+    color: #000; font-weight: 700; font-size: 0.79rem; cursor: pointer;
+    white-space: nowrap;
+}
+.pp-btn:hover { filter: brightness(1.08); }
+
+/* No celular o botão vai para baixo do texto em vez de espremer tudo */
+@media (max-width: 600px) {
+    .primeiros-passos { padding: 16px; }
+    .pp-item { flex-wrap: wrap; }
+    .pp-texto { flex: 1 1 calc(100% - 48px); }
+    .pp-btn, .pp-ok { margin-left: 48px; margin-top: 8px; }
+}

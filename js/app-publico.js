@@ -53,6 +53,19 @@ async function carregarServicos() {
         if (error) throw error;
 
         container.innerHTML = '';
+
+        // Profissional que ainda nao cadastrou servico deixava a cliente numa
+        // tela branca, sem nada escrito e sem saber o que fazer.
+        if (!data || data.length === 0) {
+            container.innerHTML = `
+                <div class="fechado-msg">
+                    <i class="fas fa-calendar-times"></i><br>
+                    A agenda online ainda não está aberta.<br>
+                    <span style="font-size:0.9em; opacity:0.8;">Entre em contato para marcar seu horário.</span>
+                </div>`;
+            return;
+        }
+
         data.forEach(servico => {
             const card = document.createElement('div');
             card.className = 'service-card';

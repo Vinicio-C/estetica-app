@@ -14,13 +14,28 @@ window.verificarPlano = async function() {
         const { data: { user } } = await _supabase.auth.getUser();
         if (!user) return 'expirado';
 
-        const { data: perfil } = await _supabase
+        let { data: perfil } = await _supabase
             .from('profiles')
             .select('plano_status, trial_expira_em')
             .eq('id', user.id)
             .maybeSingle();
 
-        if (!perfil) return 'expirado';
+        // Sem perfil nao e "expirou", e "nunca foi criado". Acontece com conta
+        // que ja existia antes do trigger de cadastro e com quem entra vindo de
+        // outro app deste mesmo projeto Supabase (o auth.users e compartilhado).
+        // Dizer "seu acesso expirou" para quem nunca usou nada e o pior primeiro
+        // contato possivel -- entao o perfil e criado na hora.
+        // Nao ha risco de auto-promocao: o trigger profiles_protege_assinatura
+        // forca trial em qualquer INSERT feito pelo navegador.
+        if (!perfil) {
+            const { data: criado } = await _supabase
+                .from('profiles')
+                .insert({ id: user.id, nome: user.email?.split('@')[0] || 'Profissional' })
+                .select('plano_status, trial_expira_em')
+                .maybeSingle();
+            if (!criado) return 'expirado';
+            perfil = criado;
+        }
 
         const status = perfil.plano_status ?? 'trial';
 
