@@ -3,6 +3,18 @@
 ## O que é o projeto
 PWA de gestão para clínicas de estética. Sistema multi-tenant: cada profissional tem sua própria conta e vê apenas seus próprios dados. Backend no Supabase (projeto **Golden Derma**, ID: `frnwbcvcaacraliropsw`, região `sa-east-1`).
 
+### ⚠️ O projeto Supabase é compartilhado com outros dois apps
+No mesmo banco convivem tabelas com sufixo `_floricultura` e `_orc_meca` (orçamento de
+mecânica), **e o `auth.users` é o mesmo para os três**. Consequências práticas:
+
+- Contar `auth.users` **não** dá o número de profissionais de estética. Uma conta pode
+  nunca ter aberto este app. Para isolar, cruze com `profiles`/`servicos`/`clientes` ou
+  com `raw_user_meta_data ? 'especialidade'` (só o `signup.html` daqui grava isso).
+- Alertas do `get_advisors` com esses sufixos são dos outros apps, não deste.
+- Quem se cadastrou em outro app e depois abre `esteticaapp.com.br` **já existe** em
+  `auth.users`, então o trigger de criação de perfil não dispara para ela. É por isso que
+  `verificarPlano` cria o perfil na hora quando ele falta.
+
 ## Arquitetura
 - **Frontend:** HTML/CSS/JS puro, sem framework. PWA instalável.
 - **Backend:** Supabase (Auth + Postgres + Storage)
@@ -30,6 +42,8 @@ PWA de gestão para clínicas de estética. Sistema multi-tenant: cada profissio
 | `js/financeiro-core.js` | Helpers puros de data (`parseDataLocal`, `hojeISO`, `ehDoMes`). **Carregar antes** dos demais |
 | `js/app-compras.js` | Compras: importação de NF-e, compra manual, histórico e ajuste de estoque |
 | `js/app-financeiro.js` | Caixa: recebimentos, despesas e fechamento do período |
+| `js/tour.js` | Tour guiado dos menus, na primeira entrada |
+| `js/primeiros-passos.js` | Roteiro de configuração no dashboard (ver seção "Primeiro acesso") |
 
 ## Tabelas no Supabase
 `clientes`, `servicos`, `estoque`, `estoque_movimentos`, `compras`, `compra_itens`, `estoque_fornecedor_ref`, `agendamentos`, `pagamentos`, `despesas`, `anamneses`, `anamnese_templates`, `disponibilidade`, `profiles`
@@ -74,10 +88,27 @@ O anônimo **não tem mais SELECT/INSERT/UPDATE em nenhuma tabela**. Antes exist
 | `agenda_servicos_publicos(user_id)` | serviços daquela profissional |
 | `agenda_disponibilidade_publica(user_id, dia_semana)` | regra do dia |
 | `agenda_horarios_ocupados(user_id, data)` | só `hora` e `duracao` |
-| `agenda_buscar_cliente(user_id, email)` | reconhece cliente, dentro do tenant |
+| `agenda_buscar_cliente(user_id, email)` | **só** `id`, `primeiro_nome`, `tem_cpf`, `tem_nascimento` |
 | `agenda_criar_agendamento(...)` | cria cliente + agendamento |
 
 `agenda_criar_agendamento` valida o serviço, recusa horário ocupado e tira `valor`/`duracao` do cadastro — o navegador não define preço.
+
+### O que a página pública devolve e o que ela pode gravar
+Migrações: `agenda_publica_nao_devolve_pii`, `agenda_publica_nao_sobrescreve_cadastro`,
+`agenda_publica_nome_do_cadastro`
+
+`agenda_buscar_cliente` devolvia nome completo, telefone, **CPF** e data de nascimento
+para o "Olá de volta!". Como ela é chamada por anônimo e o `?ref=` é público, bastava
+saber o e-mail de alguém para extrair o CPF dela. Agora devolve só o primeiro nome e
+flags de "já está cadastrado" — o campo aparece vazio no formulário, com o aviso
+`Já cadastrado — pode deixar em branco`.
+
+`agenda_criar_agendamento` fazia `coalesce(digitado, gravado)`: quem soubesse o e-mail
+podia **reescrever** nome, telefone e CPF de uma cliente sem login. A ordem foi
+invertida — a página pública só preenche campo vazio, **nunca sobrescreve**. Correção de
+dado existente é feita dentro do app. Por isso deixar o campo em branco é seguro: nada se
+perde. O agendamento também grava `cliente_nome` a partir do cadastro, não do texto
+digitado no site.
 
 ## Proteção do plano (`profiles`)
 Migração: `profiles_protege_campos_de_assinatura`
@@ -103,6 +134,36 @@ Tabelas corrigidas:
 Migração aplicada: `fix_profiles_cascade_delete`
 
 `profiles.id` referencia `auth.users(id) ON DELETE CASCADE` — ao deletar o usuário no painel do Supabase, o perfil é removido automaticamente (sem isso dava erro "Database error deleting user").
+
+## Primeiro acesso — perfil e roteiro (não mexer sem ler isto)
+Migrações: `cria_perfil_no_cadastro`, `recupera_contas_sem_perfil`,
+`profiles_protege_assinatura_no_insert`
+
+**O perfil é criado por trigger no banco, não pelo navegador.** Com confirmação de e-mail
+ligada, `signUp()` não devolve sessão — o `insert` em `profiles` logo depois rodava como
+`anon`, era recusado pela RLS e o código só fazia `console.warn`. Como
+`js/supabase-client.js` trata "sem perfil" como plano inválido, a pessoa confirmava o
+e-mail, entrava e levava **"Seu acesso expirou"** sem nunca ter usado nada. Aconteceu com
+9 das 11 contas existentes (parte delas de outros apps do projeto — ver aviso no topo).
+
+`signup.html` passa `nome`, `especialidade`, `termos_versao` e `termos_aceitos_em` em
+`options.data`; o trigger `trg_criar_perfil_do_usuario` lê essa metadata. O `upsert` do
+navegador ficou só como rede para quando houver sessão.
+
+`verificarPlano` **cria o perfil se ele faltar**, em vez de bloquear. Isso cobre conta
+anterior ao trigger e conta vinda de outro app do mesmo projeto.
+
+**Por isso `profiles_protege_assinatura` agora roda também no INSERT:** sem essa trava, um
+perfil criado pelo navegador poderia nascer `vitalicio`. Qualquer INSERT feito por
+`authenticated` é forçado para `trial` + 14 dias, com os IDs do Stripe nulos.
+
+### Roteiro de primeiros passos
+`js/primeiros-passos.js` mostra no dashboard o que falta configurar. Existe porque **sem
+serviço e sem `disponibilidade` ativa o link público não mostra horário nenhum** — dava
+para divulgar um link quebrado sem perceber. Esses dois passos são os `essencial: true`;
+quando ambos estão feitos o bloco some e grava `primeiros_passos_ok_<user_id>` no
+localStorage. Não usa `fetchAPI` de propósito (ele engole erro e devolve lista vazia, o
+que aqui viraria "faça de novo" para quem já fez).
 
 ## Fluxo de cadastro
 1. Usuário preenche `signup.html` (nome, especialidade, email, senha)
@@ -191,7 +252,19 @@ O `fetchAPI` também engole erro e devolve `{data: []}` (linhas 106-118): uma po
 O projeto será vendido como SaaS para clínicas de estética. Modelo: **mensalidade** (não vitalício). Motivo: custos recorrentes de infra (Supabase) e necessidade de manutenção contínua.
 
 ## O que ainda falta para vender
-- [ ] Sistema de cobrança / controle de assinatura (Stripe ou similar)
-- [ ] Controle de expiração de plano (bloquear acesso se não pago)
-- [ ] Landing page de vendas
-- [ ] Google API Key (`js/app.js:8`) exposta no código — mover para variável de ambiente ou restringir no Google Cloud Console
+Feito: cobrança e webhook do Stripe, bloqueio por expiração de plano, landing page,
+documentos legais com aceite versionado (`legal.html` v2.0, gravado em
+`profiles.termos_aceitos_em` / `termos_versao`).
+
+Pendente:
+- [ ] **Bloqueador:** preencher `[RAZÃO SOCIAL]` e `[CNPJ]` em `legal.html` e `landing.html`.
+      Vender sem fornecedor identificável é infração ao CDC e as plataformas de anúncio exigem
+- [ ] **Bloqueador:** revisão dos documentos por advogado antes de escalar verba de anúncio.
+      Os textos foram escritos sem assessoria jurídica
+- [ ] Decidir o nome do produto: `Estética Premium` e `Agendamento Premium` convivem em
+      landing, legal e index. Precisa ser um só antes de anunciar e de assinar contrato
+- [ ] Ativar *Leaked Password Protection* no Supabase (Auth → Policies) — hoje desligado,
+      aceita senha já vazada em outros sites
+- [ ] Google API Key (`js/app.js:8`) exposta no código — restringir por domínio no Google
+      Cloud Console (mover para variável de ambiente não resolve: o código roda no navegador)
+- [ ] Teto de 1000 linhas do `fetchAPI` (ver seção acima) — já são 519 agendamentos
