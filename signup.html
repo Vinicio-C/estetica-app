@@ -332,8 +332,17 @@
                     email,
                     password,
                     options: {
-                        // Dados extras passados para o perfil via trigger (se existir)
-                        data: { nome, especialidade }
+                        // O perfil e criado por trigger no banco a partir daqui.
+                        // Antes era criado pelo navegador logo apos o signUp, mas
+                        // com confirmacao de e-mail nao ha sessao nesse momento e o
+                        // insert era recusado em silencio -- 9 de 11 contas ficaram
+                        // sem perfil, e sem perfil o app diz "acesso expirado".
+                        data: {
+                            nome,
+                            especialidade,
+                            termos_versao: VERSAO_TERMOS,
+                            termos_aceitos_em: new Date().toISOString()
+                        }
                     }
                 });
 
@@ -341,19 +350,17 @@
 
                 const user = data.user;
 
-                // 2. Cria o perfil na tabela profiles
-                if (user) {
-                    const { error: errPerfil } = await window._supabase.from('profiles').upsert({
-                        id: user.id,
-                        nome,
-                        especialidade,
-                        // Registra COM O QUE ela concordou, nao so que concordou:
-                        // quando o documento mudar, e preciso saber qual versao cada
-                        // pessoa aceitou.
+                // 2. O perfil ja foi criado pelo trigger no banco, com os dados
+                // da metadata acima. Este upsert fica apenas como rede de
+                // seguranca para o caso de a sessao existir (confirmacao de
+                // e-mail desativada); com on conflict do nothing no trigger, um
+                // nao atrapalha o outro.
+                if (user && data.session) {
+                    await window._supabase.from('profiles').upsert({
+                        id: user.id, nome, especialidade,
                         termos_aceitos_em: new Date().toISOString(),
                         termos_versao: VERSAO_TERMOS
                     });
-                    if (errPerfil) console.warn('Aviso ao criar perfil:', errPerfil.message);
                 }
 
                 // 3. Feedback para o usuário
