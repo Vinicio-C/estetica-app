@@ -66,7 +66,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
       },
       body: JSON.stringify({
-        from: 'Estética Premium <contato@esteticaapp.com.br>',
+        from: 'Agendamento Premium <contato@esteticaapp.com.br>',
         to: [para],
         // Sempre a profissional autenticada, nunca um valor vindo do navegador
         reply_to: user.email,

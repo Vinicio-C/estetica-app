@@ -127,7 +127,7 @@ serve(async (req) => {
     </div>
   </div>
   <p style="max-width:520px; margin:14px auto 0; color:#999; font-size:12px; text-align:center;">
-    Estética Premium · para desativar estes avisos, acesse Perfil no aplicativo
+    Agendamento Premium · para desativar estes avisos, acesse Perfil no aplicativo
   </p>
 </div>`.trim()
 
@@ -138,7 +138,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
       },
       body: JSON.stringify({
-        from: 'Estética Premium <contato@esteticaapp.com.br>',
+        from: 'Agendamento Premium <contato@esteticaapp.com.br>',
         to: [emailDoutora],
         // Responder o email fala direto com a cliente
         ...(emailCliente ? { reply_to: emailCliente } : {}),

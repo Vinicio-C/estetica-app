@@ -157,7 +157,7 @@ body {
         z-index: 9999 !important;
     }
 
-    /* 2. Esconder qualquer logo/texto "Estética Premium" que esteja sobrando */
+    /* 2. Esconder qualquer logo/texto "Agendamento Premium" que esteja sobrando */
     /* Se houver uma imagem ou div extra, isso vai sumir com ela no celular */
     .app-header > img,
     .app-header > .sidebar-header,
@@ -1276,7 +1276,7 @@ input[type="date"] {
     animation: pulse 2s infinite;
 }
 
-/* Texto "Estética Premium" */
+/* Texto "Agendamento Premium" */
 .loading-content h2 {
     color: var(--text-primary);
     font-family: var(--font-heading);

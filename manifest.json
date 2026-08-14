@@ -1,6 +1,6 @@
 {
-  "name": "Estética Premium",
-  "short_name": "Estética",
+  "name": "Agendamento Premium",
+  "short_name": "Agendamento",
   "description": "Sistema profissional de gestão para clínicas de estética",
   "start_url": "./index.html",
   "scope": "./",

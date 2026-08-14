@@ -913,7 +913,7 @@ function blocoAssinatura(assinaturaImg) {
 // cliente/data vazios deixam a linha em branco para preencher à mão (a régua vem do CSS)
 async function montarCabecalhoImpressao({ titulo, cliente = '', data = '' }) {
     const perfil = await getPerfil();
-    document.getElementById('printTituloClinica').textContent = perfil.nome || 'Estética Premium';
+    document.getElementById('printTituloClinica').textContent = perfil.nome || 'Agendamento Premium';
     document.getElementById('printEspecialidade').textContent = perfil.especialidade || '';
     document.getElementById('printSubtitulo').textContent = titulo;
     document.getElementById('printNomeCliente').textContent = cliente;
@@ -1353,7 +1353,7 @@ async function gerarHtmlModelo(nomeModelo, campos) {
     </style>
     <table class="cab"><tr>
         <td>
-            <h1>${esc(perfil.nome || 'Estética Premium')}</h1>
+            <h1>${esc(perfil.nome || 'Agendamento Premium')}</h1>
             ${perfil.especialidade ? `<div class="cab-esp">${esc(perfil.especialidade)}</div>` : ''}
         </td>
         <td class="cab-dir">${esc(nomeModelo)}</td>

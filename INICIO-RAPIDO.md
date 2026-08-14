@@ -1,4 +1,4 @@
-# 🚀 Início Rápido - Estética Premium
+# 🚀 Início Rápido - Agendamento Premium
 
 ## ⚡ Primeiros Passos (3 minutos)
 
@@ -86,7 +86,7 @@ Acesse: /?popular=true
 1. Safari apenas (não funciona em Chrome/Firefox)
 2. Acesse o site
 3. Compartilhar > Adicionar à Tela de Início
-4. Nomeie como "Estética Premium"
+4. Nomeie como "Agendamento Premium"
 
 ## 🎨 Personalizar Ícones (Opcional)
 

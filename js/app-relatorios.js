@@ -390,7 +390,7 @@ window.imprimirRelatorio = async function() {
     } catch (_) { /* cabeçalho genérico serve */ }
 
     const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
-    set('printTituloClinica', perfil.nome || 'Estética Premium');
+    set('printTituloClinica', perfil.nome || 'Agendamento Premium');
     set('printEspecialidade', perfil.especialidade || '');
     set('printSubtitulo', 'Relatório Financeiro');
     set('printRotuloCliente', 'Período:');

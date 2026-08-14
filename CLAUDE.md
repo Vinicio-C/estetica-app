@@ -1,4 +1,4 @@
-# CLAUDE.md — Estética Premium
+# CLAUDE.md — Agendamento Premium
 
 ## O que é o projeto
 PWA de gestão para clínicas de estética. Sistema multi-tenant: cada profissional tem sua própria conta e vê apenas seus próprios dados. Backend no Supabase (projeto **Golden Derma**, ID: `frnwbcvcaacraliropsw`, região `sa-east-1`).
@@ -256,13 +256,16 @@ Feito: cobrança e webhook do Stripe, bloqueio por expiração de plano, landing
 documentos legais com aceite versionado (`legal.html` v2.0, gravado em
 `profiles.termos_aceitos_em` / `termos_versao`).
 
+**Nome do produto: `Agendamento Premium`.** É o único nome válido — em títulos, no
+`manifest.json`, no remetente dos e-mails e nos documentos legais. O domínio continua
+`esteticaapp.com.br` (não muda) e "estética" segue aparecendo como descrição do público
+("gestão para clínicas de estética"), o que é outra coisa.
+
 Pendente:
 - [ ] **Bloqueador:** preencher `[RAZÃO SOCIAL]` e `[CNPJ]` em `legal.html` e `landing.html`.
       Vender sem fornecedor identificável é infração ao CDC e as plataformas de anúncio exigem
 - [ ] **Bloqueador:** revisão dos documentos por advogado antes de escalar verba de anúncio.
       Os textos foram escritos sem assessoria jurídica
-- [ ] Decidir o nome do produto: `Estética Premium` e `Agendamento Premium` convivem em
-      landing, legal e index. Precisa ser um só antes de anunciar e de assinar contrato
 - [ ] Ativar *Leaked Password Protection* no Supabase (Auth → Policies) — hoje desligado,
       aceita senha já vazada em outros sites
 - [ ] Google API Key (`js/app.js:8`) exposta no código — restringir por domínio no Google

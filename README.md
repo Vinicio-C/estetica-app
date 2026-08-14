@@ -1,4 +1,4 @@
-# 🌟 Estética Premium - Sistema de Gestão Profissional
+# 🌟 Agendamento Premium - Sistema de Gestão Profissional
 
 ![Status](https://img.shields.io/badge/Status-Completo-success)
 ![Versão](https://img.shields.io/badge/Versão-1.0.0-blue)
@@ -439,4 +439,4 @@ Para dúvidas ou sugestões sobre o projeto, consulte a documentação ou os com
 
 **Desenvolvido com 💛 para profissionais de estética que buscam excelência na gestão**
 
-*Estética Premium - Gestão que faz a diferença* ✨
+*Agendamento Premium - Gestão que faz a diferença* ✨
