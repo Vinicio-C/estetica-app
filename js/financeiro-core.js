@@ -67,3 +67,60 @@ window.ehDoMes = function(valor, mes, ano) {
     const d = window.parseDataLocal(valor);
     return !!d && d.getMonth() === mes && d.getFullYear() === ano;
 };
+
+// ─── MENSAGENS AUTOMÁTICAS ──────────────────────────────────────────────────
+//
+// A troca de {nome}/{data}/{hora}/{servico} estava copiada em quatro lugares
+// (WhatsApp manual, WhatsApp automático, e-mail e envio em lote da agenda) e as
+// cópias já tinham divergido: uma mandava a data crua do banco, "2026-08-20",
+// direto para a cliente. Uma variável nova precisava ser adicionada nos quatro.
+// Agora é aqui, e só aqui.
+
+/** "2026-08-20" ou "20/08/2026" -> "20/08/2026". Aceita já formatado. */
+function _dataBR(valor) {
+    if (!valor) return '';
+    const texto = String(valor).trim();
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(texto)) return texto;
+    const d = window.parseDataLocal(texto);
+    if (!d) return texto;
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
+/** "14:30:00" -> "14:30". */
+function _horaBR(valor) {
+    return valor ? String(valor).trim().slice(0, 5) : '';
+}
+
+/**
+ * Preenche o template da profissional com os dados do agendamento.
+ *
+ * `valor` sem preço vira "a combinar" em vez de "R$ 0,00": mandar zero para a
+ * cliente parece cobrança errada, e string vazia deixa a linha "Valor:" pendurada.
+ */
+window.montarMensagem = function(template, dados) {
+    const d = dados || {};
+
+    const precoNumero = Number(d.valor);
+    const preco = (d.valor === null || d.valor === undefined || d.valor === '' || isNaN(precoNumero) || precoNumero <= 0)
+        ? 'a combinar'
+        : precoNumero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    return String(template || '')
+        .replace(/{nome}/g, String(d.nome || 'Cliente').trim().split(' ')[0])
+        .replace(/{data}/g, _dataBR(d.data))
+        .replace(/{hora}/g, _horaBR(d.hora))
+        .replace(/{servico}/g, d.servico || 'Atendimento')
+        .replace(/{valor}/g, preco);
+};
+
+// Textos padrão, usados enquanto a profissional não salva os dela.
+// Ficam aqui porque app-agenda.js carrega ANTES de app.js e também precisa deles.
+window.MENSAGEM_PADRAO_ZAP = `Olá {nome}! ✨\n\nPassando para confirmar o seu horário conosco.\n\n🗓 *Quando:* {data} às {hora}\n📌 *Procedimento:* {servico}\n💰 *Valor:* {valor}\n\nPodemos confirmar sua presença? ✅`;
+window.EMAIL_PADRAO_ASSUNTO = "Seu agendamento está confirmado! ✨";
+window.EMAIL_PADRAO_CORPO = "Olá {nome},\n\nSeu agendamento para o procedimento {servico} foi confirmado com sucesso!\n\nTe esperamos no dia {data} às {hora}.\nValor do procedimento: {valor}.\n\nAtenciosamente,\nEquipe Agendamento Premium";
+
+/** "20/08/2026 às 14:30" -> { data, hora }. Formato usado nas telas antigas. */
+window.separarDataHoraBr = function(texto) {
+    const partes = String(texto || '').split(' às ');
+    return { data: partes[0] || '', hora: partes[1] || '' };
+};

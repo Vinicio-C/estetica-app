@@ -527,7 +527,7 @@ function renderizarLembretesAmanha() {
                     style="${btnStyle} font-size:1rem; padding: 6px 10px; border-radius: 6px; cursor:pointer;"
                     title="${btnTitle}"
                     ${btnDisabled}
-                    onclick="dispararLembrete('${a.id}', '${telefone}', '${(a.cliente_nome || '').replace(/'/g, "\\'")}', '${dataFmt} às ${horaFmt}', '${(a.servico_nome || '').replace(/'/g, "\\'")}', '${amanhaStr}')">
+                    onclick="dispararLembrete('${a.id}', '${telefone}', '${(a.cliente_nome || '').replace(/'/g, "\\'")}', '${dataFmt} às ${horaFmt}', '${(a.servico_nome || '').replace(/'/g, "\\'")}', '${amanhaStr}', '${a.valor ?? ''}')">
                     <i class="fab fa-whatsapp"></i>
                 </button>
             </div>
@@ -535,8 +535,8 @@ function renderizarLembretesAmanha() {
     }).join('');
 }
 
-window.dispararLembrete = async function(agendamentoId, telefone, nome, dataHoraBr, procedimento, dataRef) {
-    await window.dispararWhatsAppManual(telefone, nome, dataHoraBr, procedimento);
+window.dispararLembrete = async function(agendamentoId, telefone, nome, dataHoraBr, procedimento, dataRef, valor) {
+    await window.dispararWhatsAppManual(telefone, nome, dataHoraBr, procedimento, valor);
 
     const storageKey = `zap_sent_${agendamentoId}_${dataRef}`;
     localStorage.setItem(storageKey, '1');
@@ -934,7 +934,7 @@ async function abrirDetalhesCliente(clienteId) {
                                 <i class="fas fa-check"></i>
                             </button>
                             
-                            <button class="icon-btn-small" style="background:transparent; border:1px solid #25D366; color: #25D366; cursor: pointer;" onclick="event.stopPropagation(); dispararWhatsAppManual('${cliente.telefone}', '${cliente.nome}', '${formatDate(a.data)} às ${formatTime(a.hora)}', '${a.servico_nome}')" title="Enviar WhatsApp">
+                            <button class="icon-btn-small" style="background:transparent; border:1px solid #25D366; color: #25D366; cursor: pointer;" onclick="event.stopPropagation(); dispararWhatsAppManual('${cliente.telefone}', '${cliente.nome}', '${formatDate(a.data)} às ${formatTime(a.hora)}', '${a.servico_nome}', '${a.valor ?? ''}')" title="Enviar WhatsApp">
                                 <i class="fab fa-whatsapp"></i>
                             </button>
                         </div>
@@ -1934,7 +1934,7 @@ async function salvarAgendamento(e) {
 
             if (clienteObj.email) {
                 // Chama sem "await" para não travar o fechamento da tela
-                window.dispararEmailAutomatico(clienteObj.email, clienteObj.nome, dataHoraBr, procedimento);
+                window.dispararEmailAutomatico(clienteObj.email, clienteObj.nome, dataHoraBr, procedimento, dados.valor);
             }
 
             // WhatsApp automático via Z-API (sem await, não bloqueia)
@@ -2400,9 +2400,7 @@ window.copiarLinkPerfil = copiarLinkPerfil; // Se tiver criado essa também
 // 🤖 ABA DE AUTOMAÇÕES, WHATSAPP E E-MAIL (UNIFICADA)
 // ==============================================================
 
-const MENSAGEM_PADRAO_ZAP = `Olá {nome}! ✨\n\nPassando para confirmar o seu horário conosco.\n\n🗓 *Quando:* {data} às {hora}\n📌 *Procedimento:* {servico}\n\nPodemos confirmar sua presença? ✅`;
-const EMAIL_PADRAO_ASSUNTO = "Seu agendamento está confirmado! ✨";
-const EMAIL_PADRAO_CORPO = "Olá {nome},\n\nSeu agendamento para o procedimento {servico} foi confirmado com sucesso!\n\nTe esperamos no dia {data} às {hora}.\n\nAtenciosamente,\nEquipe Agendamento Premium";
+// Os textos padrão vivem em financeiro-core.js (window.MENSAGEM_PADRAO_ZAP etc.)
 
 window.carregarAutomacoes = async function() {
     console.log("⚙️ Carregando Automações...");
@@ -2414,7 +2412,7 @@ window.carregarAutomacoes = async function() {
         
         // 1. WhatsApp
         const elZap = document.getElementById('textoAutomacaoZap');
-        if (elZap) elZap.value = (perfil && perfil.mensagem_whatsapp) ? perfil.mensagem_whatsapp : MENSAGEM_PADRAO_ZAP;
+        if (elZap) elZap.value = (perfil && perfil.mensagem_whatsapp) ? perfil.mensagem_whatsapp : window.MENSAGEM_PADRAO_ZAP;
 
         // 2. Fonnte (WhatsApp automático)
         const elZapiToggle = document.getElementById('zapiAtivoToggle');
@@ -2424,10 +2422,10 @@ window.carregarAutomacoes = async function() {
 
         // 3. E-mail
         const elAssunto = document.getElementById('textoAssuntoEmail');
-        if (elAssunto) elAssunto.value = (perfil && perfil.email_assunto) ? perfil.email_assunto : EMAIL_PADRAO_ASSUNTO;
+        if (elAssunto) elAssunto.value = (perfil && perfil.email_assunto) ? perfil.email_assunto : window.EMAIL_PADRAO_ASSUNTO;
 
         const elCorpo = document.getElementById('textoCorpoEmail');
-        if (elCorpo) elCorpo.value = (perfil && perfil.email_corpo) ? perfil.email_corpo : EMAIL_PADRAO_CORPO;
+        if (elCorpo) elCorpo.value = (perfil && perfil.email_corpo) ? perfil.email_corpo : window.EMAIL_PADRAO_CORPO;
 
         const elToggle = document.getElementById('emailAtivoToggle');
         if (elToggle) elToggle.checked = (perfil && perfil.email_ativo === true);
@@ -2496,138 +2494,44 @@ window.inserirVariavel = function(variavel) {
     textarea.selectionEnd = inicio + variavel.length; 
 };
 
-// ==============================================================
-// ✉️ LÓGICA DO E-MAIL AUTOMÁTICO
-// ==============================================================
-
-async function carregarAutomacoes() {
-    console.log("⚙️ Carregando Automações...");
-    try {
-        const { data: { user } } = await _supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        
-        // 🛡️ Textos Padrões (Guardados DENTRO da função para nunca dar erro)
-        const padraoZap = `Olá {nome}! ✨\n\nVocê tem um agendamento marcado com a Dra. Joyce Corrêa.\n\n🗓 *Quando:* {data} às {hora}\n💆‍♀️ *Procedimento:* {servico}\n\nPodemos confirmar sua presença? 😘`;
-        const padraoAssunto = "Seu agendamento está confirmado! ✨";
-        const padraoCorpo = "Olá {nome},\n\nSeu agendamento para o procedimento {servico} foi confirmado com sucesso!\n\nTe esperamos no dia {data} às {hora}.\n\nAtenciosamente,\nEquipe Agendamento Premium";
-
-        // Carrega WhatsApp
-        const elZap = document.getElementById('textoAutomacaoZap');
-        if (elZap) elZap.value = (perfil && perfil.mensagem_whatsapp) ? perfil.mensagem_whatsapp : padraoZap;
-
-        // Carrega E-mail
-        const elAssunto = document.getElementById('textoAssuntoEmail');
-        if (elAssunto) elAssunto.value = (perfil && perfil.email_assunto) ? perfil.email_assunto : padraoAssunto;
-
-        const elCorpo = document.getElementById('textoCorpoEmail');
-        if (elCorpo) elCorpo.value = (perfil && perfil.email_corpo) ? perfil.email_corpo : padraoCorpo;
-
-        const elToggle = document.getElementById('emailAtivoToggle');
-        if (elToggle) elToggle.checked = (perfil && perfil.email_ativo === true);
-        
-    } catch (err) { console.error("Erro ao carregar automações:", err); }
-}
-
-async function salvarAutomacoes(btnElement) {
-    const textoNovo = document.getElementById('textoAutomacaoZap').value;
-    const textoBotaoOriginal = btnElement.innerHTML;
-    btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-    btnElement.disabled = true;
-
-    try {
-        const { data: { user } } = await _supabase.auth.getUser();
-        const { error } = await _supabase.from('profiles').upsert({ id: user.id, mensagem_whatsapp: textoNovo });
-        if (error) throw error;
-        if(typeof showToast === 'function') showToast("Mensagem do WhatsApp salva!", "success");
-    } catch (err) { showToast('Erro ao salvar mensagem.', 'error'); }
-    finally { btnElement.innerHTML = textoBotaoOriginal; btnElement.disabled = false; }
-}
-
-async function salvarAutomacoesEmail(btnElement) {
-    const assunto = document.getElementById('textoAssuntoEmail').value;
-    const corpo = document.getElementById('textoCorpoEmail').value;
-    const ativo = document.getElementById('emailAtivoToggle').checked;
-    
-    const textoBotaoOriginal = btnElement.innerHTML;
-    btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-    btnElement.disabled = true;
-
-    try {
-        const { data: { user } } = await _supabase.auth.getUser();
-        const { error } = await _supabase.from('profiles').upsert({ 
-            id: user.id, email_assunto: assunto, email_corpo: corpo, email_ativo: ativo 
-        });
-        if (error) throw error;
-        if(typeof showToast === 'function') showToast("Configurações de e-mail atualizadas!", "success");
-    } catch (err) { showToast('Erro ao salvar configurações de e-mail.', 'error'); }
-    finally { btnElement.innerHTML = textoBotaoOriginal; btnElement.disabled = false; }
-}
-
-function inserirVariavel(variavel) {
-    const textarea = document.getElementById('textoAutomacaoZap');
-    if (!textarea) return;
-    const inicio = textarea.selectionStart;
-    const fim = textarea.selectionEnd;
-    const texto = textarea.value;
-    textarea.value = texto.substring(0, inicio) + variavel + texto.substring(fim);
-    textarea.focus();
-    textarea.selectionEnd = inicio + variavel.length; 
-}
-
-window.dispararWhatsAppManual = async function(telefone, nome, dataHoraBr, procedimento) {
+window.dispararWhatsAppManual = async function(telefone, nome, dataHoraBr, procedimento, valor) {
     if (!telefone || String(telefone).trim() === '') { showToast('Cliente sem telefone cadastrado.', 'warning'); return; }
     let numLimpo = String(telefone).replace(/\D/g, ''); 
     if (numLimpo.startsWith('0')) numLimpo = numLimpo.substring(1);
     if (!numLimpo.startsWith('55')) numLimpo = `55${numLimpo}`;
     if (numLimpo.length < 12 || numLimpo.length > 13) { showToast('O telefone deste cliente está incorreto.', 'warning'); return; }
 
-    const partes = dataHoraBr.split(' às ');
-    const dataApenas = partes[0] || '';
-    const horaApenas = partes[1] || '';
+    const { data: dataApenas, hora: horaApenas } = window.separarDataHoraBr(dataHoraBr);
 
-    let textoBase = `Olá {nome}! ✨\n\nVocê tem um agendamento marcado com a Dra. Joyce Corrêa.\n\n🗓 *Quando:* {data} às {hora}\n💆‍♀️ *Procedimento:* {servico}\n\nPodemos confirmar sua presença? 😘`;
+    let textoBase = window.MENSAGEM_PADRAO_ZAP;
     try {
         const { data: { user } } = await _supabase.auth.getUser();
         const { data: perfil } = await _supabase.from('profiles').select('mensagem_whatsapp').eq('id', user.id).maybeSingle();
         if (perfil && perfil.mensagem_whatsapp) textoBase = perfil.mensagem_whatsapp;
     } catch(e) { console.warn("Usando mensagem padrão."); }
 
-    let textoFinal = textoBase
-        .replace(/{nome}/g, (nome || 'Cliente').split(' ')[0])
-        .replace(/{data}/g, dataApenas)
-        .replace(/{hora}/g, horaApenas)
-        .replace(/{servico}/g, procedimento || 'Atendimento');
+    const textoFinal = window.montarMensagem(textoBase, {
+        nome, data: dataApenas, hora: horaApenas, servico: procedimento, valor
+    });
     
     window.open(`https://api.whatsapp.com/send?phone=${numLimpo}&text=${encodeURIComponent(textoFinal)}`, '_blank');
 };
 
-window.dispararEmailAutomatico = async function(emailCliente, nomeCliente, dataHoraBr, procedimento) {
+window.dispararEmailAutomatico = async function(emailCliente, nomeCliente, dataHoraBr, procedimento, valor) {
     if (!emailCliente || !emailCliente.includes('@')) return;
     try {
         const { data: { user } } = await _supabase.auth.getUser();
         const { data: perfil } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
         if (!perfil || perfil.email_ativo !== true) return;
 
-        const partes = dataHoraBr.split(' às ');
-        const dataApenas = partes[0] || '';
-        const horaApenas = partes[1] || '';
+        const { data: dataApenas, hora: horaApenas } = window.separarDataHoraBr(dataHoraBr);
 
-        const padraoAssunto = "Seu agendamento está confirmado! ✨";
-        const padraoCorpo = "Olá {nome},\n\nSeu agendamento para o procedimento {servico} foi confirmado com sucesso!\n\nTe esperamos no dia {data} às {hora}.\n\nAtenciosamente,\nEquipe Agendamento Premium";
-
-        let assuntoFinal = (perfil.email_assunto || padraoAssunto)
-            .replace(/{nome}/g, nomeCliente.split(' ')[0])
-            .replace(/{data}/g, dataApenas)
-            .replace(/{hora}/g, horaApenas)
-            .replace(/{servico}/g, procedimento);
-
-        let corpoFinal = (perfil.email_corpo || padraoCorpo)
-            .replace(/{nome}/g, nomeCliente.split(' ')[0])
-            .replace(/{data}/g, dataApenas)
-            .replace(/{hora}/g, horaApenas)
-            .replace(/{servico}/g, procedimento);
+        const dados = {
+            nome: nomeCliente, data: dataApenas, hora: horaApenas,
+            servico: procedimento, valor
+        };
+        const assuntoFinal = window.montarMensagem(perfil.email_assunto || window.EMAIL_PADRAO_ASSUNTO, dados);
+        const corpoFinal  = window.montarMensagem(perfil.email_corpo   || window.EMAIL_PADRAO_CORPO,   dados);
 
         // A função exige sessão autenticada e só envia para clientes da própria
         // profissional. O reply_to é definido no servidor, a partir do JWT.
@@ -2689,14 +2593,15 @@ window.dispararWhatsAppAutomatico = async function(agendamento, cliente) {
         if (!numLimpo.startsWith('55')) numLimpo = `55${numLimpo}`;
         if (numLimpo.length < 12 || numLimpo.length > 13) return;
 
-        const mensagemBase = perfil.mensagem_whatsapp ||
-            `Olá {nome}! ✨\n\nPassando para confirmar o seu horário conosco.\n\n🗓 *Quando:* {data} às {hora}\n📌 *Procedimento:* {servico}\n\nPodemos confirmar sua presença? ✅`;
-
-        const mensagem = mensagemBase
-            .replace(/{nome}/g, (cliente.nome || 'Cliente').split(' ')[0])
-            .replace(/{servico}/g, agendamento.servico_nome || 'Atendimento')
-            .replace(/{data}/g, agendamento.data || '')
-            .replace(/{hora}/g, agendamento.hora || '');
+        // montarMensagem formata a data: antes ia "2026-08-20" e "14:30:00"
+        // crus do banco direto para a cliente.
+        const mensagem = window.montarMensagem(perfil.mensagem_whatsapp || window.MENSAGEM_PADRAO_ZAP, {
+            nome: cliente.nome,
+            servico: agendamento.servico_nome,
+            data: agendamento.data,
+            hora: agendamento.hora,
+            valor: agendamento.valor
+        });
 
         // Chama via Edge Function (evita bloqueio de CORS do browser).
         // A funcao exige sessao e busca o token do gateway no proprio perfil.
@@ -2712,11 +2617,6 @@ window.dispararWhatsAppAutomatico = async function(agendamento, cliente) {
     }
 };
 
-// OBRIGATÓRIO: Conecta as funções seguras ao navegador
-window.carregarAutomacoes = carregarAutomacoes;
-window.salvarAutomacoes = salvarAutomacoes;
-window.salvarAutomacoesEmail = salvarAutomacoesEmail;
-window.inserirVariavel = inserirVariavel;
 
 
 // ==============================================================

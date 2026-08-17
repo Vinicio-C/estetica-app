@@ -672,7 +672,8 @@
                             <i class="fab fa-whatsapp" style="color: #25D366; font-size: 1.5rem;"></i> Confirmação de Agendamento
                         </h3>
                         <p style="color: #888; font-size: 0.95rem; margin-bottom: 15px;">
-                            Personalize a mensagem que será enviada ao cliente. Clique nos botões abaixo para copiar as variáveis (elas serão trocadas automaticamente pelo sistema):
+                            Personalize a mensagem que será enviada ao cliente. Clique nos botões abaixo para inserir as variáveis (elas serão trocadas automaticamente pelo sistema).
+                            <br><small style="color:#666;">{valor} usa o preço do serviço no agendamento. Sem preço definido, aparece "a combinar".</small>
                         </p>
                         
                         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -680,6 +681,7 @@
                             <button class="btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="inserirVariavel('{data}')">{data}</button>
                             <button class="btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="inserirVariavel('{hora}')">{hora}</button>
                             <button class="btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="inserirVariavel('{servico}')">{servico}</button>
+                            <button class="btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="inserirVariavel('{valor}')">{valor}</button>
                         </div>
 
                         <textarea id="textoAutomacaoZap" rows="7" style="width: 100%; background: #111; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 15px; font-family: inherit; font-size: 1rem; resize: vertical;"></textarea>
@@ -742,7 +744,7 @@
                         </div>
                         
                         <p style="color: #888; font-size: 0.95rem; margin-bottom: 15px;">
-                            Configure o e-mail de confirmação. As variáveis {nome}, {data}, {hora} e {servico} também funcionam aqui!
+                            Configure o e-mail de confirmação. As variáveis {nome}, {data}, {hora}, {servico} e {valor} também funcionam aqui!
                         </p>
 
                         <div class="form-group" style="margin-bottom: 15px;">

@@ -220,7 +220,7 @@ async function carregarAgendaDoDia(dataObj) {
                     <span class="price-tag">${valor}</span>
                     ${badgeCardHtml}
                     <div style="display: flex; gap: 5px; justify-content: flex-end;">
-                        <button class="icon-btn-small" style="background: #25D366; color: white; border: none; font-size: 1rem;" onclick="dispararLembreteAgenda('${item.id}', '${telefoneParaZap}', '${nomeCliente.replace(/'/g, "\\'")}', '${dataHoraParaZap}', '${titulo.replace(/'/g, "\\'")}', '${dataSQL}')" title="Confirmar pelo Zap">
+                        <button class="icon-btn-small" style="background: #25D366; color: white; border: none; font-size: 1rem;" onclick="dispararLembreteAgenda('${item.id}', '${telefoneParaZap}', '${nomeCliente.replace(/'/g, "\\'")}', '${dataHoraParaZap}', '${titulo.replace(/'/g, "\\'")}', '${dataSQL}', '${item.valor ?? ''}')" title="Confirmar pelo Zap">
                             <i class="fab fa-whatsapp"></i>
                         </button>
                         <button class="icon-btn-small edit" onclick="abrirModalAgendamento('${item.id}')"><i class="fas fa-pencil-alt"></i></button>
@@ -242,8 +242,8 @@ window.hoje = hoje;
 window.carregarAgendaDoDia = carregarAgendaDoDia;
 
 // --- LEMBRETE INDIVIDUAL VIA CARD DA AGENDA ---
-window.dispararLembreteAgenda = async function(agendamentoId, telefone, nome, dataHoraBr, procedimento, dataSQL) {
-    await window.dispararWhatsAppManual(telefone, nome, dataHoraBr, procedimento);
+window.dispararLembreteAgenda = async function(agendamentoId, telefone, nome, dataHoraBr, procedimento, dataSQL, valor) {
+    await window.dispararWhatsAppManual(telefone, nome, dataHoraBr, procedimento, valor);
 
     const storageKey = `zap_sent_${agendamentoId}_${dataSQL}`;
     localStorage.setItem(storageKey, '1');
@@ -308,7 +308,7 @@ window.enviarLembretesTodos = async function() {
     if (!confirmou) return;
 
     // Busca template da profissional uma única vez
-    let textoBase = `Olá {nome}! ✨\n\nPassando para confirmar o seu horário conosco.\n\n🗓 *Quando:* {data} às {hora}\n📌 *Procedimento:* {servico}\n\nPodemos confirmar sua presença? ✅`;
+    let textoBase = window.MENSAGEM_PADRAO_ZAP;
     try {
         const { data: { user } } = await _supabase.auth.getUser();
         if (user) {
@@ -348,15 +348,13 @@ window.enviarLembretesTodos = async function() {
             continue;
         }
 
-        const horaFmt = a.hora ? a.hora.slice(0, 5) : '';
-        const dataFmtBr = `${dia}/${mes}/${ano}`;
-        const primeiroNome = (a.cliente_nome || 'Cliente').split(' ')[0];
-
-        const textoFinal = textoBase
-            .replace(/{nome}/g, primeiroNome)
-            .replace(/{data}/g, dataFmtBr)
-            .replace(/{hora}/g, horaFmt)
-            .replace(/{servico}/g, a.servico_nome || 'Atendimento');
+        const textoFinal = window.montarMensagem(textoBase, {
+            nome: a.cliente_nome,
+            data: `${dia}/${mes}/${ano}`,
+            hora: a.hora,
+            servico: a.servico_nome,
+            valor: a.valor
+        });
 
         window.open(
             `https://api.whatsapp.com/send?phone=${numLimpo}&text=${encodeURIComponent(textoFinal)}`,
