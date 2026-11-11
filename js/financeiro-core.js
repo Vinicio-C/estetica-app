@@ -110,13 +110,26 @@ window.montarMensagem = function(template, dados) {
         .replace(/{data}/g, _dataBR(d.data))
         .replace(/{hora}/g, _horaBR(d.hora))
         .replace(/{servico}/g, d.servico || 'Atendimento')
-        .replace(/{valor}/g, preco);
+        .replace(/{valor}/g, preco)
+        .replace(/{link}/g, d.link || '');
+};
+
+/**
+ * Telefone digitado -> número no formato do WhatsApp ("5511987654321"),
+ * ou null se não der para usar. Aceita "(11) 98765-4321", "011...", "+55...".
+ */
+window.telefoneWhatsApp = function(telefone) {
+    let num = String(telefone || '').replace(/\D/g, '');
+    if (num.startsWith('0')) num = num.substring(1);
+    if (!num.startsWith('55')) num = `55${num}`;
+    return (num.length >= 12 && num.length <= 13) ? num : null;
 };
 
 // Textos padrão, usados enquanto a profissional não salva os dela.
 // Ficam aqui porque app-agenda.js carrega ANTES de app.js e também precisa deles.
 window.MENSAGEM_PADRAO_ZAP = `Olá {nome}! ✨\n\nPassando para confirmar o seu horário conosco.\n\n🗓 *Quando:* {data} às {hora}\n📌 *Procedimento:* {servico}\n💰 *Valor:* {valor}\n\nPodemos confirmar sua presença? ✅`;
-window.EMAIL_PADRAO_ASSUNTO = "Seu agendamento está confirmado! ✨";
+window.MENSAGEM_PADRAO_AVALIACAO = `Oi {nome}! 💛\n\nObrigada por ter vindo hoje fazer o procedimento ({servico}). Foi um prazer te atender!\n\nSe puder, deixe sua avaliação no Google — leva menos de um minuto e ajuda muito o meu trabalho:\n{link}\n\nObrigada! ✨`;
+window.EMAIL_PADRAO_ASSUNTO ="Seu agendamento está confirmado! ✨";
 window.EMAIL_PADRAO_CORPO = "Olá {nome},\n\nSeu agendamento para o procedimento {servico} foi confirmado com sucesso!\n\nTe esperamos no dia {data} às {hora}.\nValor do procedimento: {valor}.\n\nAtenciosamente,\nEquipe Agendamento Premium";
 
 /** "20/08/2026 às 14:30" -> { data, hora }. Formato usado nas telas antigas. */

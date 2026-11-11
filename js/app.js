@@ -900,6 +900,9 @@ async function abrirDetalhesCliente(clienteId) {
                                 <button onclick="event.stopPropagation(); reverterConclusao('${a.id}')" style="background:transparent; border:1px solid #ff4444; color:#ff4444; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 0.75rem;" title="Desfazer e devolver estoque">
                                     <i class="fas fa-undo"></i> Estornar
                                 </button>
+                                <button onclick="event.stopPropagation(); oferecerPedidoAvaliacao('${a.id}')" style="background:transparent; border:1px solid #FBBC05; color:#FBBC05; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 0.75rem;" title="${a.avaliacao_solicitada_em ? 'Avaliação já pedida em ' + new Date(a.avaliacao_solicitada_em).toLocaleDateString('pt-BR') : 'Pedir avaliação no Google pelo WhatsApp'}">
+                                    <i class="fas fa-star"></i> ${a.avaliacao_solicitada_em ? 'Pedida' : 'Avaliação'}
+                                </button>
                             ` : ''}
                             
                             ${a.status === 'pendente' ? `
@@ -1926,7 +1929,7 @@ async function salvarAgendamento(e) {
 
         if (error) throw error;
 
-        // --- DISPARO AUTOMÁTICO (E-MAIL + WHATSAPP) ---
+        // --- DISPARO AUTOMÁTICO (E-MAIL) ---
         if (clienteObj) {
             const procedimento = dados.servico_nome || dados.evento_nome || 'Atendimento';
             const [ano, mes, dia] = dados.data.split('-');
@@ -1936,9 +1939,6 @@ async function salvarAgendamento(e) {
                 // Chama sem "await" para não travar o fechamento da tela
                 window.dispararEmailAutomatico(clienteObj.email, clienteObj.nome, dataHoraBr, procedimento, dados.valor);
             }
-
-            // WhatsApp automático via Z-API (sem await, não bloqueia)
-            window.dispararWhatsAppAutomatico(dados, clienteObj);
         }
 
         showToast('Agendamento salvo com sucesso!', 'success');
@@ -2414,11 +2414,11 @@ window.carregarAutomacoes = async function() {
         const elZap = document.getElementById('textoAutomacaoZap');
         if (elZap) elZap.value = (perfil && perfil.mensagem_whatsapp) ? perfil.mensagem_whatsapp : window.MENSAGEM_PADRAO_ZAP;
 
-        // 2. Fonnte (WhatsApp automático)
-        const elZapiToggle = document.getElementById('zapiAtivoToggle');
-        if (elZapiToggle) elZapiToggle.checked = (perfil && perfil.zapi_ativo === true);
-        const elZapiToken = document.getElementById('zapiToken');
-        if (elZapiToken) elZapiToken.value = (perfil && perfil.zapi_token) ? perfil.zapi_token : '';
+        // 2. Pedido de avaliação no Google (pós-atendimento)
+        const elLink = document.getElementById('linkAvaliacaoGoogle');
+        if (elLink) elLink.value = perfil?.link_avaliacao_google || '';
+        const elAval = document.getElementById('textoAvaliacao');
+        if (elAval) elAval.value = perfil?.mensagem_avaliacao || window.MENSAGEM_PADRAO_AVALIACAO;
 
         // 3. E-mail
         const elAssunto = document.getElementById('textoAssuntoEmail');
@@ -2483,8 +2483,8 @@ window.salvarAutomacoesEmail = async function(btnElement) {
     }
 };
 
-window.inserirVariavel = function(variavel) {
-    const textarea = document.getElementById('textoAutomacaoZap');
+window.inserirVariavel = function(variavel, alvoId = 'textoAutomacaoZap') {
+    const textarea = document.getElementById(alvoId);
     if (!textarea) return;
     const inicio = textarea.selectionStart;
     const fim = textarea.selectionEnd;
@@ -2496,10 +2496,8 @@ window.inserirVariavel = function(variavel) {
 
 window.dispararWhatsAppManual = async function(telefone, nome, dataHoraBr, procedimento, valor) {
     if (!telefone || String(telefone).trim() === '') { showToast('Cliente sem telefone cadastrado.', 'warning'); return; }
-    let numLimpo = String(telefone).replace(/\D/g, ''); 
-    if (numLimpo.startsWith('0')) numLimpo = numLimpo.substring(1);
-    if (!numLimpo.startsWith('55')) numLimpo = `55${numLimpo}`;
-    if (numLimpo.length < 12 || numLimpo.length > 13) { showToast('O telefone deste cliente está incorreto.', 'warning'); return; }
+    const numLimpo = window.telefoneWhatsApp(telefone);
+    if (!numLimpo) { showToast('O telefone deste cliente está incorreto.', 'warning'); return; }
 
     const { data: dataApenas, hora: horaApenas } = window.separarDataHoraBr(dataHoraBr);
 
@@ -2548,9 +2546,33 @@ window.dispararEmailAutomatico = async function(emailCliente, nomeCliente, dataH
     } catch (error) { console.error("Erro interno no e-mail:", error); }
 };
 
-window.salvarConfigZapi = async function(btnElement) {
-    const token = document.getElementById('zapiToken').value.trim();
-    const ativo = document.getElementById('zapiAtivoToggle').checked;
+// ==============================================================
+// ⭐ PEDIDO DE AVALIAÇÃO NO GOOGLE (PÓS-ATENDIMENTO)
+// ==============================================================
+//
+// Sai do WhatsApp da própria profissional (api.whatsapp.com/send), não de um
+// gateway: o Fonnte foi abandonado. Por isso é sempre um clique dela — o app
+// prepara a mensagem e ela aperta enviar.
+//
+// O window.open precisa acontecer DENTRO do clique. Depois de um await (RPC,
+// busca do perfil) o navegador já não considera aquilo um gesto do usuário e o
+// celular bloqueia a janela. Por isso tudo é montado antes, em
+// oferecerPedidoAvaliacao, e o botão do modal só abre o link pronto.
+
+let _pedidoAvaliacao = null; // { agendamentoId, clienteId, url }
+
+window.salvarConfigAvaliacao = async function(btnElement) {
+    const link = document.getElementById('linkAvaliacaoGoogle').value.trim();
+    const texto = document.getElementById('textoAvaliacao').value;
+
+    if (link && !/^https?:\/\//i.test(link)) {
+        showToast('O link precisa começar com https:// — copie direto do Google.', 'warning');
+        return;
+    }
+    if (link && !texto.includes('{link}')) {
+        showToast('Coloque {link} na mensagem, senão a cliente não recebe onde clicar.', 'warning', 6000);
+        return;
+    }
 
     const textoBotaoOriginal = btnElement.innerHTML;
     btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
@@ -2560,61 +2582,103 @@ window.salvarConfigZapi = async function(btnElement) {
         const { data: { user } } = await _supabase.auth.getUser();
         const { error } = await _supabase.from('profiles').upsert({
             id: user.id,
-            zapi_token: token,
-            zapi_ativo: ativo
+            link_avaliacao_google: link || null,
+            mensagem_avaliacao: texto
         });
         if (error) throw error;
-        showToast('Configuração salva!', 'success');
+        showToast('Pedido de avaliação salvo!', 'success');
     } catch (err) {
         console.error(err);
-        showToast('Erro ao salvar configuração.', 'error');
+        showToast('Erro ao salvar pedido de avaliação.', 'error');
     } finally {
         btnElement.innerHTML = textoBotaoOriginal;
         btnElement.disabled = false;
     }
 };
 
-window.dispararWhatsAppAutomatico = async function(agendamento, cliente) {
+/**
+ * Prepara a mensagem e abre o modal de confirmação.
+ * `silencioso`: chamado logo após concluir — se faltar link ou telefone, não
+ * incomoda com aviso (a conclusão em si já deu certo). Vindo do botão do
+ * histórico, explica por que não dá.
+ */
+window.oferecerPedidoAvaliacao = async function(agendamentoId, silencioso = false) {
+    const avisar = (msg) => { if (!silencioso) showToast(msg, 'warning', 6000); };
     try {
-        if (!cliente?.telefone) return;
-
         const { data: { user } } = await _supabase.auth.getUser();
-        // O token nao e mais lido aqui: a Edge Function le do perfil no servidor.
-        // Antes ele trafegava do navegador a cada envio, exposto no devtools.
-        const { data: perfil } = await _supabase.from('profiles')
-            .select('zapi_ativo, mensagem_whatsapp')
-            .eq('id', user.id)
-            .maybeSingle();
+        const [{ data: perfil }, { data: ag, error: errAg }] = await Promise.all([
+            _supabase.from('profiles').select('link_avaliacao_google, mensagem_avaliacao').eq('id', user.id).maybeSingle(),
+            // Busca fresca: o appState pode estar defasado (e truncado em 1000)
+            _supabase.from('agendamentos').select('*').eq('id', agendamentoId).maybeSingle()
+        ]);
+        if (errAg || !ag) { avisar('Agendamento não encontrado.'); return; }
 
-        if (!perfil?.zapi_ativo) return;
+        const link = perfil?.link_avaliacao_google;
+        if (!link) { avisar('Cadastre seu link de avaliação do Google em Automações.'); return; }
 
-        let numLimpo = String(cliente.telefone).replace(/\D/g, '');
-        if (numLimpo.startsWith('0')) numLimpo = numLimpo.substring(1);
-        if (!numLimpo.startsWith('55')) numLimpo = `55${numLimpo}`;
-        if (numLimpo.length < 12 || numLimpo.length > 13) return;
+        // Pós-conclusão: se já pediu para este atendimento, não oferece de novo
+        if (silencioso && ag.avaliacao_solicitada_em) return;
 
-        // montarMensagem formata a data: antes ia "2026-08-20" e "14:30:00"
-        // crus do banco direto para a cliente.
-        const mensagem = window.montarMensagem(perfil.mensagem_whatsapp || window.MENSAGEM_PADRAO_ZAP, {
-            nome: cliente.nome,
-            servico: agendamento.servico_nome,
-            data: agendamento.data,
-            hora: agendamento.hora,
-            valor: agendamento.valor
+        let cliente = appState.clientes.find(c => c.id === ag.cliente_id);
+        if (!cliente && ag.cliente_id) {
+            const { data } = await _supabase.from('clientes').select('id, nome, telefone').eq('id', ag.cliente_id).maybeSingle();
+            cliente = data;
+        }
+        const numero = window.telefoneWhatsApp(cliente?.telefone);
+        if (!numero) { avisar('Esta cliente está sem telefone válido no cadastro.'); return; }
+
+        const mensagem = window.montarMensagem(perfil.mensagem_avaliacao || window.MENSAGEM_PADRAO_AVALIACAO, {
+            nome: cliente.nome || ag.cliente_nome,
+            servico: ag.servico_nome,
+            data: ag.data,
+            hora: ag.hora,
+            valor: ag.valor,
+            link
         });
 
-        // Chama via Edge Function (evita bloqueio de CORS do browser).
-        // A funcao exige sessao e busca o token do gateway no proprio perfil.
-        const { data: { session } } = await _supabase.auth.getSession();
-        const { error: errWpp } = await _supabase.functions.invoke('enviar-whatsapp', {
-            headers: { Authorization: `Bearer ${session?.access_token}` },
-            body: { telefone: numLimpo, mensagem }
-        });
-        if (errWpp) console.error('Erro ao enviar WhatsApp:', errWpp);
-        else console.log('✅ WhatsApp automático enviado via Fonnte!');
+        _pedidoAvaliacao = {
+            agendamentoId: ag.id,
+            clienteId: ag.cliente_id,
+            url: `https://api.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(mensagem)}`
+        };
+
+        const primeiroNome = String(cliente.nome || ag.cliente_nome || 'a cliente').trim().split(' ')[0];
+        let texto = `Quer pedir para ${primeiroNome} avaliar o seu atendimento no Google?`;
+        if (ag.avaliacao_solicitada_em) {
+            texto += ` (Você já pediu em ${new Date(ag.avaliacao_solicitada_em).toLocaleDateString('pt-BR')}.)`;
+        }
+        document.getElementById('pedidoAvaliacaoTexto').textContent = texto;
+        document.getElementById('modalPedirAvaliacao').classList.add('active');
     } catch (err) {
-        console.error('Erro ao enviar WhatsApp automático:', err);
+        console.error('Erro ao preparar pedido de avaliação:', err);
+        avisar('Não foi possível preparar o pedido de avaliação.');
     }
+};
+
+window.enviarPedidoAvaliacao = function() {
+    const pedido = _pedidoAvaliacao;
+    if (!pedido) return;
+    // Primeiro abre (ainda dentro do clique), depois grava.
+    window.open(pedido.url, '_blank');
+    fecharPedidoAvaliacao();
+
+    // Só registra que o WhatsApp foi aberto — não há como saber se ela enviou.
+    _supabase.from('agendamentos')
+        .update({ avaliacao_solicitada_em: new Date().toISOString() })
+        .eq('id', pedido.agendamentoId)
+        .then(({ error }) => {
+            if (error) { console.warn('Não registrou o pedido de avaliação:', error); return; }
+            const local = appState.agendamentos.find(a => a.id === pedido.agendamentoId);
+            if (local) local.avaliacao_solicitada_em = new Date().toISOString();
+            const detalhesAbertos = document.getElementById('modalDetalhesCliente')?.classList.contains('active');
+            if (detalhesAbertos && pedido.clienteId) abrirDetalhesCliente(pedido.clienteId);
+        });
+};
+
+window.fecharPedidoAvaliacao = function() {
+    // Não mexe no overlay: o modal de detalhes da cliente pode estar aberto por baixo.
+    document.getElementById('modalPedirAvaliacao')?.classList.remove('active');
+    _pedidoAvaliacao = null;
 };
 
 
@@ -2772,6 +2836,7 @@ async function concluirAgendamento(agendamentoId) {
 
         if (error) throw error;
 
+        const concluiuAgora = !r?.ja_baixado;
         if (r?.ja_baixado) {
             showToast('Este atendimento já havia sido concluído.', 'info');
         } else {
@@ -2787,8 +2852,12 @@ async function concluirAgendamento(agendamentoId) {
 
         // 3. RECARREGA TELA DO CLIENTE
         if (typeof carregarDadosIniciais === 'function') await carregarDadosIniciais();
-        if (agendamento.cliente_id) abrirDetalhesCliente(agendamento.cliente_id); 
+        if (agendamento.cliente_id) abrirDetalhesCliente(agendamento.cliente_id);
         if (typeof carregarDashboard === 'function' && appState.currentPage === 'dashboard') carregarDashboard();
+
+        // Só na conclusão feita agora, à mão. A auto-conclusão de dias passados
+        // não oferece: seria "obrigada por vir hoje" dias depois, em lote.
+        if (concluiuAgora) window.oferecerPedidoAvaliacao(agendamentoId, true);
 
     } catch (err) {
         console.error('Erro:', err);

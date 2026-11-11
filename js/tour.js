@@ -34,7 +34,7 @@ const _TOUR_PASSOS = [
     {
         seletor: '[data-page="automacoes"]',
         titulo: '🤖 Automações',
-        texto: 'Configure mensagens automáticas de confirmação e lembrete via WhatsApp ou e-mail. Seus clientes sempre serão avisados.',
+        texto: 'Configure as mensagens de confirmação e lembrete (WhatsApp e e-mail) e o pedido de avaliação no Google que você envia depois do atendimento.',
     },
     {
         seletor: '[data-page="perfil"]',

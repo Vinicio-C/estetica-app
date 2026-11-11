@@ -165,6 +165,25 @@ quando ambos estão feitos o bloco some e grava `primeiros_passos_ok_<user_id>` 
 localStorage. Não usa `fetchAPI` de propósito (ele engole erro e devolve lista vazia, o
 que aqui viraria "faça de novo" para quem já fez).
 
+## WhatsApp — só pelo número da própria profissional
+Migração: `20261110_01_pedido_avaliacao_google`
+
+**O Fonnte foi abandonado.** Todo WhatsApp sai por `api.whatsapp.com/send`: o app abre a
+conversa com o texto pronto e a profissional aperta enviar. Não existe mais envio pelo
+servidor. A edge function `enviar-whatsapp` e as colunas `profiles.zapi_token`/`zapi_ativo`
+ficaram órfãs.
+
+### Pedido de avaliação no Google
+`profiles.link_avaliacao_google` + `profiles.mensagem_avaliacao` (variável `{link}`).
+Ao concluir **manualmente** (`concluirAgendamento`), abre o modal `modalPedirAvaliacao`.
+Também há o botão "Avaliação" nos concluídos do histórico da cliente.
+
+- **Não** oferecer na `auto_concluir_passados`: viraria "obrigada por vir hoje" em lote, dias depois.
+- O `window.open` precisa rodar **dentro do clique**. Depois de um `await` o celular bloqueia
+  a janela. Por isso `oferecerPedidoAvaliacao` monta tudo antes e o botão do modal só abre a URL.
+- `agendamentos.avaliacao_solicitada_em` registra que o WhatsApp **foi aberto**, não que a
+  mensagem foi enviada.
+
 ## Fluxo de cadastro
 1. Usuário preenche `signup.html` (nome, especialidade, email, senha)
 2. `supabase.auth.signUp()` cria o usuário
